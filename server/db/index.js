@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import { initSchema } from "./schema.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, "..", "data");
+const DATA_DIR = process.env.VERCEL ? path.join("/tmp", "ugurpos") : path.join(__dirname, "..", "data");
 const DB_PATH = path.join(DATA_DIR, "benimpos.db");
 
 let db;
