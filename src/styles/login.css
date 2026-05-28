@@ -1,0 +1,150 @@
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eef2f8 0%, #dfe8f5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 980px;
+}
+
+.login-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 768px) {
+  .login-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.login-card {
+  padding: 40px 36px;
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.login-logo img {
+  max-height: 48px;
+}
+
+.login-card h4 {
+  text-align: center;
+  color: #0080ff;
+  margin: 0 0 24px;
+  font-size: 22px;
+}
+
+.login-type {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.login-type label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group input {
+  width: 100%;
+  border: 1px solid #dbe0ec;
+  border-radius: 4px;
+  padding: 12px 14px;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #0080ff;
+}
+
+.login-error {
+  color: #e55353;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+.btn-login {
+  width: 100%;
+  border: none;
+  background: #18d26b;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-login:hover {
+  background: #14b85d;
+}
+
+.login-links {
+  text-align: right;
+  margin-top: 16px;
+}
+
+.login-links a {
+  color: #0080ff;
+  font-size: 13px;
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 20px;
+  color: #8a98ac;
+}
+
+.register-link a {
+  color: #0080ff;
+}
+
+.login-promo {
+  padding: 40px 36px;
+  border-top: 1px solid #ebebeb;
+  background: #fafbfd;
+}
+
+@media (min-width: 768px) {
+  .login-promo {
+    border-top: none;
+    border-left: 1px solid #ebebeb;
+  }
+}
+
+.login-promo h4 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: #303e67;
+}
+
+.login-promo p {
+  color: #8a98ac;
+  line-height: 1.6;
+}
+
+.promo-image {
+  width: 200px;
+  margin: 16px 0 24px;
+}
