@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
+import MobileMenu from "../components/MobileMenu";
 import "../styles/layout.css";
+import "../styles/mobile-menu.css";
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(
@@ -27,34 +29,35 @@ export default function MainLayout() {
   const [menuOpen, setMenuOpen] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia("(min-width: 992px)").matches : true
   );
+  const skipMenuClose = useRef(true);
 
   useEffect(() => {
-    if (!isDesktop) {
-      setMenuOpen(false);
+    if (skipMenuClose.current) {
+      skipMenuClose.current = false;
+      return;
     }
-  }, [location.pathname, isDesktop]);
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   return (
-    <div id="containerbar" className={`app-shell ${menuOpen ? "sidebar-open" : "sidebar-closed"}`}>
-      {!isDesktop && menuOpen && (
-        <button
-          type="button"
-          className="sidebar-backdrop"
-          aria-label="Menüyü kapat"
-          onClick={() => setMenuOpen(false)}
-        />
-      )}
-      <Sidebar onNavigate={() => !isDesktop && setMenuOpen(false)} />
+    <div id="containerbar" className={`app-shell ${isDesktop && menuOpen ? "sidebar-open" : "sidebar-closed"}`}>
+      {isDesktop && <Sidebar onNavigate={() => setMenuOpen(false)} />}
+      {!isDesktop && menuOpen && <MobileMenu overlay onClose={() => setMenuOpen(false)} />}
       <div className="rightbar">
         <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
-        <div className="contentbar">
+        <div className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""}`}>
           <Outlet />
         </div>
       </div>
+      {!isDesktop && location.pathname !== "/menu" && (
+        <Link to="/menu" className="mobile-home-fab" aria-label="Ana menü">
+          <i className="fa fa-th-large" />
+        </Link>
+      )}
     </div>
   );
 }

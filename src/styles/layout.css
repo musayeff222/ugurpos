@@ -324,7 +324,15 @@
   flex: 1;
 }
 
+.contentbar-menu {
+  padding: 0;
+}
+
 @media (max-width: 991px) {
+  .leftbar {
+    display: none;
+  }
+
   .rightbar {
     margin-left: 0;
   }
@@ -333,14 +341,16 @@
     margin-left: 0;
   }
 
-  .sidebar-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 150;
-    border: none;
-    background: rgba(0, 0, 0, 0.45);
-    cursor: pointer;
+  .contentbar {
+    padding: 16px;
+  }
+
+  .contentbar-menu {
+    padding: 0;
+  }
+
+  .topbar-search {
+    display: none;
   }
 
   .firm-label {

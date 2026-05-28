@@ -19,6 +19,7 @@ import StockCount from "./pages/StockCount";
 import { PurchaseInvoices, CreateInvoice } from "./pages/PurchaseInvoices";
 import Integration from "./pages/Integration";
 import Notices from "./pages/Notices";
+import MobileMenuPage from "./pages/MobileMenuPage";
 import DailyReport from "./pages/reports/DailyReport";
 import HistoricalReport from "./pages/reports/HistoricalReport";
 import ProductReport from "./pages/reports/ProductReport";
@@ -35,12 +36,18 @@ import {
   VariantsPage,
 } from "./pages/MiscPages";
 
+function HomeRedirect() {
+  const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 991px)").matches;
+  return <Navigate to={isMobile ? "/menu" : "/dashboard"} replace />;
+}
+
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<MainLayout />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route index element={<HomeRedirect />} />
+        <Route path="menu" element={<MobileMenuPage />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="sales" element={<Sales />} />
         <Route path="dreport" element={<DailyReport />} />

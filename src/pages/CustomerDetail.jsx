@@ -11,6 +11,7 @@ export default function CustomerDetail() {
   const customerId = params.get("id") || state.customers[0]?.id;
   const customer = state.customers.find((c) => c.id === customerId);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [message, setMessage] = useState("");
 
   const sales = useMemo(
     () => state.sales.filter((s) => s.customerId === customerId),
@@ -26,12 +27,20 @@ export default function CustomerDetail() {
     );
   }
 
-  const handlePayment = (e) => {
+  const handlePayment = async (e) => {
     e.preventDefault();
     const amount = Number(paymentAmount);
-    if (!amount || amount <= 0) return;
-    addCustomerPayment(customer.id, amount);
-    setPaymentAmount("");
+    if (!amount || amount <= 0) {
+      setMessage("Geçerli bir tutar girin.");
+      return;
+    }
+    try {
+      await addCustomerPayment(customer.id, amount);
+      setPaymentAmount("");
+      setMessage("Nakit ödeme kaydedildi.");
+    } catch (err) {
+      setMessage(err.message || "Ödeme kaydedilemedi.");
+    }
   };
 
   return (
@@ -44,6 +53,8 @@ export default function CustomerDetail() {
           </Link>
         }
       />
+
+      {message && <div className="alert alert-info">{message}</div>}
 
       <div className="row">
         <div className="col half-col">
@@ -81,8 +92,17 @@ export default function CustomerDetail() {
             <form className="card-body form-stack" onSubmit={handlePayment}>
               <label>Tutar</label>
               <input type="number" step="0.01" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
+              {customer.debt > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-default btn-sm"
+                  onClick={() => setPaymentAmount(String(customer.debt))}
+                >
+                  Tüm borcu öde ({formatMoney(customer.debt)})
+                </button>
+              )}
               <button type="submit" className="btn btn-success">
-                Ödeme Kaydet
+                Nakit Ödeme Kaydet
               </button>
             </form>
           </div>

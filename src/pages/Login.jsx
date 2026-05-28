@@ -13,7 +13,7 @@ export default function Login() {
   const [error, setError] = useState("");
 
   if (isAuthenticated) {
-    const dest = location.state?.from?.pathname || "/dashboard";
+    const dest = location.state?.from?.pathname || (window.matchMedia("(max-width: 991px)").matches ? "/menu" : "/dashboard");
     return <Navigate to={dest} replace />;
   }
 
@@ -26,7 +26,8 @@ export default function Login() {
     setError("");
     try {
       await login(email.trim(), password);
-      navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
+      const isMobile = window.matchMedia("(max-width: 991px)").matches;
+      navigate(location.state?.from?.pathname || (isMobile ? "/menu" : "/dashboard"), { replace: true });
     } catch (err) {
       setError(err.message === "Invalid credentials" ? "Geçersiz e-posta veya parola." : err.message);
     }

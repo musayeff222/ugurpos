@@ -49,9 +49,8 @@ export default function Sales() {
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
 
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+    setPaid(cart.length ? String(total) : "0");
+  }, [total, activeTab, cart.length]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -71,6 +70,11 @@ export default function Sales() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const setCartForTab = (updater) => {
     setCarts((prev) => {
@@ -178,7 +182,7 @@ export default function Sales() {
     setPaid(String(value));
   };
 
-  const finalize = (paymentType) => {
+  const finalize = async (paymentType) => {
     if (!cart.length) {
       setMessage("Sepet boş.");
       return;
@@ -188,27 +192,34 @@ export default function Sales() {
       setCustomerModal(true);
       return;
     }
-    if (paymentType === "cash" && (Number(paid) || 0) < total) {
-      setMessage("Nakit ödeme tutarı yetersiz.");
-      return;
+
+    let paidAmount = Number(paid) || 0;
+    if (paymentType === "cash") {
+      paidAmount = Math.max(paidAmount, total);
+    } else if (paymentType === "pos" || paymentType === "partial") {
+      paidAmount = total;
     }
 
-    completeSale({
-      items: cart,
-      paymentType,
-      customerId: customerId || null,
-      staffName: "Admin",
-      note,
-      discount: Number(discount) || 0,
-      discountType,
-      paidAmount: paymentType === "cash" ? Number(paid) : total,
-    });
+    try {
+      await completeSale({
+        items: cart,
+        paymentType,
+        customerId: customerId || null,
+        staffName: "Admin",
+        note,
+        discount: Number(discount) || 0,
+        discountType,
+        paidAmount,
+      });
 
-    setMessage("Satış tamamlandı.");
-    setCartForTab([]);
-    setPaid("0");
-    setDiscount("");
-    setCustomerForTab("");
+      setMessage("Satış tamamlandı.");
+      setCartForTab([]);
+      setPaid("0");
+      setDiscount("");
+      setCustomerForTab("");
+    } catch (err) {
+      setMessage(err.message || "Satış kaydedilemedi.");
+    }
   };
 
   const filteredCustomers = state.customers.filter((c) =>
