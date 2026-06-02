@@ -328,6 +328,15 @@
   padding: 0;
 }
 
+.mobile-menu-shell .rightbar {
+  margin-left: 0;
+}
+
+.mobile-menu-shell .contentbar-menu {
+  min-height: 100vh;
+  padding: 0;
+}
+
 @media (max-width: 991px) {
   .leftbar {
     display: none;

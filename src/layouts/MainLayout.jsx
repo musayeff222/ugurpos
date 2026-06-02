@@ -44,11 +44,20 @@ export default function MainLayout() {
   }
 
   return (
-    <div id="containerbar" className={`app-shell ${isDesktop && menuOpen ? "sidebar-open" : "sidebar-closed"}`}>
+    <div
+      id="containerbar"
+      className={`app-shell ${isDesktop && menuOpen ? "sidebar-open" : "sidebar-closed"} ${
+        !isDesktop && location.pathname === "/menu" ? "mobile-menu-shell" : ""
+      }`}
+    >
       {isDesktop && <Sidebar onNavigate={() => setMenuOpen(false)} />}
-      {!isDesktop && menuOpen && <MobileMenu overlay onClose={() => setMenuOpen(false)} />}
+      {!isDesktop && menuOpen && location.pathname !== "/menu" && (
+        <MobileMenu overlay onClose={() => setMenuOpen(false)} />
+      )}
       <div className="rightbar">
-        <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
+        {isDesktop || location.pathname !== "/menu" ? (
+          <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
+        ) : null}
         <div className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""}`}>
           <Outlet />
         </div>

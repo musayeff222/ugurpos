@@ -1,71 +1,64 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { navigation } from "../data/navigation";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { mobileMenuItems } from "../data/mobileMenu";
 import "../styles/mobile-menu.css";
-
-function mapChildren(children, parentIcon) {
-  return children.map((child) => ({
-    label: child.label,
-    path: child.path,
-    icon: child.icon || parentIcon || "fa-circle",
-  }));
-}
 
 export default function MobileMenu({ overlay = false, onClose }) {
   const navigate = useNavigate();
-  const [stack, setStack] = useState([{ title: "Menü", items: navigation }]);
-  const current = stack[stack.length - 1];
-  const canGoBack = stack.length > 1;
+  const { user, logout } = useAuth();
 
-  const handleItem = (item) => {
-    if (item.children?.length) {
-      setStack((prev) => [
-        ...prev,
-        { title: item.label, items: mapChildren(item.children, item.icon) },
-      ]);
-      return;
-    }
-    if (item.path) {
-      navigate(item.path);
-      onClose?.();
-    }
+  const handleItem = (path) => {
+    navigate(path);
+    onClose?.();
   };
 
-  const goBack = () => {
-    if (canGoBack) setStack((prev) => prev.slice(0, -1));
-    else onClose?.();
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
   };
 
   return (
     <div className={`mobile-menu ${overlay ? "mobile-menu-overlay" : "mobile-menu-page"}`}>
-      <div className="mobile-menu-header">
-        <button type="button" className="mobile-menu-back" onClick={goBack} aria-label="Geri">
-          <i className={`fa ${canGoBack || overlay ? "fa-arrow-left" : "fa-th-large"}`} />
-        </button>
-        <h2>{current.title}</h2>
-        {overlay && (
-          <button type="button" className="mobile-menu-close" onClick={onClose} aria-label="Kapat">
-            <i className="fa fa-times" />
-          </button>
-        )}
-        {!overlay && <span className="mobile-menu-header-spacer" />}
+      <div className="mobile-hero">
+        <div className="mobile-hero-top">
+          {overlay ? (
+            <button type="button" className="mobile-hero-icon-btn" onClick={onClose} aria-label="Kapat">
+              <i className="fa fa-arrow-left" />
+            </button>
+          ) : (
+            <span className="mobile-hero-spacer" />
+          )}
+          <h1 className="mobile-hero-title">UgurPOS</h1>
+          <div className="mobile-hero-actions">
+            <Link to="/profile" className="mobile-hero-icon-btn" onClick={onClose}>
+              <i className="fa fa-user-circle-o" />
+            </Link>
+            <Link to="/notices" className="mobile-hero-icon-btn" onClick={onClose}>
+              <i className="fa fa-bell-o" />
+            </Link>
+            <button type="button" className="mobile-hero-icon-btn" onClick={handleLogout} aria-label="Çıkış">
+              <i className="fa fa-sign-out" />
+            </button>
+          </div>
+        </div>
+        <p className="mobile-hero-firm">{user?.firmName || "Firma"}</p>
+        <p className="mobile-hero-role">Yönetici</p>
       </div>
 
-      <div className="mobile-menu-grid">
-        {current.items.map((item) => (
-          <button
-            key={item.label + (item.path || "")}
-            type="button"
-            className="mobile-menu-card"
-            onClick={() => handleItem(item)}
-          >
-            <span className="mobile-menu-card-icon">
-              <i className={`fa ${item.icon || "fa-circle"}`} />
-            </span>
-            <span className="mobile-menu-card-label">{item.label}</span>
-            {item.children?.length > 0 && <span className="mobile-menu-card-badge">{item.children.length}</span>}
-          </button>
-        ))}
+      <div className="mobile-menu-body">
+        <div className="mobile-menu-grid">
+          {mobileMenuItems.map((item) => (
+            <button
+              key={item.path + item.label}
+              type="button"
+              className="mobile-menu-card"
+              onClick={() => handleItem(item.path)}
+            >
+              <i className={`fa ${item.icon} mobile-menu-card-icon`} />
+              <span className="mobile-menu-card-label">{item.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
