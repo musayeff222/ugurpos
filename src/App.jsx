@@ -29,13 +29,13 @@ import StaffMotionsReport from "./pages/reports/StaffMotionsReport";
 import StockReport from "./pages/reports/StockReport";
 import {
   EInvoicePage,
-  LabelPrint,
   LicensePage,
   ProductCorrelationReport,
-  ScalePrintPage,
   SubProductsPage,
   VariantsPage,
 } from "./pages/MiscPages";
+import LabelPrintPage from "./pages/LabelPrintPage";
+import ScalePrintPage from "./pages/ScalePrintPage";
 
 function HomeRedirect() {
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 991px)").matches;
@@ -68,8 +68,8 @@ export default function App() {
         <Route path="variants" element={<VariantsPage />} />
         <Route path="refund" element={<Refund />} />
         <Route path="refundreq" element={<RefundRequests />} />
-        <Route path="ptag" element={<LabelPrint />} />
-        <Route path="ptags" element={<LabelPrint />} />
+        <Route path="ptag" element={<LabelPrintPage />} />
+        <Route path="ptags" element={<LabelPrintPage designer />} />
         <Route path="pweightxt" element={<ScalePrintPage />} />
         <Route path="pinvoice" element={<PurchaseInvoices />} />
         <Route path="createinvoice" element={<CreateInvoice />} />
@@ -77,7 +77,6 @@ export default function App() {
         <Route path="einvoicecreate" element={<EInvoicePage mode="create" />} />
         <Route path="einvoiceg" element={<EInvoicePage mode="outgoing" />} />
         <Route path="einvoicec" element={<EInvoicePage mode="incoming" />} />
-        <Route path="eoptions" element={<EInvoicePage mode="settings" />} />
         <Route path="stockl" element={<StockCount />} />
         <Route path="income" element={<IncomePage />} />
         <Route path="expense" element={<ExpensePage />} />

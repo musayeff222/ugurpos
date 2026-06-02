@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getDb, getAllState, getSaleWithItems, uid, rowToProduct, rowToCustomer } from "../db/index.js";
+import { generateProductBarcode, generateStockCode } from "../utils/barcode.js";
 
 const router = Router();
 
@@ -69,13 +70,15 @@ router.post("/products", (req, res) => {
   const db = getDb();
   const p = req.body;
   const id = uid("p");
+  const barcode = (p.barcode && String(p.barcode).trim()) || generateProductBarcode(db);
+  const stockCode = (p.stockCode && String(p.stockCode).trim()) || generateStockCode(db);
   db.prepare(`
     INSERT INTO products (id, barcode, stock_code, name, group_id, stock, critical_stock, vat, buy_price, price1, price2, unit, on_sale_page, active)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
   `).run(
     id,
-    p.barcode,
-    p.stockCode || "",
+    barcode,
+    stockCode,
     p.name,
     p.groupId || null,
     Number(p.stock) || 0,

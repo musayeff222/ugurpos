@@ -67,7 +67,6 @@ export const navigation = [
       { label: "Yeni E-Fatura Oluştur", path: "/einvoicecreate" },
       { label: "Giden E-Faturalar", path: "/einvoiceg" },
       { label: "Gelen E-Faturalar", path: "/einvoicec" },
-      { label: "Ayarlar", path: "/eoptions" },
     ],
   },
   {

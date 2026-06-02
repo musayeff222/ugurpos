@@ -5,7 +5,6 @@ import PageHeader from "../components/ui/PageHeader";
 import { DEFAULT_PRODUCT_UNIT, PRODUCT_UNITS } from "../data/productUnits";
 
 const emptyForm = {
-  barcode: "",
   stockCode: "",
   name: "",
   groupId: "",
@@ -36,8 +35,8 @@ export default function ProductForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.barcode.trim()) {
-      setMessage("Ürün adı ve barkod zorunludur.");
+    if (!form.name.trim()) {
+      setMessage("Ürün adı zorunludur.");
       return;
     }
     const payload = {
@@ -52,7 +51,11 @@ export default function ProductForm() {
     };
     try {
       if (existing) {
-        await updateProduct(existing.id, payload);
+        await updateProduct(existing.id, {
+          ...payload,
+          barcode: existing.barcode,
+          stockCode: form.stockCode || existing.stockCode,
+        });
         setMessage("Ürün güncellendi.");
       } else {
         await addProduct(payload);
@@ -74,12 +77,20 @@ export default function ProductForm() {
         }
       />
       {message && <div className="alert alert-info">{message}</div>}
+      {!existing && (
+        <p className="hint-text" style={{ marginBottom: 12, color: "#666", fontSize: 13 }}>
+          Barkod ve stok kodu kayıt sırasında otomatik oluşturulur.
+        </p>
+      )}
       <form className="card form-grid" onSubmit={handleSubmit}>
-        <label>Barkod *</label>
-        <input value={form.barcode} onChange={(e) => setField("barcode", e.target.value)} required />
-
-        <label>Stok Kodu</label>
-        <input value={form.stockCode} onChange={(e) => setField("stockCode", e.target.value)} />
+        {existing && (
+          <>
+            <label>Barkod</label>
+            <input value={existing.barcode} readOnly disabled />
+            <label>Stok Kodu</label>
+            <input value={existing.stockCode || ""} readOnly disabled />
+          </>
+        )}
 
         <label>Ürün Adı *</label>
         <input value={form.name} onChange={(e) => setField("name", e.target.value)} required />

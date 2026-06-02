@@ -1,0 +1,204 @@
+.product-label {
+  width: 76mm;
+  max-width: 76mm;
+  min-height: 38mm;
+  padding: 2mm 3mm;
+  box-sizing: border-box;
+  border: 1px dashed #ccc;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+  overflow: hidden;
+}
+
+.product-label__store {
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 1mm;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-label__name {
+  font-size: 11pt;
+  font-weight: 700;
+  line-height: 1.2;
+  min-height: 2.4em;
+  margin-bottom: 1.5mm;
+  word-break: break-word;
+}
+
+.product-label__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+  font-size: 8pt;
+  margin-bottom: 1mm;
+  color: #333;
+}
+
+.product-label__price {
+  font-size: 16pt;
+  font-weight: 800;
+  margin: 1mm 0;
+}
+
+.product-label__barcode {
+  width: 100%;
+  max-height: 14mm;
+}
+
+.product-label__barcode svg {
+  width: 100% !important;
+  height: auto !important;
+}
+
+.scale-label {
+  width: 76mm;
+  max-width: 76mm;
+  min-height: 45mm;
+  padding: 2mm 3mm;
+  box-sizing: border-box;
+  border: 1px dashed #ccc;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+}
+
+.scale-label__store {
+  font-size: 8pt;
+  font-weight: 700;
+  margin-bottom: 1mm;
+}
+
+.scale-label__name {
+  font-size: 12pt;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 2mm;
+  min-height: 2.2em;
+}
+
+.scale-label__weight-row {
+  font-size: 11pt;
+  font-weight: 600;
+  margin-bottom: 1mm;
+}
+
+.scale-label__total {
+  font-size: 18pt;
+  font-weight: 800;
+  margin: 1.5mm 0;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  padding: 1.5mm 0;
+}
+
+.scale-label__unit-price {
+  font-size: 9pt;
+  color: #333;
+  margin-bottom: 1mm;
+}
+
+.scale-label__date {
+  font-size: 7pt;
+  color: #555;
+  margin-bottom: 1mm;
+}
+
+.scale-label__barcode {
+  width: 100%;
+}
+
+.scale-label__barcode svg {
+  width: 100% !important;
+  height: auto !important;
+}
+
+.print-preview-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: #eef1f8;
+  border-radius: 8px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.print-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.print-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.print-controls select,
+.print-controls input {
+  min-width: 160px;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 80mm;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+  }
+
+  .product-label,
+  .scale-label {
+    border: none !important;
+    page-break-after: always;
+    break-after: page;
+    margin: 0 auto;
+  }
+
+  .product-label:last-child,
+  .scale-label:last-child {
+    page-break-after: auto;
+  }
+
+  .print-preview-grid {
+    background: none;
+    padding: 0;
+    max-height: none;
+    overflow: visible;
+  }
+}

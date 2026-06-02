@@ -16,18 +16,6 @@ export default function SimpleToolPage({ title, description, children }) {
   );
 }
 
-export function LabelPrint() {
-  const { state } = useStore();
-  return (
-    <SimpleToolPage title="Etiket Üret" description="Seçili ürünler için barkod etiketi oluşturun.">
-      <p>{state.products.length} ürün için etiket yazdırılabilir.</p>
-      <button type="button" className="btn btn-primary" onClick={() => window.print()}>
-        <i className="fa fa-print" /> Etiket Yazdır
-      </button>
-    </SimpleToolPage>
-  );
-}
-
 export function ProductCorrelationReport() {
   const { state } = useStore();
 
@@ -201,7 +189,6 @@ export function EInvoicePage({ mode = "list" }) {
     create: "Yeni E-Fatura Oluştur",
     outgoing: "Giden E-Faturalar",
     incoming: "Gelen E-Faturalar",
-    settings: "E-Fatura Ayarları",
   };
   const [form, setForm] = useState({ invoiceNo: "", customerName: "", total: "" });
 
@@ -218,21 +205,6 @@ export function EInvoicePage({ mode = "list" }) {
     });
     setForm({ invoiceNo: "", customerName: "", total: "" });
   };
-
-  if (mode === "settings") {
-    return (
-      <SimpleToolPage title={titles[mode]} description="E-fatura entegrasyonu için ayar gerekir.">
-        <p>Entegrasyonlar sayfasından e-fatura bağlantısını yapılandırın.</p>
-        <ul className="simple-list">
-          {(state.integrations || []).map((i) => (
-            <li key={i.id}>
-              {i.name}: <strong>{i.status}</strong>
-            </li>
-          ))}
-        </ul>
-      </SimpleToolPage>
-    );
-  }
 
   if (mode === "create") {
     return (
@@ -275,16 +247,6 @@ export function LicensePage() {
       </ul>
       <button type="button" className="btn btn-success">
         Satın Al
-      </button>
-    </SimpleToolPage>
-  );
-}
-
-export function ScalePrintPage() {
-  return (
-    <SimpleToolPage title="Barkodlu Terazi Çıktısı" description="Terazi etiketi yazdırma">
-      <button type="button" className="btn btn-primary" onClick={() => window.print()}>
-        Terazi Etiketi Yazdır
       </button>
     </SimpleToolPage>
   );
