@@ -19,6 +19,7 @@ import StockCount from "./pages/StockCount";
 import { PurchaseInvoices, CreateInvoice } from "./pages/PurchaseInvoices";
 import Integration from "./pages/Integration";
 import Notices from "./pages/Notices";
+import Profile from "./pages/Profile";
 import MobileMenuPage from "./pages/MobileMenuPage";
 import DailyReport from "./pages/reports/DailyReport";
 import HistoricalReport from "./pages/reports/HistoricalReport";
@@ -87,7 +88,7 @@ export default function App() {
         <Route path="integration" element={<Integration />} />
         <Route path="buyingInformation" element={<LicensePage />} />
         <Route path="notices" element={<Notices />} />
-        <Route path="profile" element={<Navigate to="/dashboard" replace />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

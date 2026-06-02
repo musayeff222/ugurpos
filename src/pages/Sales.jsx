@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "../store/StoreContext";
 import Modal from "../components/ui/Modal";
 import { calcCartTotal, formatMoney, uid } from "../utils/format";
@@ -51,25 +51,6 @@ export default function Sales() {
   useEffect(() => {
     setPaid(cart.length ? String(total) : "0");
   }, [total, activeTab, cart.length]);
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "F8") {
-        e.preventDefault();
-        finalize("cash");
-      }
-      if (e.key === "F9") {
-        e.preventDefault();
-        finalize("pos");
-      }
-      if (e.key === "F10") {
-        e.preventDefault();
-        finalize("open");
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -182,7 +163,7 @@ export default function Sales() {
     setPaid(String(value));
   };
 
-  const finalize = async (paymentType) => {
+  const finalize = useCallback(async (paymentType) => {
     if (!cart.length) {
       setMessage("Sepet boş.");
       return;
@@ -220,7 +201,26 @@ export default function Sales() {
     } catch (err) {
       setMessage(err.message || "Satış kaydedilemedi.");
     }
-  };
+  }, [cart, completeSale, customerId, discount, discountType, note, paid, total, activeTab]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "F8") {
+        e.preventDefault();
+        finalize("cash");
+      }
+      if (e.key === "F9") {
+        e.preventDefault();
+        finalize("pos");
+      }
+      if (e.key === "F10") {
+        e.preventDefault();
+        finalize("open");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [finalize]);
 
   const filteredCustomers = state.customers.filter((c) =>
     c.name.toLocaleLowerCase("tr").includes(customerSearch.toLocaleLowerCase("tr"))

@@ -5,11 +5,13 @@ import DataTable from "../components/ui/DataTable";
 import Modal from "../components/ui/Modal";
 import PageHeader from "../components/ui/PageHeader";
 import { formatMoney } from "../utils/format";
+import { runAsync } from "../utils/runAsync";
 
 export default function CustomersList() {
   const { state, addCustomer } = useStore();
   const [onlyDebt, setOnlyDebt] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [message, setMessage] = useState("");
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -31,12 +33,14 @@ export default function CustomersList() {
 
   const totalDebt = state.customers.reduce((s, c) => s + (c.debt || 0), 0);
 
-  const handleCreate = (e) => {
+  const handleCreate = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return;
-    addCustomer(form);
-    setForm({ name: "", phone: "", address: "", note: "", creditLimit: 0, debt: 0 });
-    setModalOpen(false);
+    const ok = await runAsync(() => addCustomer(form), setMessage);
+    if (ok) {
+      setForm({ name: "", phone: "", address: "", note: "", creditLimit: 0, debt: 0 });
+      setModalOpen(false);
+    }
   };
 
   return (
@@ -49,6 +53,7 @@ export default function CustomersList() {
           </button>
         }
       />
+      {message && <div className="alert alert-info">{message}</div>}
 
       <div className="card summary-inline">
         <span>

@@ -342,6 +342,22 @@ router.post("/firms", (req, res) => {
   res.status(201).json({ id, name, phone, taxNo, balance: 0 });
 });
 
+router.patch("/firms/:id", (req, res) => {
+  const db = getDb();
+  const existing = db.prepare("SELECT * FROM firms WHERE id = ?").get(req.params.id);
+  if (!existing) return res.status(404).json({ error: "Not found" });
+  const { name, phone, taxNo, balance } = req.body;
+  db.prepare("UPDATE firms SET name=?, phone=?, tax_no=?, balance=? WHERE id=?").run(
+    name ?? existing.name,
+    phone ?? existing.phone,
+    taxNo ?? existing.tax_no,
+    balance ?? existing.balance,
+    req.params.id
+  );
+  const row = db.prepare("SELECT * FROM firms WHERE id = ?").get(req.params.id);
+  res.json({ id: row.id, name: row.name, phone: row.phone, taxNo: row.tax_no, balance: row.balance });
+});
+
 router.delete("/firms/:id", (req, res) => {
   getDb().prepare("DELETE FROM firms WHERE id = ?").run(req.params.id);
   res.json({ ok: true });

@@ -97,9 +97,7 @@ export function StoreProvider({ children }) {
       },
 
       updateFirm: async (id, patch) => {
-        // no dedicated patch endpoint — recreate via refresh after local merge if needed
-        void id;
-        void patch;
+        await api.updateFirm(id, patch);
         return refresh();
       },
 

@@ -3,6 +3,7 @@ import { useStore } from "../store/StoreContext";
 import DataTable from "../components/ui/DataTable";
 import PageHeader from "../components/ui/PageHeader";
 import { formatMoney, todayISO } from "../utils/format";
+import { runAsync } from "../utils/runAsync";
 
 function FinancePage({ title, type }) {
   const store = useStore();
@@ -11,22 +12,28 @@ function FinancePage({ title, type }) {
   const types = isIncome ? store.state.incomeTypes : store.state.expenseTypes;
   const addFn = isIncome ? store.addIncome : store.addExpense;
   const [form, setForm] = useState({ title: "", amount: "", typeId: types[0]?.id || "", date: todayISO() });
+  const [message, setMessage] = useState("");
 
   return (
     <div>
       <PageHeader title={title} />
+      {message && <div className="alert alert-info">{message}</div>}
       <form
         className="card form-inline-bar"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           if (!form.title.trim() || !form.amount) return;
-          addFn({
-            title: form.title,
-            amount: form.amount,
-            typeId: form.typeId,
-            date: form.date,
-          });
-          setForm({ title: "", amount: "", typeId: types[0]?.id || "", date: todayISO() });
+          const ok = await runAsync(
+            () =>
+              addFn({
+                title: form.title,
+                amount: form.amount,
+                typeId: form.typeId,
+                date: form.date,
+              }),
+            setMessage
+          );
+          if (ok) setForm({ title: "", amount: "", typeId: types[0]?.id || "", date: todayISO() });
         }}
       >
         <input placeholder="Açıklama" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
@@ -76,10 +83,12 @@ export function IneTypesPage() {
   const { state, addIncomeType, addExpenseType } = useStore();
   const [incomeName, setIncomeName] = useState("");
   const [expenseName, setExpenseName] = useState("");
+  const [message, setMessage] = useState("");
 
   return (
     <div>
       <PageHeader title="Gelir / Gider Türleri" />
+      {message && <div className="alert alert-info">{message}</div>}
       <div className="row">
         <div className="col half-col">
           <div className="card">
@@ -88,11 +97,11 @@ export function IneTypesPage() {
             </div>
             <form
               className="card-body filter-bar"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 if (!incomeName.trim()) return;
-                addIncomeType(incomeName.trim());
-                setIncomeName("");
+                const ok = await runAsync(() => addIncomeType(incomeName.trim()), setMessage);
+                if (ok) setIncomeName("");
               }}
             >
               <input value={incomeName} onChange={(e) => setIncomeName(e.target.value)} placeholder="Yeni gelir türü" />
@@ -114,11 +123,11 @@ export function IneTypesPage() {
             </div>
             <form
               className="card-body filter-bar"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 if (!expenseName.trim()) return;
-                addExpenseType(expenseName.trim());
-                setExpenseName("");
+                const ok = await runAsync(() => addExpenseType(expenseName.trim()), setMessage);
+                if (ok) setExpenseName("");
               }}
             >
               <input value={expenseName} onChange={(e) => setExpenseName(e.target.value)} placeholder="Yeni gider türü" />

@@ -3,6 +3,7 @@ import { useStore } from "../store/StoreContext";
 import PageHeader from "../components/ui/PageHeader";
 import DataTable from "../components/ui/DataTable";
 import { formatMoney } from "../utils/format";
+import { runAsync } from "../utils/runAsync";
 
 export default function SimpleToolPage({ title, description, children }) {
   return (
@@ -69,6 +70,7 @@ export function ProductCorrelationReport() {
 export function VariantsPage() {
   const { state, addVariant, deleteVariant } = useStore();
   const [form, setForm] = useState({ productId: "", name: "", sku: "", price: "", stock: "" });
+  const [message, setMessage] = useState("");
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -85,6 +87,7 @@ export function VariantsPage() {
 
   return (
     <SimpleToolPage title="Ürün Varyantları" description="Renk, beden gibi varyant tanımları.">
+      {message && <div className="alert alert-info">{message}</div>}
       <form className="form-inline mb-3" onSubmit={handleAdd}>
         <select value={form.productId} onChange={(e) => setForm({ ...form, productId: e.target.value })} required>
           <option value="">Ana ürün seçin</option>
@@ -117,7 +120,7 @@ export function VariantsPage() {
             key: "actions",
             label: "",
             render: (row) => (
-              <button type="button" className="btn btn-sm btn-danger" onClick={() => deleteVariant(row.id)}>
+              <button type="button" className="btn btn-sm btn-danger" onClick={() => runAsync(() => deleteVariant(row.id), setMessage)}>
                 Sil
               </button>
             ),
@@ -132,6 +135,7 @@ export function VariantsPage() {
 export function SubProductsPage() {
   const { state, addSubProduct, deleteSubProduct } = useStore();
   const [form, setForm] = useState({ parentProductId: "", name: "", qty: "1" });
+  const [message, setMessage] = useState("");
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -146,6 +150,7 @@ export function SubProductsPage() {
 
   return (
     <SimpleToolPage title="Alt Ürün Tanımları" description="Set / combo ürün tanımları.">
+      {message && <div className="alert alert-info">{message}</div>}
       <form className="form-inline mb-3" onSubmit={handleAdd}>
         <select
           value={form.parentProductId}
@@ -178,7 +183,7 @@ export function SubProductsPage() {
             key: "actions",
             label: "",
             render: (row) => (
-              <button type="button" className="btn btn-sm btn-danger" onClick={() => deleteSubProduct(row.id)}>
+              <button type="button" className="btn btn-sm btn-danger" onClick={() => runAsync(() => deleteSubProduct(row.id), setMessage)}>
                 Sil
               </button>
             ),

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useStore } from "../store/StoreContext";
 import PageHeader from "../components/ui/PageHeader";
 import { formatMoney } from "../utils/format";
+import { runAsync } from "../utils/runAsync";
 
 export default function Refund() {
   const { state, processRefund } = useStore();
@@ -23,12 +24,14 @@ export default function Refund() {
     setMessage("");
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!items.length) return;
-    processRefund({ items, note });
-    setItems([]);
-    setNote("");
-    setMessage("İade kaydedildi, stok güncellendi.");
+    const ok = await runAsync(() => processRefund({ items, note }), setMessage);
+    if (ok) {
+      setItems([]);
+      setNote("");
+      setMessage("İade kaydedildi, stok güncellendi.");
+    }
   };
 
   return (

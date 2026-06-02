@@ -34,7 +34,7 @@ export default function ProductForm() {
 
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.barcode.trim()) {
       setMessage("Ürün adı ve barkod zorunludur.");
@@ -50,12 +50,16 @@ export default function ProductForm() {
       price2: Number(form.price2),
       groupId: form.groupId || state.groups[0]?.id,
     };
-    if (existing) {
-      updateProduct(existing.id, payload);
-      setMessage("Ürün güncellendi.");
-    } else {
-      addProduct(payload);
-      navigate("/products");
+    try {
+      if (existing) {
+        await updateProduct(existing.id, payload);
+        setMessage("Ürün güncellendi.");
+      } else {
+        await addProduct(payload);
+        navigate("/products");
+      }
+    } catch (err) {
+      setMessage(err.message || "Kayıt başarısız.");
     }
   };
 

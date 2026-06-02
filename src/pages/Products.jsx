@@ -4,12 +4,14 @@ import { useStore } from "../store/StoreContext";
 import DataTable from "../components/ui/DataTable";
 import PageHeader from "../components/ui/PageHeader";
 import { formatMoney } from "../utils/format";
+import { runAsync } from "../utils/runAsync";
 
 export default function Products() {
   const { state, deleteProducts } = useStore();
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState([]);
+  const [message, setMessage] = useState("");
 
   const rows = useMemo(() => {
     let list = [...state.products];
@@ -43,13 +45,22 @@ export default function Products() {
               <i className="fa fa-plus" /> Yeni Ürün
             </Link>
             {selected.length > 0 && (
-              <button type="button" className="btn btn-danger" onClick={() => { deleteProducts(selected); setSelected([]); }}>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={async () => {
+                  const ok = await runAsync(() => deleteProducts(selected), setMessage);
+                  if (ok) setSelected([]);
+                }}
+              >
                 Seçili ürünleri sil ({selected.length})
               </button>
             )}
           </>
         }
       />
+
+      {message && <div className="alert alert-info">{message}</div>}
 
       <div className="card filter-bar">
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>

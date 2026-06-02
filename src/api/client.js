@@ -67,6 +67,7 @@ export const api = {
 
   getFirms: () => request("/firms"),
   createFirm: (firm) => request("/firms", { method: "POST", body: JSON.stringify(firm) }),
+  updateFirm: (id, patch) => request(`/firms/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteFirm: (id) => request(`/firms/${id}`, { method: "DELETE" }),
 
   getPaymentMethods: () => request("/payment-methods"),

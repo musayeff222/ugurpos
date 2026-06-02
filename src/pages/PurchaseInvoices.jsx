@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
 import DataTable from "../components/ui/DataTable";
 import PageHeader from "../components/ui/PageHeader";
 import { formatMoney, todayISO } from "../utils/format";
+import { runAsync } from "../utils/runAsync";
 
 export function PurchaseInvoices() {
   const { state } = useStore();
@@ -36,22 +37,29 @@ export function PurchaseInvoices() {
 
 export function CreateInvoice() {
   const { state, addPurchaseInvoice } = useStore();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ invoiceNo: "", firmId: state.firms[0]?.id || "", total: "", date: todayISO() });
+  const [message, setMessage] = useState("");
 
   return (
     <div>
       <PageHeader title="Alış Faturası Oluştur" actions={<Link to="/pinvoice" className="btn btn-default">Geri</Link>} />
+      {message && <div className="alert alert-info">{message}</div>}
       <form
         className="card form-grid"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           const firm = state.firms.find((f) => f.id === form.firmId);
-          addPurchaseInvoice({
-            ...form,
-            firmName: firm?.name || "",
-            total: Number(form.total),
-          });
-          setForm({ invoiceNo: "", firmId: state.firms[0]?.id || "", total: "", date: todayISO() });
+          const ok = await runAsync(
+            () =>
+              addPurchaseInvoice({
+                ...form,
+                firmName: firm?.name || "",
+                total: Number(form.total),
+              }),
+            setMessage
+          );
+          if (ok) navigate("/pinvoice");
         }}
       >
         <label>Fatura No</label>
