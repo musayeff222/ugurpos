@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { useStore } from "../store/StoreContext";
 import Modal from "../components/ui/Modal";
 import { calcCartTotal, formatMoney, uid } from "../utils/format";
+import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
 import "../styles/sales.css";
 
 const TAB_COUNT = 5;
@@ -12,6 +14,7 @@ function emptyCarts() {
 }
 
 export default function Sales() {
+  const { user } = useAuth();
   const { state, completeSale } = useStore();
   const [activeTab, setActiveTab] = useState(0);
   const [carts, setCarts] = useState(emptyCarts);
@@ -34,8 +37,10 @@ export default function Sales() {
   const [otherOpen, setOtherOpen] = useState(false);
   const [fastListTab, setFastListTab] = useState(0);
   const [message, setMessage] = useState("");
+  const [lastSale, setLastSale] = useState(null);
   const [now, setNow] = useState(new Date());
   const barcodeRef = useRef(null);
+  const printWrapRef = useRef(null);
 
   const cart = carts[activeTab];
   const customerId = customerIds[activeTab];
@@ -47,6 +52,75 @@ export default function Sales() {
   );
   const change = Math.max(0, (Number(paid) || 0) - total);
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
+
+  const buildReceiptData = useCallback(
+    (saleOverride = null) => {
+      const source = saleOverride || (cart.length ? { items: cart } : lastSale);
+      if (!source?.items?.length) return null;
+
+      const items = source.items;
+      const disc = saleOverride?.discount ?? (cart.length ? Number(discount) || 0 : lastSale?.discount ?? 0);
+      const discType = saleOverride?.discountType ?? (cart.length ? discountType : lastSale?.discountType ?? "TL");
+      const tot = saleOverride?.total ?? (cart.length ? total : lastSale?.total ?? 0);
+      const paidAmt =
+        saleOverride?.paidAmount ?? (cart.length ? Number(paid) || 0 : lastSale?.paidAmount ?? 0);
+      const payment = saleOverride?.paymentType ?? lastSale?.paymentType ?? "cash";
+      const customer =
+        saleOverride?.customerName ??
+        (cart.length ? selectedCustomer?.name : state.customers.find((c) => c.id === lastSale?.customerId)?.name) ??
+        "";
+
+      return {
+        storeName: user?.firmName || "Mağaza",
+        code: saleOverride?.code ?? lastSale?.code ?? (cart.length ? "ÖNİZLEME" : ""),
+        createdAt: saleOverride?.createdAt ?? lastSale?.createdAt ?? new Date().toISOString(),
+        items,
+        discount: disc,
+        discountType: discType,
+        total: tot,
+        paidAmount: paidAmt,
+        change: Math.max(0, paidAmt - tot),
+        paymentType: payment,
+        customerName: customer,
+        staffName: saleOverride?.staffName ?? lastSale?.staffName ?? "Admin",
+        note: saleOverride?.note ?? (cart.length ? note : lastSale?.note ?? ""),
+      };
+    },
+    [cart, discount, discountType, lastSale, note, paid, selectedCustomer, state.customers, total, user?.firmName]
+  );
+
+  const handlePrint = (paper, copyLabel = "") => {
+    const data = buildReceiptData();
+    if (!data) {
+      setMessage("Yazdırmak için sepete ürün ekleyin veya satış tamamlayın.");
+      return;
+    }
+    const result = printSaleReceipt(data, { paper, copyLabel });
+    if (!result.ok) setMessage(result.message);
+    else setPrintOpen(false);
+  };
+
+  const handleWhatsApp = () => {
+    const data = buildReceiptData();
+    if (!data) {
+      setMessage("Göndermek için sepete ürün ekleyin veya satış tamamlayın.");
+      return;
+    }
+    const result = sendReceiptWhatsApp(data, phone || selectedCustomer?.phone || "");
+    if (!result.ok) setMessage(result.message);
+    else setPrintOpen(false);
+  };
+
+  useEffect(() => {
+    if (!printOpen) return undefined;
+    const onDocClick = (e) => {
+      if (printWrapRef.current && !printWrapRef.current.contains(e.target)) {
+        setPrintOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [printOpen]);
 
   useEffect(() => {
     setPaid(cart.length ? String(total) : "0");
@@ -182,7 +256,7 @@ export default function Sales() {
     }
 
     try {
-      await completeSale({
+      const sale = await completeSale({
         items: cart,
         paymentType,
         customerId: customerId || null,
@@ -193,15 +267,35 @@ export default function Sales() {
         paidAmount,
       });
 
+      setLastSale(sale);
       setMessage("Satış tamamlandı.");
       setCartForTab([]);
       setPaid("0");
       setDiscount("");
       setCustomerForTab("");
+
+      printSaleReceipt(
+        {
+          storeName: user?.firmName || "Mağaza",
+          code: sale.code,
+          createdAt: sale.createdAt,
+          items: sale.items,
+          discount: sale.discount,
+          discountType: sale.discountType,
+          total: sale.total,
+          paidAmount: sale.paidAmount,
+          change: Math.max(0, sale.paidAmount - sale.total),
+          paymentType: sale.paymentType,
+          customerName: selectedCustomer?.name || "",
+          staffName: sale.staffName,
+          note: sale.note,
+        },
+        { paper: "thermal", copyLabel: "SATIŞ FİŞİ" }
+      );
     } catch (err) {
       setMessage(err.message || "Satış kaydedilemedi.");
     }
-  }, [cart, completeSale, customerId, discount, discountType, note, paid, total, activeTab]);
+  }, [cart, completeSale, customerId, discount, discountType, note, paid, total, selectedCustomer, user?.firmName]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -271,16 +365,28 @@ export default function Sales() {
                 <i className="fa fa-barcode" />
                 Fiyat Gör
               </button>
-              <div className="sales-dropdown-wrap">
+              <div className="sales-dropdown-wrap" ref={printWrapRef}>
                 <button type="button" className="sales-action-btn btn-warning-sales" onClick={() => setPrintOpen(!printOpen)}>
                   <i className="fa fa-print" /> Yazdır
-                  <small>Satış bekleniyor.</small>
+                  <small>
+                    {lastSale?.code
+                      ? `Son fiş: ${lastSale.code}`
+                      : cart.length
+                        ? `${itemCount} ürün hazır`
+                        : "Satış bekleniyor."}
+                  </small>
                 </button>
                 {printOpen && (
                   <div className="sales-dropdown-menu">
-                    <button type="button">Termal Yazıcı İle Yazdır</button>
-                    <button type="button">A4 Yazıcı İle Yazdır</button>
-                    <button type="button">WhatsApp İle Gönder</button>
+                    <button type="button" onClick={() => handlePrint("thermal", "SATIŞ FİŞİ")}>
+                      Termal Yazıcı İle Yazdır
+                    </button>
+                    <button type="button" onClick={() => handlePrint("a4", "MÜŞTERİ NÜSHASI")}>
+                      A4 Yazıcı İle Yazdır
+                    </button>
+                    <button type="button" onClick={handleWhatsApp}>
+                      WhatsApp İle Gönder
+                    </button>
                   </div>
                 )}
               </div>
