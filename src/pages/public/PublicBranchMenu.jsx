@@ -69,7 +69,8 @@ export default function PublicBranchMenu() {
     setSubmitting(true);
     setError("");
     try {
-      const order = await submitPublicOrder(branchId, {
+      const order = await submitPublicOrder(menu.branch.id, {
+        branchId: menu.branch.id,
         customerName: form.customerName.trim(),
         customerPhone: form.customerPhone.trim(),
         tableNo: form.tableNo.trim(),

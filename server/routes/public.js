@@ -93,6 +93,9 @@ function generateQrOrderCode() {
 function createOrder(db, res, firmRow, branchId, body) {
   const branch = getBranchForFirmMenu(db, firmRow.firm_id, branchId);
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+  if (body.branchId && body.branchId !== branch.id) {
+    return res.status(400).json({ error: "Sipariş seçilen şube ile uyuşmuyor" });
+  }
   if (!branch.menu_accept_orders) {
     return res.status(400).json({ error: "Bu şube şu an sipariş kabul etmiyor" });
   }

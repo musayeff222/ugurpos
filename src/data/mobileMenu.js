@@ -1,5 +1,6 @@
 export const mobileMenuItems = [
   { label: "Satış Yap", path: "/sales", icon: "fa-calculator" },
+  { label: "Web Siparişler", path: "/web-orders", icon: "fa-shopping-bag", badge: "webOrders" },
   { label: "Ürünler", path: "/products", icon: "fa-tag" },
   { label: "Ürün Ekle / Güncelle", path: "/update", icon: "fa-plus-circle" },
   { label: "Müşteriler", path: "/customersList", icon: "fa-users" },

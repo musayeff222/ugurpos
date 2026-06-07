@@ -1,11 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useWebOrders } from "../context/WebOrdersContext";
 import { mobileMenuItems } from "../data/mobileMenu";
 import "../styles/mobile-menu.css";
 
 export default function MobileMenu({ overlay = false, onClose }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { pendingCount } = useWebOrders();
 
   const handleItem = (path) => {
     navigate(path);
@@ -56,6 +58,9 @@ export default function MobileMenu({ overlay = false, onClose }) {
             >
               <i className={`fa ${item.icon} mobile-menu-card-icon`} />
               <span className="mobile-menu-card-label">{item.label}</span>
+              {item.badge === "webOrders" && pendingCount > 0 && (
+                <span className="mobile-menu-badge">{pendingCount}</span>
+              )}
             </button>
           ))}
         </div>

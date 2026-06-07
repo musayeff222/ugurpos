@@ -14,6 +14,7 @@ import Firms from "./pages/Firms";
 import PaymentMethods from "./pages/PaymentMethods";
 import { IncomePage, ExpensePage, IneTypesPage } from "./pages/Finance";
 import Tasks from "./pages/Tasks";
+import WebOrders from "./pages/WebOrders";
 import Refund from "./pages/Refund";
 import RefundRequests from "./pages/RefundRequests";
 import StockCount from "./pages/StockCount";
@@ -84,6 +85,8 @@ export default function App() {
         <Route path="menu" element={<MobileMenuPage />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="sales" element={<Sales />} />
+        <Route path="web-orders" element={<WebOrders />} />
+        <Route path="qorders" element={<Navigate to="/web-orders" replace />} />
         <Route path="dreport" element={<DailyReport />} />
         <Route path="breport" element={<HistoricalReport />} />
         <Route path="preport" element={<ProductReport />} />

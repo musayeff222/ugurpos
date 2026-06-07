@@ -10,6 +10,12 @@ export const navigation = [
     icon: "fa-edit",
   },
   {
+    label: "Web Siparişler",
+    path: "/web-orders",
+    icon: "fa-shopping-bag",
+    badge: "webOrders",
+  },
+  {
     label: "Raporlar",
     icon: "fa-bar-chart",
     children: [

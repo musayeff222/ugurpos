@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useWebOrders } from "../context/WebOrdersContext";
 
 export default function Topbar({ menuOpen, onMenuToggle }) {
   const { user, logout, activeBranchName } = useAuth();
+  const { pendingCount } = useWebOrders();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [notifyOpen, setNotifyOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -37,25 +38,10 @@ export default function Topbar({ menuOpen, onMenuToggle }) {
         </div>
 
         <div className="infobar">
-          <div className="dropdown-wrap">
-            <button type="button" className="icon-btn" onClick={() => setNotifyOpen(!notifyOpen)} aria-label="Duyurular">
-              <i className="fa fa-bell-o" />
-            </button>
-            {notifyOpen && (
-              <div className="dropdown-menu">
-                <div className="dropdown-title">Duyurular</div>
-                <Link to="/notices" onClick={() => setNotifyOpen(false)}>
-                  Yeni Özellik: E-posta İle Satış Performans Raporu
-                </Link>
-                <Link to="/notices" onClick={() => setNotifyOpen(false)}>
-                  İki Faktörlü Doğrulama (2FA) Yayınlandı
-                </Link>
-                <Link to="/notices" className="dropdown-all" onClick={() => setNotifyOpen(false)}>
-                  Tüm duyurular
-                </Link>
-              </div>
-            )}
-          </div>
+          <Link to="/web-orders" className="icon-btn web-orders-bell" aria-label="Web siparişler">
+            <i className="fa fa-bell-o" />
+            {pendingCount > 0 && <span className="topbar-badge">{pendingCount}</span>}
+          </Link>
 
           <span className="top-link branch-locked">
             {activeBranchName || user?.branchName || "Şube"} <i className="fa fa-lock" />

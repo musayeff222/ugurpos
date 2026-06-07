@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useWebOrders } from "../context/WebOrdersContext";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import MobileMenu from "../components/MobileMenu";
@@ -25,6 +26,7 @@ function useIsDesktop() {
 
 export default function MainLayout() {
   const { isAuthenticated, isAdmin, isBranchUser, isImpersonating } = useAuth();
+  const { latestOrder, clearLatest } = useWebOrders();
   const location = useLocation();
   const isDesktop = useIsDesktop();
   const [menuOpen, setMenuOpen] = useState(() =>
@@ -65,6 +67,13 @@ export default function MainLayout() {
           <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
         ) : null}
         <div className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""}`}>
+          {latestOrder && location.pathname !== "/web-orders" && (
+            <Link to="/web-orders" className="web-order-toast" onClick={clearLatest}>
+              <strong>Yeni web siparişi:</strong> {latestOrder.code} — {latestOrder.customerName} (
+              {latestOrder.tableNo ? `Masa ${latestOrder.tableNo}` : "masa yok"})
+              <span className="web-order-toast-link">Görüntüle →</span>
+            </Link>
+          )}
           <Outlet />
         </div>
       </div>

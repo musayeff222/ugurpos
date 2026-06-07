@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { navigation } from "../data/navigation";
+import { useWebOrders } from "../context/WebOrdersContext";
 
-function NavItem({ item, onNavigate }) {
+function NavItem({ item, onNavigate, pendingWebOrders }) {
   const location = useLocation();
   const hasChildren = item.children?.length;
   const isChildActive = hasChildren && item.children.some((c) => location.pathname === c.path);
@@ -48,19 +49,29 @@ function NavItem({ item, onNavigate }) {
       >
         <i className={`fa ${item.icon}`} />
         <span>{item.label}</span>
+        {item.badge === "webOrders" && pendingWebOrders > 0 && (
+          <span className="nav-badge">{pendingWebOrders}</span>
+        )}
       </NavLink>
     </li>
   );
 }
 
 export default function Sidebar({ onNavigate }) {
+  const { pendingCount } = useWebOrders();
+
   return (
     <div className="leftbar">
       <div className="sidebar">
         <nav className="navigationbar">
           <ul className="vertical-menu">
             {navigation.map((item) => (
-              <NavItem key={item.label + (item.path || "")} item={item} onNavigate={onNavigate} />
+              <NavItem
+                key={item.label + (item.path || "")}
+                item={item}
+                onNavigate={onNavigate}
+                pendingWebOrders={pendingCount}
+              />
             ))}
           </ul>
         </nav>
