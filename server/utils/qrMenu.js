@@ -30,12 +30,27 @@ export function ensureFirmSettings(db, firmId, firmName = "Firma") {
   return row;
 }
 
+export function getDefaultFirmSettings(db) {
+  let row = db
+    .prepare("SELECT * FROM firm_settings WHERE menu_enabled = 1 ORDER BY firm_id LIMIT 1")
+    .get();
+  if (row) return row;
+
+  row = db.prepare("SELECT * FROM firm_settings ORDER BY firm_id LIMIT 1").get();
+  if (row) return row;
+
+  const user = db.prepare("SELECT firm_id, firm_name FROM users ORDER BY created_at LIMIT 1").get();
+  if (!user) return null;
+  return ensureFirmSettings(db, user.firm_id, user.firm_name);
+}
+
 export function resolveFirmByMenuSlug(db, slug) {
   const normalized = String(slug || "").trim().toLowerCase();
-  if (!normalized) return null;
-  return db
+  if (!normalized) return getDefaultFirmSettings(db);
+  const row = db
     .prepare("SELECT * FROM firm_settings WHERE LOWER(menu_slug) = ?")
     .get(normalized);
+  return row || getDefaultFirmSettings(db);
 }
 
 export function getFirmByMenuSlug(db, slug) {

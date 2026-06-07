@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { getDb, getDataDir, uid, rowToProduct } from "../db/index.js";
 import {
+  getDefaultFirmSettings,
+  ensureFirmSettings,
   resolveFirmByMenuSlug,
   rowToFirmMenu,
   rowToMenuBranch,
@@ -19,10 +21,18 @@ function getFirmName(db, firmId) {
   return user?.firm_name || "Firma";
 }
 
+function bootstrapFirmSettings(db) {
+  const user = db.prepare("SELECT firm_id, firm_name FROM users LIMIT 1").get();
+  if (user) ensureFirmSettings(db, user.firm_id, user.firm_name);
+}
+
 function requirePublicMenu(db, slug, res) {
-  const firmRow = resolveFirmByMenuSlug(db, slug);
+  bootstrapFirmSettings(db);
+  const firmRow = slug ? resolveFirmByMenuSlug(db, slug) : getDefaultFirmSettings(db);
   if (!firmRow) {
-    res.status(404).json({ error: "Menü bulunamadı. Admin panelden QR Menü linkini kontrol edin." });
+    res.status(404).json({
+      error: "Menü henüz kurulmamış. Admin panelden giriş yapıp QR Menü sayfasını açın.",
+    });
     return null;
   }
   if (!firmRow.menu_enabled) {
@@ -34,17 +44,7 @@ function requirePublicMenu(db, slug, res) {
   return firmRow;
 }
 
-function generateQrOrderCode() {
-  const now = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
-  return `Q${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-}
-
-router.get("/menu/:slug", (req, res) => {
-  const db = getDb();
-  const firmRow = requirePublicMenu(db, req.params.slug, res);
-  if (!firmRow) return;
-
+function sendFirmMenu(db, res, firmRow) {
   const firmName = getFirmName(db, firmRow.firm_id);
   const branches = db
     .prepare(
@@ -59,14 +59,10 @@ router.get("/menu/:slug", (req, res) => {
     firm: rowToFirmMenu(firmRow, firmName),
     branches,
   });
-});
+}
 
-router.get("/menu/:slug/branches/:branchId", (req, res) => {
-  const db = getDb();
-  const firmRow = requirePublicMenu(db, req.params.slug, res);
-  if (!firmRow) return;
-
-  const branch = getBranchForFirmMenu(db, firmRow.firm_id, req.params.branchId);
+function sendBranchMenu(db, res, firmRow, branchId) {
+  const branch = getBranchForFirmMenu(db, firmRow.firm_id, branchId);
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı veya menüde değil" });
 
   const groups = db
@@ -85,43 +81,22 @@ router.get("/menu/:slug/branches/:branchId", (req, res) => {
     groups,
     products,
   });
-});
+}
 
-router.get("/menu/:slug/branches/:branchId/products/:productId/image", (req, res) => {
-  const db = getDb();
-  const firmRow = requirePublicMenu(db, req.params.slug, res);
-  if (!firmRow) return;
+function generateQrOrderCode() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `Q${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+}
 
-  const branch = getBranchForFirmMenu(db, firmRow.firm_id, req.params.branchId);
-  if (!branch) return res.status(404).end();
-
-  const product = db
-    .prepare(
-      "SELECT image_path FROM products WHERE id = ? AND branch_id = ? AND active = 1 AND on_sale_page = 1"
-    )
-    .get(req.params.productId, branch.id);
-  if (!product?.image_path) return res.status(404).end();
-
-  const filePath = resolveProductImageFile(getDataDir(), branch.id, product.image_path);
-  if (!filePath) return res.status(404).end();
-
-  res.setHeader("Content-Type", contentTypeForImagePath(product.image_path));
-  res.setHeader("Cache-Control", "public, max-age=3600");
-  res.sendFile(filePath);
-});
-
-router.post("/menu/:slug/branches/:branchId/orders", (req, res) => {
-  const db = getDb();
-  const firmRow = requirePublicMenu(db, req.params.slug, res);
-  if (!firmRow) return;
-
-  const branch = getBranchForFirmMenu(db, firmRow.firm_id, req.params.branchId);
+function createOrder(db, res, firmRow, branchId, body) {
+  const branch = getBranchForFirmMenu(db, firmRow.firm_id, branchId);
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
   if (!branch.menu_accept_orders) {
     return res.status(400).json({ error: "Bu şube şu an sipariş kabul etmiyor" });
   }
 
-  const { customerName, customerPhone, tableNo, note, items } = req.body;
+  const { customerName, customerPhone, tableNo, note, items } = body;
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "Sepet boş" });
   }
@@ -178,6 +153,97 @@ router.post("/menu/:slug/branches/:branchId/orders", (req, res) => {
 
   tx();
   res.status(201).json(loadQrOrder(db, orderId, branch.id));
+}
+
+// Slug-free routes (tek link: /m)
+router.get("/menu", (req, res) => {
+  const db = getDb();
+  const firmRow = requirePublicMenu(db, null, res);
+  if (!firmRow) return;
+  sendFirmMenu(db, res, firmRow);
+});
+
+router.get("/menu/branches/:branchId", (req, res) => {
+  const db = getDb();
+  const firmRow = requirePublicMenu(db, null, res);
+  if (!firmRow) return;
+  sendBranchMenu(db, res, firmRow, req.params.branchId);
+});
+
+router.get("/menu/branches/:branchId/products/:productId/image", (req, res) => {
+  const db = getDb();
+  const firmRow = requirePublicMenu(db, null, res);
+  if (!firmRow) return;
+
+  const branch = getBranchForFirmMenu(db, firmRow.firm_id, req.params.branchId);
+  if (!branch) return res.status(404).end();
+
+  const product = db
+    .prepare(
+      "SELECT image_path FROM products WHERE id = ? AND branch_id = ? AND active = 1 AND on_sale_page = 1"
+    )
+    .get(req.params.productId, branch.id);
+  if (!product?.image_path) return res.status(404).end();
+
+  const filePath = resolveProductImageFile(getDataDir(), branch.id, product.image_path);
+  if (!filePath) return res.status(404).end();
+
+  res.setHeader("Content-Type", contentTypeForImagePath(product.image_path));
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.sendFile(filePath);
+});
+
+router.post("/menu/branches/:branchId/orders", (req, res) => {
+  const db = getDb();
+  const firmRow = requirePublicMenu(db, null, res);
+  if (!firmRow) return;
+  createOrder(db, res, firmRow, req.params.branchId, req.body);
+});
+
+// Eski slug'lı linkler (geriye uyumluluk)
+router.get("/menu/:slug", (req, res) => {
+  if (req.params.slug === "branches") return res.status(404).json({ error: "Geçersiz menü adresi" });
+  const db = getDb();
+  const firmRow = requirePublicMenu(db, req.params.slug, res);
+  if (!firmRow) return;
+  sendFirmMenu(db, res, firmRow);
+});
+
+router.get("/menu/:slug/branches/:branchId", (req, res) => {
+  const db = getDb();
+  const firmRow = requirePublicMenu(db, req.params.slug, res);
+  if (!firmRow) return;
+  sendBranchMenu(db, res, firmRow, req.params.branchId);
+});
+
+router.get("/menu/:slug/branches/:branchId/products/:productId/image", (req, res) => {
+  const db = getDb();
+  const firmRow = requirePublicMenu(db, req.params.slug, res);
+  if (!firmRow) return;
+
+  const branch = getBranchForFirmMenu(db, firmRow.firm_id, req.params.branchId);
+  if (!branch) return res.status(404).end();
+
+  const product = db
+    .prepare(
+      "SELECT image_path FROM products WHERE id = ? AND branch_id = ? AND active = 1 AND on_sale_page = 1"
+    )
+    .get(req.params.productId, branch.id);
+  if (!product?.image_path) return res.status(404).end();
+
+  const filePath = resolveProductImageFile(getDataDir(), branch.id, product.image_path);
+  if (!filePath) return res.status(404).end();
+
+  res.setHeader("Content-Type", contentTypeForImagePath(product.image_path));
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.sendFile(filePath);
+});
+
+router.post("/menu/:slug/branches/:branchId/orders", (req, res) => {
+  const db = getDb();
+  const firmRow = requirePublicMenu(db, req.params.slug, res);
+  if (!firmRow) return;
+  createOrder(db, res, firmRow, req.params.branchId, req.body);
 });
 
 router.get("/orders/:orderId", (req, res) => {

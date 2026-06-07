@@ -10,7 +10,7 @@ import {
 import "../../styles/public-qr-menu.css";
 
 export default function PublicBranchMenu() {
-  const { slug, branchId } = useParams();
+  const { branchId } = useParams();
   const navigate = useNavigate();
   const [menu, setMenu] = useState(null);
   const [error, setError] = useState("");
@@ -25,11 +25,11 @@ export default function PublicBranchMenu() {
   useEffect(() => {
     setLoading(true);
     setCart([]);
-    fetchPublicBranchMenu(slug, branchId)
+    fetchPublicBranchMenu(branchId)
       .then(setMenu)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [slug, branchId]);
+  }, [branchId]);
 
   const products = useMemo(() => {
     if (!menu) return [];
@@ -69,7 +69,7 @@ export default function PublicBranchMenu() {
     setSubmitting(true);
     setError("");
     try {
-      const order = await submitPublicOrder(slug, branchId, {
+      const order = await submitPublicOrder(branchId, {
         customerName: form.customerName.trim(),
         customerPhone: form.customerPhone.trim(),
         tableNo: form.tableNo.trim(),
@@ -96,7 +96,7 @@ export default function PublicBranchMenu() {
     return (
       <div className="public-menu-page">
         <div className="public-menu-error card">{error}</div>
-        <Link to={`/m/${slug}`} className="btn btn-default">
+        <Link to="/m" className="btn btn-default">
           Şube Seçimine Dön
         </Link>
       </div>
@@ -108,7 +108,7 @@ export default function PublicBranchMenu() {
   return (
     <div className="public-menu-page">
       <header className="public-menu-header">
-        <Link to={`/m/${slug}`} className="public-menu-back">
+        <Link to="/m" className="public-menu-back">
           ← Şube değiştir
         </Link>
         <div className="public-menu-header__badge">QR Menü</div>
@@ -147,7 +147,7 @@ export default function PublicBranchMenu() {
           <article key={product.id} className="public-menu-product">
             {product.hasImage ? (
               <img
-                src={getPublicProductImageSrc(slug, branchId, product)}
+                src={getPublicProductImageSrc(branchId, product)}
                 alt={product.name}
                 loading="lazy"
               />

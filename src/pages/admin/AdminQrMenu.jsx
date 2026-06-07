@@ -74,7 +74,7 @@ export default function AdminQrMenu() {
     [branches]
   );
 
-  const menuUrl = firm?.menuSlug ? getMenuPublicUrl(firm.menuSlug) : "";
+  const menuUrl = typeof window !== "undefined" ? getMenuPublicUrl() : "";
 
   const saveFirmSettings = async () => {
     setMessage("");

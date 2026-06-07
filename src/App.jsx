@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
@@ -47,6 +47,15 @@ import PublicMenuLanding from "./pages/public/PublicMenuLanding";
 import PublicBranchMenu from "./pages/public/PublicBranchMenu";
 import PublicOrderStatus from "./pages/public/PublicOrderStatus";
 
+function LegacyMenuRedirect() {
+  return <Navigate to="/m" replace />;
+}
+
+function LegacyBranchRedirect() {
+  const { branchId } = useParams();
+  return <Navigate to={`/m/branch/${branchId}`} replace />;
+}
+
 function HomeRedirect() {
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 991px)").matches;
   return <Navigate to={isMobile ? "/menu" : "/dashboard"} replace />;
@@ -58,8 +67,10 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/login/admin" element={<AdminLogin />} />
       <Route path="/m/order/:orderId" element={<PublicOrderStatus />} />
-      <Route path="/m/:slug/:branchId" element={<PublicBranchMenu />} />
-      <Route path="/m/:slug" element={<PublicMenuLanding />} />
+      <Route path="/m/branch/:branchId" element={<PublicBranchMenu />} />
+      <Route path="/m" element={<PublicMenuLanding />} />
+      <Route path="/m/:slug/:branchId" element={<LegacyBranchRedirect />} />
+      <Route path="/m/:slug" element={<LegacyMenuRedirect />} />
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
         <Route path="branches" element={<AdminBranches />} />

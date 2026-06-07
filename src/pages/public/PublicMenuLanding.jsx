@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { fetchPublicFirmMenu } from "../../utils/qrMenuPublic";
 import "../../styles/public-qr-menu.css";
 
 export default function PublicMenuLanding() {
-  const { slug } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -12,11 +11,11 @@ export default function PublicMenuLanding() {
 
   useEffect(() => {
     setLoading(true);
-    fetchPublicFirmMenu(slug)
+    fetchPublicFirmMenu()
       .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, []);
 
   if (loading) {
     return (
@@ -48,7 +47,7 @@ export default function PublicMenuLanding() {
       <div className="public-branch-picker">
         {branches.length === 0 ? (
           <div className="card public-menu-empty-card">
-            <p>Şu an sipariş alan aktif şube yok.</p>
+            <p>Şu an menüde görünen aktif şube yok. Admin panelden şubeleri menüye ekleyin.</p>
           </div>
         ) : (
           branches.map((branch) => (
@@ -56,7 +55,7 @@ export default function PublicMenuLanding() {
               key={branch.id}
               type="button"
               className="public-branch-picker__item"
-              onClick={() => navigate(`/m/${slug}/${branch.id}`)}
+              onClick={() => navigate(`/m/branch/${branch.id}`)}
             >
               <strong>
                 #{branch.branchNo} {branch.name}
