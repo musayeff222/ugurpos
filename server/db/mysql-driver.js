@@ -19,47 +19,43 @@ function awaitSync(promise) {
   return result;
 }
 
-class MysqlStatement {
-  constructor(conn, sql) {
-    this.conn = conn;
-    this.sql = sql.trim();
-  }
-
-  get(...params) {
-    const [rows] = awaitSync(this.conn.execute(this.sql, params));
-    return rows[0] || undefined;
-  }
-
-  all(...params) {
-    const [rows] = awaitSync(this.conn.execute(this.sql, params));
-    return rows;
-  }
-
-  run(...params) {
-    const [result] = awaitSync(this.conn.execute(this.sql, params));
-    return {
-      changes: result.affectedRows ?? 0,
-      lastInsertRowid: result.insertId ?? 0,
-    };
-  }
+function createStatement(executor, sql) {
+  const trimmed = sql.trim();
+  return {
+    get(...params) {
+      const [rows] = awaitSync(executor(trimmed, params));
+      return rows[0] || undefined;
+    },
+    all(...params) {
+      const [rows] = awaitSync(executor(trimmed, params));
+      return rows;
+    },
+    run(...params) {
+      const [result] = awaitSync(executor(trimmed, params));
+      return {
+        changes: result.affectedRows ?? 0,
+        lastInsertRowid: result.insertId ?? 0,
+      };
+    },
+  };
 }
 
 class MysqlDb {
   constructor(pool) {
     this.dialect = "mysql";
     this.pool = pool;
-    this._conn = null;
+    this._txConn = null;
   }
 
-  _connection() {
-    if (!this._conn) {
-      this._conn = awaitSync(this.pool.getConnection());
+  _executor() {
+    if (this._txConn) {
+      return (sql, params) => this._txConn.execute(sql, params);
     }
-    return this._conn;
+    return (sql, params) => this.pool.execute(sql, params);
   }
 
   prepare(sql) {
-    return new MysqlStatement(this._connection(), sql);
+    return createStatement(this._executor(), sql);
   }
 
   exec(sql) {
@@ -67,16 +63,18 @@ class MysqlDb {
       .split(";")
       .map((s) => s.trim())
       .filter(Boolean);
-    const conn = this._connection();
+    const run = this._txConn
+      ? (statement) => awaitSync(this._txConn.query(statement))
+      : (statement) => awaitSync(this.pool.query(statement));
     for (const statement of statements) {
-      awaitSync(conn.query(statement));
+      run(statement);
     }
   }
 
   transaction(fn) {
     const conn = awaitSync(this.pool.getConnection());
-    const previous = this._conn;
-    this._conn = conn;
+    const previous = this._txConn;
+    this._txConn = conn;
     awaitSync(conn.beginTransaction());
     try {
       fn();
@@ -85,7 +83,7 @@ class MysqlDb {
       awaitSync(conn.rollback());
       throw err;
     } finally {
-      this._conn = previous;
+      this._txConn = previous;
       conn.release();
     }
   }
@@ -102,6 +100,7 @@ export function createMysqlDb(config) {
     connectionLimit: 10,
     charset: "utf8mb4",
     dateStrings: true,
+    enableKeepAlive: true,
     ...(config.socketPath ? { socketPath: config.socketPath } : {}),
   });
 
