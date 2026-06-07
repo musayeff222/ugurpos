@@ -15,6 +15,8 @@ import {
 } from "../utils/productImage.js";
 import { sql as SQL } from "../db/dialect.js";
 
+const router = Router();
+
 function getFirmName(db, firmId) {
   const user = db.prepare("SELECT firm_name FROM users WHERE firm_id = ? LIMIT 1").get(firmId);
   return user?.firm_name || "Firma";
