@@ -4,25 +4,15 @@ import { useAuth } from "../context/AuthContext";
 import "../styles/admin.css";
 
 const adminNav = [
-  { to: "/admin", label: "Özet", end: true },
-  { to: "/admin/branches", label: "Şubeler" },
-  { to: "/admin/qr-menu", label: "QR Menü" },
+  { to: "/admin", label: "Özet", icon: "fa-home", end: true },
+  { to: "/admin/branches", label: "Şubeler", icon: "fa-building" },
+  { to: "/admin/qr-menu", label: "QR Menü", icon: "fa-qrcode" },
 ];
 
 export default function AdminLayout() {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [navOpen, setNavOpen] = useState(false);
-
-  useEffect(() => {
-    setNavOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    document.body.classList.toggle("admin-nav-open", navOpen);
-    return () => document.body.classList.remove("admin-nav-open");
-  }, [navOpen]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login/admin" replace state={{ from: location }} />;
@@ -42,20 +32,16 @@ export default function AdminLayout() {
     (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches")) ||
     (item.to === "/admin/qr-menu" && location.pathname.startsWith("/admin/qr-menu"));
 
-  return (
-    <div className={`admin-shell ${navOpen ? "admin-shell--nav-open" : ""}`}>
-      <button
-        type="button"
-        className="admin-sidebar-backdrop"
-        aria-label="Menüyü kapat"
-        onClick={() => setNavOpen(false)}
-        tabIndex={navOpen ? 0 : -1}
-      />
+  const pageTitle =
+    adminNav.find((item) => isNavActive(item))?.label ||
+    (location.pathname.includes("/branches/new") ? "Yeni Şube" : "Admin");
 
-      <aside className="admin-sidebar">
+  return (
+    <div className="admin-shell">
+      <aside className="admin-sidebar admin-sidebar--desktop">
         <div className="admin-brand">
-          <strong>Admin Panel</strong>
-          <span>{user?.firmName || "Firma Yönetimi"}</span>
+          <strong>UgurPOS</strong>
+          <span>{user?.firmName || "Yönetim"}</span>
         </div>
         <nav className="admin-nav">
           {adminNav.map((item) => (
@@ -64,44 +50,45 @@ export default function AdminLayout() {
               to={item.to}
               end={item.end}
               className={isNavActive(item) ? "active" : ""}
-              onClick={() => setNavOpen(false)}
             >
+              <i className={`fa ${item.icon}`} aria-hidden />
               {item.label}
             </Link>
           ))}
         </nav>
-        <button type="button" className="admin-back admin-logout-btn" onClick={handleLogout}>
-          <i className="fa fa-power-off" /> Çıkış Yap
-        </button>
+        <div className="admin-sidebar-footer">
+          <Link to="/login" className="admin-sidebar-link" target="_blank" rel="noopener noreferrer">
+            <i className="fa fa-external-link" /> POS girişi
+          </Link>
+          <button type="button" className="admin-back admin-logout-btn" onClick={handleLogout}>
+            <i className="fa fa-power-off" /> Çıkış
+          </button>
+        </div>
       </aside>
 
       <main className="admin-main">
         <header className="admin-mobile-header">
-          <button
-            type="button"
-            className={`menu-hamburger ${navOpen ? "is-open" : ""}`}
-            aria-label={navOpen ? "Menüyü kapat" : "Menüyü aç"}
-            aria-expanded={navOpen}
-            onClick={() => setNavOpen((open) => !open)}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
           <div className="admin-mobile-header__title">
-            <strong>Admin Panel</strong>
+            <strong>{pageTitle}</strong>
             <span>{user?.firmName}</span>
+          </div>
+          <div className="admin-mobile-header__actions">
+            <Link to="/admin/branches/new" className="admin-icon-btn" title="Yeni şube">
+              <i className="fa fa-plus" />
+            </Link>
+            <button type="button" className="admin-icon-btn" onClick={handleLogout} title="Çıkış">
+              <i className="fa fa-sign-out" />
+            </button>
           </div>
         </header>
 
-        <header className="admin-topbar">
+        <header className="admin-topbar admin-topbar--desktop">
           <div className="admin-topbar__info">
             <strong>{user?.firmName}</strong>
             <span>{user?.email}</span>
           </div>
           <Link to="/login" className="admin-pos-link" target="_blank" rel="noopener noreferrer">
-            <span className="admin-pos-link__full">POS giriş sayfası ↗</span>
-            <span className="admin-pos-link__short">POS ↗</span>
+            POS giriş sayfası ↗
           </Link>
         </header>
 
@@ -109,6 +96,20 @@ export default function AdminLayout() {
           <Outlet />
         </div>
       </main>
+
+      <nav className="admin-bottom-nav" aria-label="Admin menü">
+        {adminNav.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={`admin-bottom-nav__item ${isNavActive(item) ? "active" : ""}`}
+          >
+            <i className={`fa ${item.icon}`} aria-hidden />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }

@@ -16,12 +16,13 @@ export default function AdminBranches() {
   }, []);
 
   return (
-    <div>
+    <div className="admin-page">
       <PageHeader
         title="Şubeler"
+        subtitle={`${branches.length} kayıt`}
         actions={
-          <Link to="/admin/branches/new" className="btn btn-success">
-            <i className="fa fa-plus" /> Yeni Şube Oluştur
+          <Link to="/admin/branches/new" className="btn btn-success btn-sm admin-hide-mobile">
+            + Yeni Şube
           </Link>
         }
       />
@@ -29,7 +30,11 @@ export default function AdminBranches() {
 
       <div className="admin-branch-grid">
         {branches.map((b) => (
-          <div key={b.id} className={`admin-branch-card ${b.active ? "" : "inactive"}`}>
+          <Link
+            key={b.id}
+            to={`/admin/branches/${b.id}`}
+            className={`admin-branch-card admin-branch-card--link ${b.active ? "" : "inactive"}`}
+          >
             <div className="admin-branch-card__head">
               <div>
                 <h3>
@@ -39,26 +44,17 @@ export default function AdminBranches() {
               </div>
               <span className={`admin-badge ${b.active ? "ok" : "off"}`}>{b.active ? "Aktif" : "Pasif"}</span>
             </div>
-            <div className="admin-branch-card__stats">
+            <div className="admin-branch-card__stats admin-branch-card__stats--2">
               <div>
-                <span>Bugün satış</span>
+                <span>Bugün</span>
                 <strong>{formatMoney(b.stats?.todayTotal || 0)}</strong>
               </div>
               <div>
                 <span>Ürün</span>
                 <strong>{b.stats?.productCount || 0}</strong>
               </div>
-              <div>
-                <span>Toplam satış</span>
-                <strong>{b.stats?.saleCount || 0}</strong>
-              </div>
             </div>
-            <div className="admin-branch-card__actions">
-              <Link to={`/admin/branches/${b.id}`} className="btn btn-primary btn-sm">
-                Yönet
-              </Link>
-            </div>
-          </div>
+          </Link>
         ))}
         {branches.length === 0 && (
           <div className="card admin-empty">

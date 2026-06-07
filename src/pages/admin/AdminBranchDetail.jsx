@@ -93,17 +93,17 @@ export default function AdminBranchDetail() {
   if (!branch && !error) return <div className="card">Yükleniyor...</div>;
 
   return (
-    <div>
+    <div className="admin-page">
       <PageHeader
-        title={branch ? `#${branch.branchNo} — ${branch.name}` : "Şube"}
+        title={branch ? `#${branch.branchNo} ${branch.name}` : "Şube"}
         actions={
           <>
-            <Link to="/admin/branches" className="btn btn-default">
-              ← Listeye dön
+            <Link to="/admin/branches" className="btn btn-default btn-sm">
+              ← Geri
             </Link>
             {branch?.active && (
-              <button type="button" className="btn btn-primary" onClick={handleEnterPos} disabled={entering}>
-                <i className="fa fa-sign-in" /> {entering ? "Açılıyor..." : "POS'a Gir"}
+              <button type="button" className="btn btn-primary btn-sm" onClick={handleEnterPos} disabled={entering}>
+                {entering ? "..." : "POS'a Gir"}
               </button>
             )}
           </>
@@ -115,7 +115,7 @@ export default function AdminBranchDetail() {
 
       {branch && (
         <>
-          <div className="admin-stats">
+          <div className="admin-stats admin-stats--compact">
             <div className="admin-stat-card">
               <span>Bugün</span>
               <strong>{formatMoney(branch.stats?.todayTotal || 0)}</strong>
@@ -127,30 +127,26 @@ export default function AdminBranchDetail() {
               <small>{branch.stats?.monthCount || 0} satış</small>
             </div>
             <div className="admin-stat-card">
-              <span>Ürün / Müşteri</span>
-              <strong>
-                {branch.stats?.productCount || 0} / {branch.stats?.customerCount || 0}
-              </strong>
+              <span>Ürün</span>
+              <strong>{branch.stats?.productCount || 0}</strong>
             </div>
-            <div className="admin-stat-card">
-              <span>Şube No</span>
-              <strong>#{branch.branchNo || "—"}</strong>
-            </div>
-            <div className="admin-stat-card">
-              <span>Giriş E-postası</span>
-              <strong>{branch.email || "—"}</strong>
-            </div>
+          </div>
+
+          <div className="admin-info-strip">
+            <span>
+              <strong>E-posta:</strong> {branch.email || "—"}
+            </span>
           </div>
 
           <ul className="admin-tabs">
             <li>
               <button type="button" className={tab === "edit" ? "active" : ""} onClick={() => setTab("edit")}>
-                Düzenle
+                Bilgiler
               </button>
             </li>
             <li>
               <button type="button" className={tab === "activity" ? "active" : ""} onClick={() => setTab("activity")}>
-                Şube Hareketleri
+                Hareketler
               </button>
             </li>
           </ul>
@@ -195,29 +191,42 @@ export default function AdminBranchDetail() {
           {tab === "activity" && (
             <div className="admin-activity">
               {!activity ? (
-                <div className="card">Hareketler yükleniyor...</div>
+                <div className="card">Yükleniyor...</div>
               ) : (
                 <>
                   <div className="card">
                     <h3>Son Satışlar</h3>
-                    <div className="admin-table-wrap">
+                    {activity.sales.length === 0 ? (
+                      <p className="admin-empty-inline">Henüz satış yok.</p>
+                    ) : (
+                      <div className="admin-mobile-list">
+                        {activity.sales.map((s) => (
+                          <div key={s.id} className="admin-mobile-list__item">
+                            <div className="admin-mobile-list__head">
+                              <strong>{s.code}</strong>
+                              <span>{formatMoney(s.total)}</span>
+                            </div>
+                            <p>
+                              {new Date(s.createdAt).toLocaleString("tr-TR")} ·{" "}
+                              {PAYMENT_LABELS[s.paymentType] || s.paymentType} · {s.itemCount} kalem
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="admin-table-wrap admin-table-wrap--desktop-only">
                       <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Tarih</th>
-                          <th>Fiş</th>
-                          <th>Ödeme</th>
-                          <th>Kalem</th>
-                          <th>Tutar</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activity.sales.length === 0 ? (
+                        <thead>
                           <tr>
-                            <td colSpan={5}>Henüz satış yok.</td>
+                            <th>Tarih</th>
+                            <th>Fiş</th>
+                            <th>Ödeme</th>
+                            <th>Kalem</th>
+                            <th>Tutar</th>
                           </tr>
-                        ) : (
-                          activity.sales.map((s) => (
+                        </thead>
+                        <tbody>
+                          {activity.sales.map((s) => (
                             <tr key={s.id}>
                               <td>{new Date(s.createdAt).toLocaleString("tr-TR")}</td>
                               <td>{s.code}</td>
@@ -225,44 +234,9 @@ export default function AdminBranchDetail() {
                               <td>{s.itemCount}</td>
                               <td>{formatMoney(s.total)}</td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                    </div>
-                  </div>
-
-                  <div className="card">
-                    <h3>Stok Sayımları</h3>
-                    <div className="admin-table-wrap">
-                      <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Tarih</th>
-                          <th>Ürün</th>
-                          <th>Önceki</th>
-                          <th>Sayılan</th>
-                          <th>Fark</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activity.stockCounts.length === 0 ? (
-                          <tr>
-                            <td colSpan={5}>Stok sayımı yok.</td>
-                          </tr>
-                        ) : (
-                          activity.stockCounts.map((sc) => (
-                            <tr key={sc.id}>
-                              <td>{sc.date}</td>
-                              <td>{sc.productName}</td>
-                              <td>{sc.previous}</td>
-                              <td>{sc.counted}</td>
-                              <td>{sc.difference}</td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </>

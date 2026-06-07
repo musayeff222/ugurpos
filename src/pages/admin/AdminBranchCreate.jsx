@@ -41,7 +41,7 @@ export default function AdminBranchCreate() {
   };
 
   return (
-    <div>
+    <div className="admin-page">
       <PageHeader
         title="Yeni Şube Oluştur"
         actions={

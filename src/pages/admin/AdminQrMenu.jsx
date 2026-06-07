@@ -121,18 +121,8 @@ export default function AdminQrMenu() {
   if (loading) return <div className="card">Yükleniyor...</div>;
 
   return (
-    <div className="admin-qr-page">
-      <PageHeader
-        title="QR Menü"
-        subtitle="Tek link — müşteri şube seçer, sipariş seçilen şubeye gider"
-        actions={
-          tab === "orders" ? (
-            <button type="button" className="btn btn-default btn-sm" onClick={() => loadOrders()}>
-              <i className="fa fa-refresh" /> Yenile
-            </button>
-          ) : null
-        }
-      />
+    <div className="admin-page admin-qr-page">
+      <PageHeader title="QR Menü" subtitle="Tek link, tüm şubeler" />
 
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
@@ -140,7 +130,7 @@ export default function AdminQrMenu() {
       <ul className="admin-tabs">
         <li>
           <button type="button" className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>
-            Menü Ayarları
+            Ayarlar
           </button>
         </li>
         <li>
@@ -153,10 +143,7 @@ export default function AdminQrMenu() {
       {tab === "settings" && (
         <>
           <div className="card admin-qr-firm-card">
-            <h3>Tek QR Menü Linki</h3>
-            <p className="hint-text">
-              Tüm şubeler için tek link kullanılır. Müşteri linke girince hangi şubeden sipariş vereceğini seçer.
-            </p>
+            <h3>Menü linki</h3>
 
             {menuUrl && (
               <div className="admin-qr-firm-link">
@@ -204,11 +191,7 @@ export default function AdminQrMenu() {
             </div>
           </div>
 
-          <p className="hint-text admin-qr-hint">
-            Menüde görünen ürünler için ürün kartında &quot;Satış sayfasında göster&quot; işaretli olmalıdır.
-          </p>
-
-          <h3 className="admin-qr-section-title">Şube Listesi (müşteri seçim ekranında görünür)</h3>
+          <h3 className="admin-section-title">Şubeler (menüde görünsün)</h3>
           <div className="admin-qr-settings">
             {branches.map((branch) => {
               const draft = branchDrafts[branch.id] || {};
