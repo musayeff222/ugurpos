@@ -14,7 +14,8 @@ const distIndex = path.join(distDir, "index.html");
 
 if (!process.env.VERCEL) {
   if (!fs.existsSync(distIndex)) {
-    console.warn("[UgurPOS] dist/index.html bulunamadi — once npm run build calistirin.");
+    console.error("[UgurPOS] dist/index.html yok. Build: npm run build");
+    process.exit(1);
   }
 
   app.use(express.static(distDir));
