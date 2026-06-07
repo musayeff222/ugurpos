@@ -1,10 +1,13 @@
 export function generateFirmMenuSlug(db, firmId) {
-  const firmPart = String(firmId).replace(/\W/g, "").slice(-8).toLowerCase() || "firma";
-  let slug = `menu-${firmPart}`;
-  let i = 0;
-  while (db.prepare("SELECT firm_id FROM firm_settings WHERE menu_slug = ?").get(slug)) {
-    i += 1;
-    slug = `menu-${firmPart}-${i}`;
+  const firmPart = String(firmId).replace(/\W/g, "").toLowerCase() || "firma";
+  const slug = `menu-${firmPart}`;
+  const taken = db
+    .prepare("SELECT firm_id FROM firm_settings WHERE menu_slug = ? AND firm_id != ?")
+    .get(slug, firmId);
+  if (taken) {
+    let i = 1;
+    while (db.prepare("SELECT firm_id FROM firm_settings WHERE menu_slug = ?").get(`${slug}-${i}`)) i += 1;
+    return `${slug}-${i}`;
   }
   return slug;
 }
@@ -14,19 +17,32 @@ export function ensureFirmSettings(db, firmId, firmName = "Firma") {
   if (!row) {
     const slug = generateFirmMenuSlug(db, firmId);
     db.prepare(
-      "INSERT INTO firm_settings (firm_id, menu_slug, menu_title, menu_welcome, menu_enabled) VALUES (?, ?, ?, '', 0)"
+      "INSERT INTO firm_settings (firm_id, menu_slug, menu_title, menu_welcome, menu_enabled) VALUES (?, ?, ?, '', 1)"
     ).run(firmId, slug, firmName);
     row = db.prepare("SELECT * FROM firm_settings WHERE firm_id = ?").get(firmId);
-  } else if (!row.menu_slug) {
-    const slug = generateFirmMenuSlug(db, firmId);
-    db.prepare("UPDATE firm_settings SET menu_slug = ? WHERE firm_id = ?").run(slug, firmId);
+  } else {
+    if (!row.menu_slug) {
+      const slug = generateFirmMenuSlug(db, firmId);
+      db.prepare("UPDATE firm_settings SET menu_slug = ? WHERE firm_id = ?").run(slug, firmId);
+    }
     row = db.prepare("SELECT * FROM firm_settings WHERE firm_id = ?").get(firmId);
   }
   return row;
 }
 
+export function resolveFirmByMenuSlug(db, slug) {
+  const normalized = String(slug || "").trim().toLowerCase();
+  if (!normalized) return null;
+  return db
+    .prepare("SELECT * FROM firm_settings WHERE LOWER(menu_slug) = ?")
+    .get(normalized);
+}
+
 export function getFirmByMenuSlug(db, slug) {
-  return db.prepare("SELECT * FROM firm_settings WHERE menu_slug = ? AND menu_enabled = 1").get(slug);
+  const row = resolveFirmByMenuSlug(db, slug);
+  if (!row) return null;
+  if (!row.menu_enabled) return null;
+  return row;
 }
 
 export function rowToFirmMenu(row, firmName = "") {

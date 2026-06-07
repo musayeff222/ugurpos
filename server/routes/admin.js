@@ -198,7 +198,7 @@ router.post("/branches", (req, res) => {
 
   const tx = db.transaction(() => {
     db.prepare(
-      "INSERT INTO branches (id, firm_id, name, code, email, password_hash, address, active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)"
+      "INSERT INTO branches (id, firm_id, name, code, email, password_hash, address, active, menu_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)"
     ).run(id, req.user.firmId, name.trim(), branchNo, normalizedEmail, passwordHash, address?.trim() || "");
     seedBranchDefaults(db, id);
   });
@@ -288,11 +288,15 @@ router.patch("/qr-menu", (req, res) => {
       menu_welcome = ?
      WHERE firm_id = ?`
   ).run(
-    menuEnabled === true ? 1 : menuEnabled === false ? 0 : firmRow.menu_enabled,
+    menuEnabled === false ? 0 : 1,
     menuTitle ?? firmRow.menu_title ?? req.user.firmName,
     menuWelcome ?? firmRow.menu_welcome ?? "",
     req.user.firmId
   );
+
+  if (menuEnabled !== false) {
+    db.prepare("UPDATE branches SET menu_enabled = 1 WHERE firm_id = ? AND active = 1").run(req.user.firmId);
+  }
 
   res.json({
     firm: rowToFirmMenu(db.prepare("SELECT * FROM firm_settings WHERE firm_id = ?").get(req.user.firmId), req.user.firmName),

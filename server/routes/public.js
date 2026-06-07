@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getDb, getDataDir, uid, rowToProduct } from "../db/index.js";
 import {
-  getFirmByMenuSlug,
+  resolveFirmByMenuSlug,
   rowToFirmMenu,
   rowToMenuBranch,
   getBranchForFirmMenu,
@@ -19,6 +19,21 @@ function getFirmName(db, firmId) {
   return user?.firm_name || "Firma";
 }
 
+function requirePublicMenu(db, slug, res) {
+  const firmRow = resolveFirmByMenuSlug(db, slug);
+  if (!firmRow) {
+    res.status(404).json({ error: "Menü bulunamadı. Admin panelden QR Menü linkini kontrol edin." });
+    return null;
+  }
+  if (!firmRow.menu_enabled) {
+    res.status(403).json({
+      error: "Menü kapalı. Admin panel → QR Menü → “QR menü aktif” seçeneğini açıp kaydedin.",
+    });
+    return null;
+  }
+  return firmRow;
+}
+
 function generateQrOrderCode() {
   const now = new Date();
   const pad = (n) => String(n).padStart(2, "0");
@@ -27,8 +42,8 @@ function generateQrOrderCode() {
 
 router.get("/menu/:slug", (req, res) => {
   const db = getDb();
-  const firmRow = getFirmByMenuSlug(db, req.params.slug);
-  if (!firmRow) return res.status(404).json({ error: "Menü bulunamadı veya kapalı" });
+  const firmRow = requirePublicMenu(db, req.params.slug, res);
+  if (!firmRow) return;
 
   const firmName = getFirmName(db, firmRow.firm_id);
   const branches = db
@@ -48,8 +63,8 @@ router.get("/menu/:slug", (req, res) => {
 
 router.get("/menu/:slug/branches/:branchId", (req, res) => {
   const db = getDb();
-  const firmRow = getFirmByMenuSlug(db, req.params.slug);
-  if (!firmRow) return res.status(404).json({ error: "Menü bulunamadı veya kapalı" });
+  const firmRow = requirePublicMenu(db, req.params.slug, res);
+  if (!firmRow) return;
 
   const branch = getBranchForFirmMenu(db, firmRow.firm_id, req.params.branchId);
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı veya menüde değil" });
@@ -74,8 +89,8 @@ router.get("/menu/:slug/branches/:branchId", (req, res) => {
 
 router.get("/menu/:slug/branches/:branchId/products/:productId/image", (req, res) => {
   const db = getDb();
-  const firmRow = getFirmByMenuSlug(db, req.params.slug);
-  if (!firmRow) return res.status(404).end();
+  const firmRow = requirePublicMenu(db, req.params.slug, res);
+  if (!firmRow) return;
 
   const branch = getBranchForFirmMenu(db, firmRow.firm_id, req.params.branchId);
   if (!branch) return res.status(404).end();
@@ -97,8 +112,8 @@ router.get("/menu/:slug/branches/:branchId/products/:productId/image", (req, res
 
 router.post("/menu/:slug/branches/:branchId/orders", (req, res) => {
   const db = getDb();
-  const firmRow = getFirmByMenuSlug(db, req.params.slug);
-  if (!firmRow) return res.status(404).json({ error: "Menü bulunamadı" });
+  const firmRow = requirePublicMenu(db, req.params.slug, res);
+  if (!firmRow) return;
 
   const branch = getBranchForFirmMenu(db, firmRow.firm_id, req.params.branchId);
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });

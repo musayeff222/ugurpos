@@ -35,7 +35,7 @@ export default function AdminQrMenu() {
     setFirm(data.firm);
     setBranches(data.branches);
     setFirmDraft({
-      menuEnabled: data.firm.menuEnabled,
+      menuEnabled: data.firm.menuEnabled !== false,
       menuTitle: data.firm.menuTitle || "",
       menuWelcome: data.firm.menuWelcome || "",
     });
@@ -160,6 +160,11 @@ export default function AdminQrMenu() {
 
             {menuUrl && (
               <div className="admin-qr-firm-link">
+                {!firm?.menuEnabled && (
+                  <div className="alert alert-danger">
+                    Menü şu an kapalı. Aşağıdan &quot;QR menü aktif&quot; işaretleyip kaydedin.
+                  </div>
+                )}
                 <img src={getQrCodeUrl(menuUrl)} alt="QR Menü" className="admin-qr-code" />
                 <code className="admin-qr-url">{menuUrl}</code>
                 <div className="admin-qr-firm-actions">

@@ -3,7 +3,7 @@ import { ensureFirmSettings } from "../utils/qrMenu.js";
 export function migrateQrMenu(db) {
   const branchCols = db.prepare("PRAGMA table_info(branches)").all().map((c) => c.name);
   if (!branchCols.includes("menu_enabled")) {
-    db.exec("ALTER TABLE branches ADD COLUMN menu_enabled INTEGER DEFAULT 0");
+    db.exec("ALTER TABLE branches ADD COLUMN menu_enabled INTEGER DEFAULT 1");
   }
   if (!branchCols.includes("menu_title")) {
     db.exec("ALTER TABLE branches ADD COLUMN menu_title TEXT");
@@ -21,7 +21,7 @@ export function migrateQrMenu(db) {
       menu_slug TEXT UNIQUE,
       menu_title TEXT,
       menu_welcome TEXT,
-      menu_enabled INTEGER DEFAULT 0
+      menu_enabled INTEGER DEFAULT 1
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_firm_settings_menu_slug ON firm_settings(menu_slug);
 
@@ -55,4 +55,7 @@ export function migrateQrMenu(db) {
 
   const firms = db.prepare("SELECT DISTINCT firm_id, firm_name FROM users").all();
   firms.forEach((firm) => ensureFirmSettings(db, firm.firm_id, firm.firm_name));
+
+  db.exec("UPDATE firm_settings SET menu_enabled = 1 WHERE menu_enabled = 0 OR menu_enabled IS NULL");
+  db.exec("UPDATE branches SET menu_enabled = 1 WHERE active = 1 AND (menu_enabled = 0 OR menu_enabled IS NULL)");
 }
