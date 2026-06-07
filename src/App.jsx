@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import Login from "./pages/Login";
+import AdminLogin from "./pages/AdminLogin";
 import Dashboard from "./pages/Dashboard";
 import Sales from "./pages/Sales";
 import Products from "./pages/Products";
@@ -39,6 +40,8 @@ import ScalePrintPage from "./pages/ScalePrintPage";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBranches from "./pages/admin/AdminBranches";
+import AdminBranchCreate from "./pages/admin/AdminBranchCreate";
+import AdminBranchDetail from "./pages/admin/AdminBranchDetail";
 
 function HomeRedirect() {
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 991px)").matches;
@@ -49,9 +52,12 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/login/admin" element={<AdminLogin />} />
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
         <Route path="branches" element={<AdminBranches />} />
+        <Route path="branches/new" element={<AdminBranchCreate />} />
+        <Route path="branches/:id" element={<AdminBranchDetail />} />
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />
       <Route path="/" element={<MainLayout />}>

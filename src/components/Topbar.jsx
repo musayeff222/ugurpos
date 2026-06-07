@@ -1,41 +1,16 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useStore } from "../store/StoreContext";
 
 export default function Topbar({ menuOpen, onMenuToggle }) {
-  const { user, logout, switchBranch, isAdmin, isBranchUser, branches, activeBranchId, activeBranchName } = useAuth();
-  const { refresh } = useStore();
+  const { user, logout, activeBranchName } = useAuth();
   const navigate = useNavigate();
-  const [branchOpen, setBranchOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
-  const [branchSearch, setBranchSearch] = useState("");
-  const [switching, setSwitching] = useState(false);
-
-  const filteredBranches = useMemo(() => {
-    const q = branchSearch.trim().toLocaleLowerCase("tr");
-    const list = (branches || []).filter((b) => b.active);
-    if (!q) return list;
-    return list.filter((b) => b.name.toLocaleLowerCase("tr").includes(q));
-  }, [branches, branchSearch]);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
-  };
-
-  const handleSwitchBranch = async (branchId) => {
-    if (branchId === activeBranchId || switching) return;
-    setSwitching(true);
-    try {
-      await switchBranch(branchId);
-      await refresh();
-      setBranchOpen(false);
-      setBranchSearch("");
-    } finally {
-      setSwitching(false);
-    }
   };
 
   return (
@@ -82,54 +57,9 @@ export default function Topbar({ menuOpen, onMenuToggle }) {
             )}
           </div>
 
-          <button type="button" className="icon-btn" aria-label="Mobil">
-            <i className="fa fa-mobile" />
-          </button>
-          <button type="button" className="icon-btn" aria-label="Rehber">
-            <i className="fa fa-address-book" />
-          </button>
-
-          {!isBranchUser && (
-            <div className="dropdown-wrap">
-              <button type="button" className="top-link" onClick={() => setBranchOpen(!branchOpen)}>
-                {activeBranchName || user?.branchName || "ANA HESAP"} <i className="fa fa-sitemap" />
-              </button>
-              {branchOpen && (
-                <div className="dropdown-menu branch-menu">
-                  <p className="dropdown-hint">Geçiş yapmak istediğiniz şubenin üzerine tıklayınız</p>
-                  <input
-                    type="text"
-                    placeholder="Şube adı yazınız..."
-                    className="branch-search"
-                    value={branchSearch}
-                    onChange={(e) => setBranchSearch(e.target.value)}
-                  />
-                  {filteredBranches.map((branch) => (
-                    <button
-                      key={branch.id}
-                      type="button"
-                      className={`dropdown-item ${branch.id === activeBranchId ? "active-branch" : ""}`}
-                      onClick={() => handleSwitchBranch(branch.id)}
-                      disabled={switching}
-                    >
-                      <i className="fa fa-arrow-circle-o-right" /> {branch.name}
-                    </button>
-                  ))}
-                  {isAdmin && (
-                    <Link to="/admin/branches" className="dropdown-item strong" onClick={() => setBranchOpen(false)}>
-                      Şube bilgileri / Yeni şube ekle
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {isBranchUser && (
-            <span className="top-link branch-locked">
-              {activeBranchName || user?.branchName} <i className="fa fa-lock" />
-            </span>
-          )}
+          <span className="top-link branch-locked">
+            {activeBranchName || user?.branchName || "Şube"} <i className="fa fa-lock" />
+          </span>
 
           <div className="dropdown-wrap">
             <button type="button" className="icon-btn" onClick={() => setProfileOpen(!profileOpen)} aria-label="Profil">
@@ -140,11 +70,6 @@ export default function Topbar({ menuOpen, onMenuToggle }) {
                 <Link to="/profile" onClick={() => setProfileOpen(false)}>
                   <i className="fa fa-gear" /> Profilim
                 </Link>
-                {isAdmin && (
-                  <Link to="/admin" onClick={() => setProfileOpen(false)}>
-                    <i className="fa fa-shield" /> Admin Panel
-                  </Link>
-                )}
                 <Link to="/integration" onClick={() => setProfileOpen(false)}>
                   <i className="fa fa-refresh" /> Entegrasyon Bilgisi
                 </Link>

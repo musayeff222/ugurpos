@@ -1,4 +1,4 @@
-import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/admin.css";
 
@@ -8,18 +8,29 @@ const adminNav = [
 ];
 
 export default function AdminLayout() {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location }} />;
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login/admin" replace state={{ from: location }} />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login/admin", { replace: true });
+  };
 
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <div className="admin-brand">
           <strong>Admin Panel</strong>
-          <span>Şube yönetimi</span>
+          <span>{user?.firmName || "Firma Yönetimi"}</span>
         </div>
         <nav className="admin-nav">
           {adminNav.map((item) => (
@@ -27,17 +38,31 @@ export default function AdminLayout() {
               key={item.to}
               to={item.to}
               end={item.end}
-              className={location.pathname === item.to ? "active" : ""}
+              className={
+                location.pathname === item.to ||
+                (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches"))
+                  ? "active"
+                  : ""
+              }
             >
               {item.label}
             </Link>
           ))}
         </nav>
-        <Link to="/dashboard" className="admin-back">
-          <i className="fa fa-arrow-left" /> POS paneline dön
-        </Link>
+        <button type="button" className="admin-back admin-logout-btn" onClick={handleLogout}>
+          <i className="fa fa-power-off" /> Çıkış Yap
+        </button>
       </aside>
       <main className="admin-main">
+        <header className="admin-topbar">
+          <div>
+            <strong>{user?.firmName}</strong>
+            <span>{user?.email}</span>
+          </div>
+          <Link to="/login" className="admin-pos-link" target="_blank" rel="noopener noreferrer">
+            POS giriş sayfası ↗
+          </Link>
+        </header>
         <Outlet />
       </main>
     </div>

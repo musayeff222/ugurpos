@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import MobileMenu from "../components/MobileMenu";
+import ImpersonationBanner from "../components/ImpersonationBanner";
 import "../styles/layout.css";
 import "../styles/mobile-menu.css";
 
@@ -23,7 +24,7 @@ function useIsDesktop() {
 }
 
 export default function MainLayout() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin, isBranchUser, isImpersonating } = useAuth();
   const location = useLocation();
   const isDesktop = useIsDesktop();
   const [menuOpen, setMenuOpen] = useState(() =>
@@ -43,6 +44,10 @@ export default function MainLayout() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  if (isAdmin && !isBranchUser && !isImpersonating) {
+    return <Navigate to="/admin" replace />;
+  }
+
   return (
     <div
       id="containerbar"
@@ -55,6 +60,7 @@ export default function MainLayout() {
         <MobileMenu overlay onClose={() => setMenuOpen(false)} />
       )}
       <div className="rightbar">
+        {isImpersonating && <ImpersonationBanner />}
         {isDesktop || location.pathname !== "/menu" ? (
           <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
         ) : null}

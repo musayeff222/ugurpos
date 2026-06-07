@@ -1,12 +1,42 @@
 import { Router } from "express";
-import { getDb, uid } from "../db/index.js";
+import { getDb, uid, getSaleWithItems } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
 import { adminMiddleware } from "../middleware/admin.js";
 import { seedBranchDefaults } from "../utils/branchDefaults.js";
 import { generateBranchLoginCode, hashBranchPassword } from "../utils/branchAuth.js";
+import { signAdminToken } from "../middleware/auth.js";
 
 const router = Router();
 router.use(adminMiddleware);
+
+function getBranchOr404(db, id, firmId) {
+  return db.prepare("SELECT * FROM branches WHERE id = ? AND firm_id = ?").get(id, firmId);
+}
+
+function branchStats(db, branchId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const month = today.slice(0, 7);
+  const todayRow = db
+    .prepare(
+      "SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND date(created_at)=? AND payment_type != 'refund'"
+    )
+    .get(branchId, today);
+  const monthRow = db
+    .prepare(
+      "SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND substr(created_at,1,7)=? AND payment_type != 'refund'"
+    )
+    .get(branchId, month);
+  return {
+    productCount: db.prepare("SELECT COUNT(*) as c FROM products WHERE branch_id = ?").get(branchId).c,
+    customerCount: db.prepare("SELECT COUNT(*) as c FROM customers WHERE branch_id = ?").get(branchId).c,
+    saleCount: db.prepare("SELECT COUNT(*) as c FROM sales WHERE branch_id = ? AND payment_type != 'refund'").get(branchId).c,
+    totalDebt: db.prepare("SELECT COALESCE(SUM(debt),0) as t FROM customers WHERE branch_id = ?").get(branchId).t,
+    todayCount: todayRow.c,
+    todayTotal: todayRow.t,
+    monthCount: monthRow.c,
+    monthTotal: monthRow.t,
+  };
+}
 
 router.get("/summary", (req, res) => {
   const db = getDb();
@@ -40,7 +70,101 @@ router.get("/branches", (req, res) => {
   const rows = db
     .prepare("SELECT * FROM branches WHERE firm_id = ? ORDER BY name")
     .all(req.user.firmId);
-  res.json(rows.map(rowToBranch));
+  res.json(
+    rows.map((row) => ({
+      ...rowToBranch(row),
+      stats: branchStats(db, row.id),
+    }))
+  );
+});
+
+router.get("/branches/:id", (req, res) => {
+  const db = getDb();
+  const branch = getBranchOr404(db, req.params.id, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+  res.json({
+    ...rowToBranch(branch),
+    stats: branchStats(db, branch.id),
+  });
+});
+
+router.get("/branches/:id/activity", (req, res) => {
+  const db = getDb();
+  const branch = getBranchOr404(db, req.params.id, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+
+  const saleIds = db
+    .prepare("SELECT id FROM sales WHERE branch_id = ? ORDER BY created_at DESC LIMIT 30")
+    .all(branch.id);
+  const sales = saleIds.map(({ id }) => {
+    const sale = getSaleWithItems(db, id);
+    return {
+      id: sale.id,
+      code: sale.code,
+      createdAt: sale.createdAt,
+      paymentType: sale.paymentType,
+      total: sale.total,
+      itemCount: sale.items.length,
+      staffName: sale.staffName,
+    };
+  });
+
+  const stockCounts = db
+    .prepare("SELECT * FROM stock_counts WHERE branch_id = ? ORDER BY date DESC LIMIT 15")
+    .all(branch.id)
+    .map((r) => ({
+      id: r.id,
+      productName: r.product_name,
+      previous: r.previous_stock,
+      counted: r.counted,
+      difference: r.difference,
+      date: r.date,
+    }));
+
+  const topProducts = db
+    .prepare(
+      `SELECT p.name, p.stock, p.price1 FROM products p
+       WHERE p.branch_id = ? ORDER BY p.stock DESC LIMIT 8`
+    )
+    .all(branch.id);
+
+  res.json({
+    branch: rowToBranch(branch),
+    stats: branchStats(db, branch.id),
+    sales,
+    stockCounts,
+    topProducts: topProducts.map((p) => ({
+      name: p.name,
+      stock: p.stock,
+      price: p.price1,
+    })),
+  });
+});
+
+router.post("/branches/:id/enter", (req, res) => {
+  const db = getDb();
+  const branch = getBranchOr404(db, req.params.id, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+  if (!branch.active) return res.status(400).json({ error: "Pasif şubeye giriş yapılamaz" });
+
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
+  const token = signAdminToken(user, branch.id, branch.name, { impersonating: true });
+
+  res.json({
+    token,
+    user: {
+      email: user.email,
+      firmId: user.firm_id,
+      firmName: user.firm_name,
+      branchId: branch.id,
+      branchName: branch.name,
+      loginCode: branch.login_code,
+      role: "admin",
+      loginType: "admin",
+      impersonating: true,
+      branches: [rowToBranch(branch)],
+    },
+  });
 });
 
 router.post("/branches", (req, res) => {
@@ -81,9 +205,7 @@ router.post("/branches", (req, res) => {
 
 router.patch("/branches/:id", (req, res) => {
   const db = getDb();
-  const existing = db
-    .prepare("SELECT * FROM branches WHERE id = ? AND firm_id = ?")
-    .get(req.params.id, req.user.firmId);
+  const existing = getBranchOr404(db, req.params.id, req.user.firmId);
   if (!existing) return res.status(404).json({ error: "Şube bulunamadı" });
 
   const { name, code, address, phone, active, password, loginCode } = req.body;
@@ -115,9 +237,7 @@ router.patch("/branches/:id", (req, res) => {
 
 router.delete("/branches/:id", (req, res) => {
   const db = getDb();
-  const existing = db
-    .prepare("SELECT * FROM branches WHERE id = ? AND firm_id = ?")
-    .get(req.params.id, req.user.firmId);
+  const existing = getBranchOr404(db, req.params.id, req.user.firmId);
   if (!existing) return res.status(404).json({ error: "Şube bulunamadı" });
 
   const activeCount = db

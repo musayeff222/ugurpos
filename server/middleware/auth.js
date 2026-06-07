@@ -6,7 +6,7 @@ export function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 }
 
-export function signAdminToken(user, branchId, branchName) {
+export function signAdminToken(user, branchId, branchName, options = {}) {
   return signToken({
     id: user.id,
     email: user.email,
@@ -16,6 +16,7 @@ export function signAdminToken(user, branchId, branchName) {
     branchName: branchName || user.branch,
     role: user.role || "admin",
     loginType: "admin",
+    impersonating: !!options.impersonating,
   });
 }
 

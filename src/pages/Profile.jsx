@@ -4,27 +4,38 @@ import { Link } from "react-router-dom";
 
 export default function Profile() {
   const { user } = useAuth();
+  const isBranch = user?.role === "branch" || user?.loginType === "branch";
 
   return (
     <div>
       <PageHeader title="Profilim" />
       <div className="card">
         <div className="card-body detail-grid">
-          <p>
-            <span>E-posta</span> {user?.email || "—"}
-          </p>
-          <p>
-            <span>Firma</span> {user?.firmName || "—"}
-          </p>
-          <p>
-            <span>Firma No</span> {user?.firmId || "—"}
-          </p>
-          <p>
-            <span>Şube</span> {user?.branchName || user?.branch || "ANA HESAP"}
-          </p>
-          <p>
-            <span>Rol</span> {user?.role === "admin" ? "Yönetici (Admin)" : user?.role || "Kullanıcı"}
-          </p>
+          {isBranch ? (
+            <>
+              <p>
+                <span>Şube</span> {user?.branchName || "—"}
+              </p>
+              <p>
+                <span>Giriş Kodu</span> {user?.loginCode || "—"}
+              </p>
+              <p>
+                <span>Firma</span> {user?.firmName || "—"}
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                <span>E-posta</span> {user?.email || "—"}
+              </p>
+              <p>
+                <span>Firma</span> {user?.firmName || "—"}
+              </p>
+              <p>
+                <span>Şube</span> {user?.branchName || "—"}
+              </p>
+            </>
+          )}
         </div>
       </div>
       <div className="card" style={{ marginTop: 16 }}>
@@ -35,13 +46,6 @@ export default function Profile() {
           <Link to="/integration" className="btn btn-default">
             Entegrasyonlar
           </Link>{" "}
-          {user?.role === "admin" && (
-            <>
-              <Link to="/admin" className="btn btn-primary">
-                Admin Panel
-              </Link>{" "}
-            </>
-          )}
           <Link to="/buyingInformation" className="btn btn-default">
             Lisans
           </Link>

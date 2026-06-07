@@ -5,15 +5,6 @@ export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
-function getBranchId() {
-  try {
-    const saved = localStorage.getItem(USER_KEY);
-    return saved ? JSON.parse(saved).branchId : null;
-  } catch {
-    return null;
-  }
-}
-
 export function setToken(token) {
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);
@@ -23,10 +14,6 @@ async function request(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...options.headers };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-
-  const needsBranch = !path.startsWith("/auth/") && !path.startsWith("/admin/");
-  const branchId = getBranchId();
-  if (needsBranch && branchId) headers["X-Branch-Id"] = branchId;
 
   const res = await fetch(`/api${path}`, { ...options, headers });
   const data = await res.json().catch(() => ({}));
@@ -47,11 +34,12 @@ export const api = {
     request("/auth/branch-login", { method: "POST", body: JSON.stringify({ loginCode, password }) }),
 
   getBranches: () => request("/auth/branches"),
-  switchBranch: (branchId) =>
-    request("/auth/switch-branch", { method: "POST", body: JSON.stringify({ branchId }) }),
 
   getAdminSummary: () => request("/admin/summary"),
   getAdminBranches: () => request("/admin/branches"),
+  getAdminBranch: (id) => request(`/admin/branches/${id}`),
+  getAdminBranchActivity: (id) => request(`/admin/branches/${id}/activity`),
+  enterBranchAsAdmin: (id) => request(`/admin/branches/${id}/enter`, { method: "POST" }),
   createBranch: (branch) => request("/admin/branches", { method: "POST", body: JSON.stringify(branch) }),
   updateBranch: (id, patch) => request(`/admin/branches/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteBranch: (id) => request(`/admin/branches/${id}`, { method: "DELETE" }),

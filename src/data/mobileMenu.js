@@ -13,7 +13,6 @@ export const mobileMenuItems = [
   { label: "Giderler", path: "/expense", icon: "fa-angle-up" },
   { label: "Personeller", path: "/staffs", icon: "fa-group" },
   { label: "Ürün Grupları", path: "/pgroups", icon: "fa-shopping-cart" },
-  { label: "Şubeler", path: "/admin/branches", icon: "fa-sitemap" },
   { label: "Entegrasyonlar", path: "/integration", icon: "fa-refresh" },
   { label: "Görevler", path: "/tasks", icon: "fa-ellipsis-h" },
   { label: "Profil", path: "/profile", icon: "fa-user" },

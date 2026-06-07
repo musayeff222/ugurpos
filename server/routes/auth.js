@@ -106,37 +106,14 @@ router.get("/me", authMiddleware, (req, res) => {
 });
 
 router.get("/branches", authMiddleware, (req, res) => {
-  if (req.user.role === "branch") {
-    const db = getDb();
+  const db = getDb();
+
+  if (req.user.role === "branch" || req.user.impersonating) {
     const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.user.branchId);
     return res.json(branch ? [rowToBranch(branch)] : []);
   }
+
   res.json(getBranchesForFirm(req.user.firmId));
-});
-
-router.post("/switch-branch", authMiddleware, (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Şube değiştirme sadece yönetici için" });
-  }
-
-  const { branchId } = req.body;
-  if (!branchId) return res.status(400).json({ error: "branchId required" });
-
-  const db = getDb();
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
-  const branch = db
-    .prepare("SELECT * FROM branches WHERE id = ? AND firm_id = ? AND active = 1")
-    .get(branchId, user.firm_id);
-
-  if (!branch) return res.status(403).json({ error: "Geçersiz şube" });
-
-  db.prepare("UPDATE users SET branch_id = ?, branch = ? WHERE id = ?").run(branch.id, branch.name, user.id);
-
-  const token = signAdminToken(user, branch.id, branch.name);
-  res.json({
-    token,
-    user: buildAdminResponse(db, user, branch.id),
-  });
 });
 
 export default router;

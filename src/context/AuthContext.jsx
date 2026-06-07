@@ -3,6 +3,7 @@ import { api, setToken, getToken } from "../api/client";
 
 const AuthContext = createContext(null);
 const USER_KEY = "benimpos_user";
+const ADMIN_BACKUP_KEY = "admin_session_backup";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -21,6 +22,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const { token, user: account } = await api.login(email, password);
+      sessionStorage.removeItem(ADMIN_BACKUP_KEY);
       persistUser(account, token);
       return account;
     } finally {
@@ -32,6 +34,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const { token, user: account } = await api.branchLogin(loginCode, password);
+      sessionStorage.removeItem(ADMIN_BACKUP_KEY);
       persistUser(account, token);
       return account;
     } finally {
@@ -39,10 +42,27 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const switchBranch = async (branchId) => {
-    const { token, user: account } = await api.switchBranch(branchId);
+  const enterBranchAsAdmin = async (branchId) => {
+    const backup = {
+      token: getToken(),
+      user: JSON.parse(localStorage.getItem(USER_KEY) || "null"),
+    };
+    sessionStorage.setItem(ADMIN_BACKUP_KEY, JSON.stringify(backup));
+
+    const { token, user: account } = await api.enterBranchAsAdmin(branchId);
     persistUser(account, token);
     return account;
+  };
+
+  const returnToAdminPanel = () => {
+    const raw = sessionStorage.getItem(ADMIN_BACKUP_KEY);
+    if (raw) {
+      const backup = JSON.parse(raw);
+      sessionStorage.removeItem(ADMIN_BACKUP_KEY);
+      persistUser(backup.user, backup.token);
+      return true;
+    }
+    return false;
   };
 
   const refreshBranches = async () => {
@@ -59,6 +79,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setToken(null);
     localStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(ADMIN_BACKUP_KEY);
     setUser(null);
   };
 
@@ -68,13 +89,15 @@ export function AuthProvider({ children }) {
         user,
         login,
         loginBranch,
+        enterBranchAsAdmin,
+        returnToAdminPanel,
         logout,
-        switchBranch,
         refreshBranches,
         loading,
         isAuthenticated: !!user && !!getToken(),
         isAdmin: user?.role === "admin",
         isBranchUser: user?.role === "branch" || user?.loginType === "branch",
+        isImpersonating: !!user?.impersonating,
         activeBranchId: user?.branchId,
         activeBranchName: user?.branchName,
         branches: user?.branches || [],

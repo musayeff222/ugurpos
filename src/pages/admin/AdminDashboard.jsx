@@ -16,7 +16,14 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <PageHeader title="Admin Özet" />
+      <PageHeader
+        title="Admin Özet"
+        actions={
+          <Link to="/admin/branches/new" className="btn btn-success btn-sm">
+            Yeni Şube
+          </Link>
+        }
+      />
       {error && <div className="alert alert-danger">{error}</div>}
       {summary && (
         <>
@@ -55,7 +62,9 @@ export default function AdminDashboard() {
               <tbody>
                 {summary.branches.map((b) => (
                   <tr key={b.id}>
-                    <td>{b.name}</td>
+                    <td>
+                      <Link to={`/admin/branches/${b.id}`}>{b.name}</Link>
+                    </td>
                     <td>
                       <code>{b.loginCode || "—"}</code>
                     </td>
