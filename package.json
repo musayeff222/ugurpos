@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "main": "app.js",
+  "description": "Full-stack POS: Express API + React SPA (dist served by app.js)",
   "engines": {
     "node": ">=20 <=22"
   },
@@ -18,6 +19,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vitejs/plugin-react": "^4.5.2",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^11.10.0",
     "cors": "^2.8.5",
@@ -26,12 +28,11 @@
     "jsonwebtoken": "^9.0.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.2"
+    "react-router-dom": "^7.6.2",
+    "vite": "^6.3.5"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.5.2",
     "concurrently": "^9.1.2",
-    "playwright": "^1.52.0",
-    "vite": "^6.3.5"
+    "playwright": "^1.52.0"
   }
 }

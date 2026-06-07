@@ -1,10 +1,43 @@
+/**
+ * UgurPOS — full-stack entry (Hostinger / VPS / self-hosted)
+ * Express API (server/app.js) + React SPA (dist/)
+ */
+import express from "express";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import app from "./server/app.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const distDir = path.join(__dirname, "dist");
+const distIndex = path.join(distDir, "index.html");
+
+if (!process.env.VERCEL) {
+  if (!fs.existsSync(distIndex)) {
+    console.warn("[UgurPOS] dist/index.html bulunamadi — once npm run build calistirin.");
+  }
+
+  app.use(express.static(distDir));
+
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) return next();
+    res.sendFile(distIndex, (err) => {
+      if (err) next(err);
+    });
+  });
+}
+
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ error: err.message || "Server error" });
+});
 
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || "0.0.0.0";
 
 app.listen(PORT, HOST, () => {
-  console.log(`UgurPOS running on port ${PORT}`);
+  console.log(`UgurPOS full-stack running on port ${PORT}`);
+  console.log(`Static: ${distDir}`);
   if (process.env.NODE_ENV !== "production") {
     console.log("Login: admin@benimpos.com / admin123");
   }
