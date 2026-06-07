@@ -72,20 +72,23 @@ class MysqlDb {
   }
 
   transaction(fn) {
-    const conn = awaitSync(this.pool.getConnection());
-    const previous = this._txConn;
-    this._txConn = conn;
-    awaitSync(conn.beginTransaction());
-    try {
-      fn();
-      awaitSync(conn.commit());
-    } catch (err) {
-      awaitSync(conn.rollback());
-      throw err;
-    } finally {
-      this._txConn = previous;
-      conn.release();
-    }
+    return (...args) => {
+      const conn = awaitSync(this.pool.getConnection());
+      const previous = this._txConn;
+      this._txConn = conn;
+      awaitSync(conn.beginTransaction());
+      try {
+        const result = fn(...args);
+        awaitSync(conn.commit());
+        return result;
+      } catch (err) {
+        awaitSync(conn.rollback());
+        throw err;
+      } finally {
+        this._txConn = previous;
+        conn.release();
+      }
+    };
   }
 }
 
