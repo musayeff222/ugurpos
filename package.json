@@ -2,13 +2,19 @@
   "name": "benimpos-clone",
   "private": true,
   "type": "module",
+  "main": "app.js",
+  "engines": {
+    "node": ">=20 <=22"
+  },
   "scripts": {
     "capture": "node scripts/capture-panel.js",
-    "server": "node server/index.js",
+    "server": "node app.js",
     "client": "vite",
     "dev": "concurrently -n api,web -c blue,green \"npm run server\" \"npm run client\"",
     "build": "vite build",
-    "start": "node server/index.js",
+    "postinstall": "node scripts/postinstall.mjs",
+    "start": "node app.js",
+    "hostinger:build": "npm install --include=dev && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {

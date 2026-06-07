@@ -7,7 +7,14 @@ import { initSchema } from "./schema.js";
 import { ensureDefaultBranch, rowToBranch } from "./migrate-branches.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = process.env.VERCEL ? path.join("/tmp", "ugurpos") : path.join(__dirname, "..", "data");
+
+function resolveDataDir() {
+  if (process.env.DATA_DIR) return process.env.DATA_DIR;
+  if (process.env.VERCEL) return path.join("/tmp", "ugurpos");
+  return path.join(__dirname, "..", "data");
+}
+
+const DATA_DIR = resolveDataDir();
 const DB_PATH = path.join(DATA_DIR, "benimpos.db");
 
 let db;

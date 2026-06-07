@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getDb } from "./db/index.js";
@@ -11,6 +12,8 @@ import publicRoutes from "./routes/public.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+
+app.set("trust proxy", 1);
 
 getDb();
 
@@ -27,11 +30,13 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", authMiddleware, adminRoutes);
 app.use("/api", authMiddleware, apiRoutes);
 
-if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
-  const dist = path.join(__dirname, "..", "dist");
-  app.use(express.static(dist));
-  app.get("*", (_req, res) => {
-    res.sendFile(path.join(dist, "index.html"));
+const dist = path.join(__dirname, "..", "dist");
+const distIndex = path.join(dist, "index.html");
+
+if (!process.env.VERCEL && fs.existsSync(distIndex)) {
+  app.use(express.static(dist, { index: false }));
+  app.get(/^(?!\/api).*/, (_req, res) => {
+    res.sendFile(distIndex);
   });
 }
 

@@ -2,4 +2,7 @@ node_modules/
 captured/
 login.html
 server/data/
+!server/data/.gitkeep
 *.db
+.env
+.env.local
