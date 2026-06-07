@@ -1,7 +1,20 @@
 import { migrateBranches } from "./migrate-branches.js";
 import { migrateQrMenu } from "./migrate-qr-menu.js";
+import { initMysqlSchema } from "./schema-mysql.js";
+import { hasColumn, addColumnIfMissing } from "./columns.js";
 
 export function initSchema(db) {
+  if (db.dialect === "mysql") {
+    initMysqlSchema(db);
+    migrateBranches(db);
+    migrateQrMenu(db);
+    return;
+  }
+
+  initSqliteSchema(db);
+}
+
+function initSqliteSchema(db) {
   db.exec(`
     PRAGMA foreign_keys = ON;
 
@@ -212,12 +225,11 @@ export function initSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id);
   `);
 
-  const productCols = db.prepare("PRAGMA table_info(products)").all().map((c) => c.name);
-  if (!productCols.includes("unit")) {
-    db.exec("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'Adet'");
+  if (!hasColumn(db, "products", "unit")) {
+    addColumnIfMissing(db, "products", "unit", "TEXT DEFAULT 'Adet'");
   }
-  if (!productCols.includes("image_path")) {
-    db.exec("ALTER TABLE products ADD COLUMN image_path TEXT");
+  if (!hasColumn(db, "products", "image_path")) {
+    addColumnIfMissing(db, "products", "image_path", "TEXT");
   }
 
   migrateBranches(db);

@@ -13,8 +13,7 @@ import {
   resolveProductImageFile,
   contentTypeForImagePath,
 } from "../utils/productImage.js";
-
-const router = Router();
+import { sql as SQL } from "../db/dialect.js";
 
 function getFirmName(db, firmId) {
   const user = db.prepare("SELECT firm_name FROM users WHERE firm_id = ? LIMIT 1").get(firmId);
@@ -50,7 +49,7 @@ function sendFirmMenu(db, res, firmRow) {
     .prepare(
       `SELECT * FROM branches
        WHERE firm_id = ? AND active = 1 AND menu_enabled = 1
-       ORDER BY CAST(code AS INTEGER), name`
+       ORDER BY ${SQL.branchOrder()}, name`
     )
     .all(firmRow.firm_id)
     .map(rowToMenuBranch);
@@ -66,7 +65,7 @@ function sendBranchMenu(db, res, firmRow, branchId) {
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı veya menüde değil" });
 
   const groups = db
-    .prepare("SELECT id, name FROM groups WHERE branch_id = ? ORDER BY name")
+    .prepare("SELECT id, name FROM `groups` WHERE branch_id = ? ORDER BY name")
     .all(branch.id);
   const products = db
     .prepare(

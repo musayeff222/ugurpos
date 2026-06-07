@@ -2,6 +2,7 @@ import {
   DEFAULT_BRANCH_PASSWORD,
   hashBranchPassword,
 } from "../utils/branchAuth.js";
+import { hasColumn, addColumnIfMissing } from "./columns.js";
 
 function localUid(prefix = "id") {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -71,47 +72,40 @@ function ensureBranchCredentials(db, branch) {
 }
 
 export function migrateBranches(db) {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS branches (
-      id TEXT PRIMARY KEY,
-      firm_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      code TEXT,
-      login_code TEXT,
-      password_hash TEXT,
-      address TEXT,
-      phone TEXT,
-      active INTEGER DEFAULT 1,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE INDEX IF NOT EXISTS idx_branches_firm ON branches(firm_id);
-  `);
+  if (db.dialect !== "mysql") {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS branches (
+        id TEXT PRIMARY KEY,
+        firm_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        code TEXT,
+        login_code TEXT,
+        password_hash TEXT,
+        address TEXT,
+        phone TEXT,
+        active INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_branches_firm ON branches(firm_id);
+    `);
 
-  const branchCols = db.prepare("PRAGMA table_info(branches)").all().map((c) => c.name);
-  if (!branchCols.includes("login_code")) {
-    db.exec("ALTER TABLE branches ADD COLUMN login_code TEXT");
-  }
-  if (!branchCols.includes("password_hash")) {
-    db.exec("ALTER TABLE branches ADD COLUMN password_hash TEXT");
-  }
-  if (!branchCols.includes("email")) {
-    db.exec("ALTER TABLE branches ADD COLUMN email TEXT");
-  }
+    addColumnIfMissing(db, "branches", "login_code", "TEXT");
+    addColumnIfMissing(db, "branches", "password_hash", "TEXT");
+    addColumnIfMissing(db, "branches", "email", "TEXT");
+    addColumnIfMissing(db, "users", "role", "TEXT DEFAULT 'admin'");
+    addColumnIfMissing(db, "users", "branch_id", "TEXT");
 
-  const userCols = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
-  if (!userCols.includes("role")) {
-    db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'admin'");
-  }
-  if (!userCols.includes("branch_id")) {
-    db.exec("ALTER TABLE users ADD COLUMN branch_id TEXT");
-  }
+    BRANCHED_TABLES.forEach((table) => {
+      addColumnIfMissing(db, table, "branch_id", "TEXT");
+    });
 
-  BRANCHED_TABLES.forEach((table) => {
-    const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
-    if (!cols.includes("branch_id")) {
-      db.exec(`ALTER TABLE ${table} ADD COLUMN branch_id TEXT`);
+    try {
+      db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_login_code ON branches(login_code)");
+      db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_email ON branches(email)");
+    } catch {
+      /* index may exist */
     }
-  });
+  }
 
   const users = db.prepare("SELECT id, firm_id, firm_name, branch, branch_id FROM users").all();
   users.forEach((user) => {
@@ -144,8 +138,6 @@ export function migrateBranches(db) {
   });
 
   db.prepare("SELECT * FROM branches").all().forEach((branch) => ensureBranchCredentials(db, branch));
-  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_login_code ON branches(login_code)");
-  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_email ON branches(email)");
 }
 
 export function ensureDefaultBranch(db, firmId, name = "ANA HESAP") {

@@ -1,4 +1,5 @@
 import { rowToQrOrder } from "./qrMenu.js";
+import { sql as SQL } from "../db/dialect.js";
 
 export function loadQrOrderItems(db, orderId) {
   return db.prepare("SELECT * FROM qr_order_items WHERE order_id = ?").all(orderId).map((item) => ({
@@ -93,6 +94,6 @@ export function updateQrOrderStatus(db, orderId, status, branchId = null) {
     });
   }
 
-  db.prepare("UPDATE qr_orders SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, orderId);
+  db.prepare(`UPDATE qr_orders SET status = ?, updated_at = ${SQL.now()} WHERE id = ?`).run(status, orderId);
   return loadQrOrder(db, orderId, branchId || undefined);
 }

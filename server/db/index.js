@@ -5,6 +5,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { initSchema } from "./schema.js";
 import { ensureDefaultBranch, rowToBranch } from "./migrate-branches.js";
+import { useMysql } from "./dialect.js";
+import { createMysqlDb, getMysqlConfigFromEnv } from "./mysql-driver.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,15 +21,31 @@ const DB_PATH = path.join(DATA_DIR, "benimpos.db");
 
 let db;
 
+function createSqliteDb() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const sqlite = new Database(DB_PATH);
+  sqlite.pragma("journal_mode = WAL");
+  sqlite.dialect = "sqlite";
+  return sqlite;
+}
+
 export function getDb() {
   if (!db) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    db = new Database(DB_PATH);
-    db.pragma("journal_mode = WAL");
+    if (useMysql()) {
+      db = createMysqlDb(getMysqlConfigFromEnv());
+      console.log("[DB] MySQL:", getMysqlConfigFromEnv().database);
+    } else {
+      db = createSqliteDb();
+      console.log("[DB] SQLite:", DB_PATH);
+    }
     initSchema(db);
     seedIfEmpty(db);
   }
   return db;
+}
+
+export function getDbDriver() {
+  return useMysql() ? "mysql" : "sqlite";
 }
 
 export function getDataDir() {
@@ -40,7 +58,8 @@ export function uid(prefix = "id") {
 }
 
 function seedIfEmpty(database) {
-  const userCount = database.prepare("SELECT COUNT(*) as c FROM users").get().c;
+  const row = database.prepare("SELECT COUNT(*) as c FROM users").get();
+  const userCount = Number(row.c);
   if (userCount > 0) return;
 
   const firmId = "U261269153";
@@ -58,7 +77,7 @@ function seedIfEmpty(database) {
     ["g3", "Temizlik"],
     ["g4", "Diğer"],
   ];
-  const insGroup = database.prepare("INSERT INTO groups (id, name, branch_id) VALUES (?, ?, ?)");
+  const insGroup = database.prepare("INSERT INTO `groups` (id, name, branch_id) VALUES (?, ?, ?)");
   groups.forEach((g) => insGroup.run(g[0], g[1], branchId));
 
   const products = [
@@ -232,7 +251,7 @@ export function getAllState(database, branchId) {
     .all(branchId)
     .map((r) => getSaleWithItems(database, r.id));
   const groups = database
-    .prepare("SELECT * FROM groups WHERE branch_id = ? ORDER BY name")
+    .prepare("SELECT * FROM `groups` WHERE branch_id = ? ORDER BY name")
     .all(branchId)
     .map((r) => ({ id: r.id, name: r.name }));
   const firms = database

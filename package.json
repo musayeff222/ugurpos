@@ -24,6 +24,7 @@
     "postinstall": "node scripts/postinstall.mjs",
     "start": "node server.js",
     "hostinger:build": "npm run build",
+    "setup-mysql": "node scripts/setup-mysql.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -31,9 +32,11 @@
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^11.10.0",
     "cors": "^2.8.5",
+    "deasync": "^0.1.30",
     "express": "^5.1.0",
     "jsbarcode": "^3.12.3",
     "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.14.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",

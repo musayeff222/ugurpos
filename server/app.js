@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { getDb } from "./db/index.js";
+import { getDb, getDbDriver } from "./db/index.js";
 import { authMiddleware } from "./middleware/auth.js";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
@@ -20,7 +20,7 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "5mb" }));
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "ugurpos-api", mode: "fullstack" });
+  res.json({ ok: true, service: "ugurpos-api", mode: "fullstack", db: getDbDriver() });
 });
 
 app.use("/api/public", publicRoutes);

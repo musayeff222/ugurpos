@@ -11,7 +11,7 @@ export function seedBranchDefaults(db, branchId) {
   };
 
   const suffix = branchId.slice(-6);
-  const insGroup = db.prepare("INSERT INTO groups (id, name, branch_id) VALUES (?, ?, ?)");
+  const insGroup = db.prepare("INSERT INTO `groups` (id, name, branch_id) VALUES (?, ?, ?)");
   defaults.groups.forEach((name, i) => {
     insGroup.run(`g_${suffix}_${i}`, name, branchId);
   });

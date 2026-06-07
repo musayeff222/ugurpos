@@ -9,6 +9,7 @@ import {
   contentTypeForImagePath,
 } from "../utils/productImage.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
+import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
 router.use(branchMiddleware);
@@ -48,12 +49,12 @@ router.get("/dashboard/summary", (req, res) => {
   const month = today.slice(0, 7);
   const todaySales = db
     .prepare(
-      "SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND date(created_at)=? AND payment_type != 'refund'"
+      `SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND ${SQL.date("created_at")}=? AND payment_type != 'refund'`
     )
     .get(branchId, today);
   const monthSales = db
     .prepare(
-      "SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND substr(created_at,1,7)=? AND payment_type != 'refund'"
+      `SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND ${SQL.month("created_at")}=? AND payment_type != 'refund'`
     )
     .get(branchId, month);
   const debt = db.prepare("SELECT COALESCE(SUM(debt),0) as t FROM customers WHERE branch_id = ?").get(branchId);
@@ -187,17 +188,17 @@ router.delete("/products", (req, res) => {
 
 // Groups
 router.get("/groups", (req, res) => {
-  res.json(getDb().prepare("SELECT id, name FROM groups WHERE branch_id = ? ORDER BY name").all(req.branchId));
+  res.json(getDb().prepare("SELECT id, name FROM `groups` WHERE branch_id = ? ORDER BY name").all(req.branchId));
 });
 
 router.post("/groups", (req, res) => {
   const id = uid("g");
-  getDb().prepare("INSERT INTO groups (id, name, branch_id) VALUES (?, ?, ?)").run(id, req.body.name, req.branchId);
+  getDb().prepare("INSERT INTO `groups` (id, name, branch_id) VALUES (?, ?, ?)").run(id, req.body.name, req.branchId);
   res.status(201).json({ id, name: req.body.name });
 });
 
 router.delete("/groups/:id", (req, res) => {
-  getDb().prepare("DELETE FROM groups WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
+  getDb().prepare("DELETE FROM `groups` WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
@@ -260,7 +261,7 @@ router.get("/sales", (req, res) => {
     params.push(req.query.customerId);
   }
   if (req.query.date) {
-    sql += " AND date(created_at) = ?";
+    sql += ` AND ${SQL.date("created_at")} = ?`;
     params.push(req.query.date);
   }
   sql += " ORDER BY created_at DESC";
@@ -663,7 +664,7 @@ router.get("/reports/daily", (req, res) => {
   const date = req.query.date || new Date().toISOString().slice(0, 10);
   const sales = getDb()
     .prepare(
-      "SELECT id FROM sales WHERE branch_id = ? AND date(created_at)=? AND payment_type != 'refund' ORDER BY created_at DESC"
+      `SELECT id FROM sales WHERE branch_id = ? AND ${SQL.date("created_at")}=? AND payment_type != 'refund' ORDER BY created_at DESC`
     )
     .all(req.branchId, date)
     .map((r) => getSaleWithItems(getDb(), r.id));
@@ -675,9 +676,9 @@ router.get("/reports/historical", (req, res) => {
   const to = req.query.to || new Date().toISOString().slice(0, 10);
   const rows = getDb()
     .prepare(`
-      SELECT date(created_at) as date, COUNT(*) as count, SUM(total) as total
-      FROM sales WHERE branch_id = ? AND payment_type != 'refund' AND date(created_at) BETWEEN ? AND ?
-      GROUP BY date(created_at) ORDER BY date DESC
+      SELECT ${SQL.date("created_at")} as date, COUNT(*) as count, SUM(total) as total
+      FROM sales WHERE branch_id = ? AND payment_type != 'refund' AND ${SQL.date("created_at")} BETWEEN ? AND ?
+      GROUP BY ${SQL.date("created_at")} ORDER BY date DESC
     `)
     .all(req.branchId, from, to);
   res.json(rows.map((r) => ({ id: r.date, date: r.date, count: r.count, total: r.total })));

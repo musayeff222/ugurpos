@@ -7,6 +7,7 @@ import { hashBranchPassword, getNextBranchNumber, isValidBranchEmail, normalizeB
 import { signAdminToken } from "../middleware/auth.js";
 import { ensureFirmSettings, rowToMenuBranch, rowToFirmMenu } from "../utils/qrMenu.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
+import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
 router.use(adminMiddleware);
@@ -20,22 +21,22 @@ function branchStats(db, branchId) {
   const month = today.slice(0, 7);
   const todayRow = db
     .prepare(
-      "SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND date(created_at)=? AND payment_type != 'refund'"
+      `SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND ${SQL.date("created_at")}=? AND payment_type != 'refund'`
     )
     .get(branchId, today);
   const monthRow = db
     .prepare(
-      "SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND substr(created_at,1,7)=? AND payment_type != 'refund'"
+      `SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND ${SQL.month("created_at")}=? AND payment_type != 'refund'`
     )
     .get(branchId, month);
   return {
-    productCount: db.prepare("SELECT COUNT(*) as c FROM products WHERE branch_id = ?").get(branchId).c,
-    customerCount: db.prepare("SELECT COUNT(*) as c FROM customers WHERE branch_id = ?").get(branchId).c,
-    saleCount: db.prepare("SELECT COUNT(*) as c FROM sales WHERE branch_id = ? AND payment_type != 'refund'").get(branchId).c,
+    productCount: Number(db.prepare("SELECT COUNT(*) as c FROM products WHERE branch_id = ?").get(branchId).c),
+    customerCount: Number(db.prepare("SELECT COUNT(*) as c FROM customers WHERE branch_id = ?").get(branchId).c),
+    saleCount: Number(db.prepare("SELECT COUNT(*) as c FROM sales WHERE branch_id = ? AND payment_type != 'refund'").get(branchId).c),
     totalDebt: db.prepare("SELECT COALESCE(SUM(debt),0) as t FROM customers WHERE branch_id = ?").get(branchId).t,
-    todayCount: todayRow.c,
+    todayCount: Number(todayRow.c),
     todayTotal: todayRow.t,
-    monthCount: monthRow.c,
+    monthCount: Number(monthRow.c),
     monthTotal: monthRow.t,
   };
 }
@@ -50,7 +51,7 @@ router.get("/summary", (req, res) => {
       `SELECT b.*,
         (SELECT COUNT(*) FROM products p WHERE p.branch_id = b.id) as product_count,
         (SELECT COUNT(*) FROM sales s WHERE s.branch_id = b.id) as sale_count
-       FROM branches b WHERE b.firm_id = ? ORDER BY CAST(b.code AS INTEGER), b.name`
+       FROM branches b WHERE b.firm_id = ? ORDER BY ${SQL.branchOrder()}, b.name`
     )
     .all(firmId);
 
@@ -70,7 +71,7 @@ router.get("/summary", (req, res) => {
 router.get("/branches", (req, res) => {
   const db = getDb();
   const rows = db
-    .prepare("SELECT * FROM branches WHERE firm_id = ? ORDER BY CAST(code AS INTEGER), name")
+    .prepare(`SELECT * FROM branches WHERE firm_id = ? ORDER BY ${SQL.branchOrder()}, name`)
     .all(req.user.firmId);
   res.json(
     rows.map((row) => ({
@@ -259,7 +260,7 @@ router.get("/qr-menu", (req, res) => {
   const db = getDb();
   const firmRow = ensureFirmSettings(db, req.user.firmId, req.user.firmName);
   const rows = db
-    .prepare("SELECT * FROM branches WHERE firm_id = ? ORDER BY CAST(code AS INTEGER), name")
+    .prepare(`SELECT * FROM branches WHERE firm_id = ? ORDER BY ${SQL.branchOrder()}, name`)
     .all(req.user.firmId);
 
   const branches = rows.map((row) => {
