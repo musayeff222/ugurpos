@@ -4,6 +4,7 @@ import PageHeader from "../components/ui/PageHeader";
 import { formatMoney } from "../utils/format";
 import { useAuth } from "../context/AuthContext";
 import { useWebOrders } from "../context/WebOrdersContext";
+import { useLocale } from "../context/LocaleContext";
 import "../styles/qr-orders.css";
 
 const STATUS_LABELS = {
@@ -17,6 +18,7 @@ const POLL_MS = 5000;
 
 export default function WebOrders() {
   const { activeBranchName } = useAuth();
+  const { t, lang } = useLocale();
   const { refresh: refreshPending, clearLatest } = useWebOrders();
   const [orders, setOrders] = useState([]);
   const [status, setStatus] = useState("pending");
@@ -31,7 +33,7 @@ export default function WebOrders() {
     if (status === "pending") {
       const fresh = data.filter((o) => !prevIdsRef.current.has(o.id));
       if (prevIdsRef.current.size > 0 && fresh.length > 0) {
-        setNewFlash(`${fresh.length} yeni web siparişi geldi`);
+        setNewFlash(t("webOrders.newFlash", { count: fresh.length }));
         setTimeout(() => setNewFlash(""), 5000);
       }
       prevIdsRef.current = new Set(data.map((o) => o.id));
@@ -72,11 +74,11 @@ export default function WebOrders() {
   return (
     <div className="qr-orders-page">
       <PageHeader
-        title="Web Siparişler"
+        title={t("webOrders.title")}
         subtitle={
           activeBranchName
-            ? `${activeBranchName} şubesine QR menüden gelen siparişler burada görünür.`
-            : "Şubenize gelen web siparişleri"
+            ? t("webOrders.subtitle", { branch: activeBranchName })
+            : t("webOrders.title")
         }
       />
 
@@ -93,21 +95,21 @@ export default function WebOrders() {
           <option value="all">Tümü</option>
         </select>
         <button type="button" className="btn btn-default btn-sm" onClick={() => loadOrders().catch((e) => setError(e.message))}>
-          Yenile
+          {t("webOrders.refresh")}
         </button>
         {status === "pending" && pendingCount > 0 && (
-          <span className="qr-orders-pending-badge">{pendingCount} bekleyen sipariş</span>
+          <span className="qr-orders-pending-badge">
+            {pendingCount} {t("webOrders.pending")}
+          </span>
         )}
       </div>
 
       {loading ? (
-        <p className="hint-text">Siparişler yükleniyor…</p>
+        <p className="hint-text">{t("common.loading")}</p>
       ) : orders.length === 0 ? (
         <div className="card">
           <p className="hint-text">
-            {status === "pending"
-              ? "Henüz bekleyen web siparişi yok. Müşteri QR menüden sipariş verdiğinde burada görünür."
-              : "Bu filtrede sipariş yok."}
+            {status === "pending" ? t("webOrders.emptyPending") : "—"}
           </p>
         </div>
       ) : (
@@ -121,7 +123,7 @@ export default function WebOrders() {
                     {STATUS_LABELS[order.status] || order.status}
                   </span>
                 </div>
-                <strong>{formatMoney(order.total)}</strong>
+                <strong>{formatMoney(order.total, lang)}</strong>
               </div>
               <p>
                 {order.customerName}
@@ -132,7 +134,7 @@ export default function WebOrders() {
               <ul className="qr-order-items">
                 {order.items.map((item) => (
                   <li key={item.id}>
-                    {item.qty}x {item.name} — {formatMoney(item.qty * item.price)}
+                    {item.qty}x {item.name} — {formatMoney(item.qty * item.price, lang)}
                   </li>
                 ))}
               </ul>
@@ -144,14 +146,14 @@ export default function WebOrders() {
                       className="btn btn-success btn-sm"
                       onClick={() => updateOrderStatus(order.id, "accepted")}
                     >
-                      Kabul Et
+                      {t("webOrders.accept")}
                     </button>
                     <button
                       type="button"
                       className="btn btn-danger btn-sm"
                       onClick={() => updateOrderStatus(order.id, "rejected")}
                     >
-                      Reddet
+                      {t("webOrders.reject")}
                     </button>
                   </>
                 )}
@@ -161,7 +163,7 @@ export default function WebOrders() {
                     className="btn btn-primary btn-sm"
                     onClick={() => updateOrderStatus(order.id, "completed")}
                   >
-                    Tamamlandı
+                    {t("webOrders.complete")}
                   </button>
                 )}
               </div>

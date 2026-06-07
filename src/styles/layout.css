@@ -419,7 +419,6 @@
   font-size: 14px;
 }
 
-.web-order-toast-link {
-  float: right;
-  font-weight: 600;
+.topbar .lang-switcher {
+  flex-shrink: 0;
 }

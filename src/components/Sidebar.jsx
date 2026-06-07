@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { navigation } from "../data/navigation";
 import { useWebOrders } from "../context/WebOrdersContext";
+import { useLocale } from "../context/LocaleContext";
 
-function NavItem({ item, onNavigate, pendingWebOrders }) {
+function navLabel(item, t) {
+  return item.labelKey ? t(item.labelKey) : item.label;
+}
+
+function NavItem({ item, onNavigate, pendingWebOrders, t }) {
   const location = useLocation();
   const hasChildren = item.children?.length;
   const isChildActive = hasChildren && item.children.some((c) => location.pathname === c.path);
@@ -18,7 +23,7 @@ function NavItem({ item, onNavigate, pendingWebOrders }) {
       <li className={isChildActive ? "has-active-child" : ""}>
         <button type="button" className="nav-parent" onClick={() => setOpen(!open)} aria-expanded={open}>
           <i className={`fa ${item.icon}`} />
-          <span>{item.label}</span>
+          <span>{navLabel(item, t)}</span>
           <i className={`fa fa-chevron-right nav-chevron ${open ? "open" : ""}`} />
         </button>
         {open && (
@@ -30,7 +35,7 @@ function NavItem({ item, onNavigate, pendingWebOrders }) {
                   className={({ isActive }) => (isActive ? "active" : "")}
                   onClick={onNavigate}
                 >
-                  {child.label}
+                  {navLabel(child, t)}
                 </NavLink>
               </li>
             ))}
@@ -48,7 +53,7 @@ function NavItem({ item, onNavigate, pendingWebOrders }) {
         onClick={onNavigate}
       >
         <i className={`fa ${item.icon}`} />
-        <span>{item.label}</span>
+        <span>{navLabel(item, t)}</span>
         {item.badge === "webOrders" && pendingWebOrders > 0 && (
           <span className="nav-badge">{pendingWebOrders}</span>
         )}
@@ -59,6 +64,7 @@ function NavItem({ item, onNavigate, pendingWebOrders }) {
 
 export default function Sidebar({ onNavigate }) {
   const { pendingCount } = useWebOrders();
+  const { t } = useLocale();
 
   return (
     <div className="leftbar">
@@ -67,10 +73,11 @@ export default function Sidebar({ onNavigate }) {
           <ul className="vertical-menu">
             {navigation.map((item) => (
               <NavItem
-                key={item.label + (item.path || "")}
+                key={(item.labelKey || item.label) + (item.path || "")}
                 item={item}
                 onNavigate={onNavigate}
                 pendingWebOrders={pendingCount}
+                t={t}
               />
             ))}
           </ul>

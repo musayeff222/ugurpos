@@ -62,12 +62,19 @@ export function getFirmByMenuSlug(db, slug) {
 
 export function rowToFirmMenu(row, firmName = "") {
   if (!row) return null;
+  const defaultLang = row.menu_default_lang === "tr" ? "tr" : "az";
   return {
     firmId: row.firm_id,
     menuSlug: row.menu_slug,
     menuTitle: row.menu_title || firmName || "Menü",
     menuWelcome: row.menu_welcome || "",
     menuEnabled: !!row.menu_enabled,
+    defaultLang,
+    social: {
+      instagram: row.menu_social_instagram || "",
+      whatsapp: row.menu_social_whatsapp || "",
+      tiktok: row.menu_social_tiktok || "",
+    },
   };
 }
 

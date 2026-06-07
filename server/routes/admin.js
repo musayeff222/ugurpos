@@ -280,18 +280,36 @@ router.get("/qr-menu", (req, res) => {
 router.patch("/qr-menu", (req, res) => {
   const db = getDb();
   const firmRow = ensureFirmSettings(db, req.user.firmId, req.user.firmName);
-  const { menuEnabled, menuTitle, menuWelcome } = req.body;
+  const {
+    menuEnabled,
+    menuTitle,
+    menuWelcome,
+    socialInstagram,
+    socialWhatsapp,
+    socialTiktok,
+    menuDefaultLang,
+  } = req.body;
+
+  const lang = menuDefaultLang === "tr" ? "tr" : menuDefaultLang === "az" ? "az" : firmRow.menu_default_lang || "az";
 
   db.prepare(
     `UPDATE firm_settings SET
       menu_enabled = ?,
       menu_title = ?,
-      menu_welcome = ?
+      menu_welcome = ?,
+      menu_social_instagram = ?,
+      menu_social_whatsapp = ?,
+      menu_social_tiktok = ?,
+      menu_default_lang = ?
      WHERE firm_id = ?`
   ).run(
     menuEnabled === false ? 0 : 1,
     menuTitle ?? firmRow.menu_title ?? req.user.firmName,
     menuWelcome ?? firmRow.menu_welcome ?? "",
+    socialInstagram ?? firmRow.menu_social_instagram ?? "",
+    socialWhatsapp ?? firmRow.menu_social_whatsapp ?? "",
+    socialTiktok ?? firmRow.menu_social_tiktok ?? "",
+    lang,
     req.user.firmId
   );
 

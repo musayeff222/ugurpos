@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
+import { useLocale } from "../../context/LocaleContext";
 import PageHeader from "../../components/ui/PageHeader";
 import { formatMoney } from "../../utils/format";
 import { getMenuPublicUrl, getQrCodeUrl } from "../../utils/qrMenuPublic";
@@ -19,6 +20,7 @@ const STATUS_CLASS = {
 };
 
 export default function AdminQrMenu() {
+  const { t, lang } = useLocale();
   const [tab, setTab] = useState("settings");
   const [firm, setFirm] = useState(null);
   const [branches, setBranches] = useState([]);
@@ -38,6 +40,10 @@ export default function AdminQrMenu() {
       menuEnabled: data.firm.menuEnabled !== false,
       menuTitle: data.firm.menuTitle || "",
       menuWelcome: data.firm.menuWelcome || "",
+      socialInstagram: data.firm.social?.instagram || "",
+      socialWhatsapp: data.firm.social?.whatsapp || "",
+      socialTiktok: data.firm.social?.tiktok || "",
+      menuDefaultLang: data.firm.defaultLang || "az",
     });
     setBranchDrafts(
       Object.fromEntries(
@@ -82,7 +88,7 @@ export default function AdminQrMenu() {
     try {
       await api.updateAdminQrMenu(firmDraft);
       await loadSettings();
-      setMessage("Menü linki ayarları kaydedildi.");
+      setMessage(t("admin.qr.firmSaved"));
     } catch (err) {
       setError(err.message);
     }
@@ -94,7 +100,7 @@ export default function AdminQrMenu() {
     try {
       await api.updateAdminQrMenuBranch(branchId, branchDrafts[branchId]);
       await loadSettings();
-      setMessage("Şube menü ayarları kaydedildi.");
+      setMessage(t("admin.qr.branchSaved"));
     } catch (err) {
       setError(err.message);
     }
@@ -103,7 +109,7 @@ export default function AdminQrMenu() {
   const copyLink = async () => {
     if (!menuUrl) return;
     await navigator.clipboard.writeText(menuUrl);
-    setMessage("Tek menü linki kopyalandı.");
+    setMessage(t("admin.qr.linkCopied"));
   };
 
   const updateOrderStatus = async (orderId, status) => {
@@ -118,11 +124,11 @@ export default function AdminQrMenu() {
     }
   };
 
-  if (loading) return <div className="card">Yükleniyor...</div>;
+  if (loading) return <div className="card">{t("common.loading")}</div>;
 
   return (
     <div className="admin-page admin-qr-page">
-      <PageHeader title="QR Menü" subtitle="Tek link, tüm şubeler" />
+      <PageHeader title={t("admin.qr.title")} subtitle={t("admin.qr.subtitle")} />
 
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
@@ -130,12 +136,12 @@ export default function AdminQrMenu() {
       <ul className="admin-tabs">
         <li>
           <button type="button" className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>
-            Ayarlar
+            {t("admin.qr.tabSettings")}
           </button>
         </li>
         <li>
           <button type="button" className={tab === "orders" ? "active" : ""} onClick={() => setTab("orders")}>
-            Siparişler {pendingTotal > 0 && <span className="admin-qr-badge">{pendingTotal}</span>}
+            {t("admin.qr.tabOrders")} {pendingTotal > 0 && <span className="admin-qr-badge">{pendingTotal}</span>}
           </button>
         </li>
       </ul>
@@ -143,23 +149,21 @@ export default function AdminQrMenu() {
       {tab === "settings" && (
         <>
           <div className="card admin-qr-firm-card">
-            <h3>Menü linki</h3>
+            <h3>{t("admin.qr.menuLink")}</h3>
 
             {menuUrl && (
               <div className="admin-qr-firm-link">
                 {!firm?.menuEnabled && (
-                  <div className="alert alert-danger">
-                    Menü şu an kapalı. Aşağıdan &quot;QR menü aktif&quot; işaretleyip kaydedin.
-                  </div>
+                  <div className="alert alert-danger">{t("admin.qr.menuClosed")}</div>
                 )}
                 <img src={getQrCodeUrl(menuUrl)} alt="QR Menü" className="admin-qr-code" />
                 <code className="admin-qr-url">{menuUrl}</code>
                 <div className="admin-qr-firm-actions">
                   <button type="button" className="btn btn-primary btn-sm" onClick={copyLink}>
-                    Linki Kopyala
+                    {t("admin.qr.copyLink")}
                   </button>
                   <a href={menuUrl} target="_blank" rel="noopener noreferrer" className="btn btn-default btn-sm">
-                    Menüyü Aç ↗
+                    {t("admin.qr.openMenu")}
                   </a>
                 </div>
               </div>
@@ -172,26 +176,53 @@ export default function AdminQrMenu() {
                   checked={!!firmDraft.menuEnabled}
                   onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuEnabled: e.target.checked }))}
                 />
-                QR menü aktif (link çalışsın)
+                {t("admin.qr.menuActive")}
               </label>
-              <label>Menü başlığı</label>
+              <label>{t("admin.qr.menuTitle")}</label>
               <input
                 value={firmDraft.menuTitle || ""}
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuTitle: e.target.value }))}
               />
-              <label>Karşılama metni</label>
+              <label>{t("admin.qr.menuWelcome")}</label>
               <textarea
                 rows={2}
                 value={firmDraft.menuWelcome || ""}
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuWelcome: e.target.value }))}
               />
+              <label>{t("admin.qr.defaultLang")}</label>
+              <select
+                value={firmDraft.menuDefaultLang || "az"}
+                onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuDefaultLang: e.target.value }))}
+              >
+                <option value="az">Azərbaycan</option>
+                <option value="tr">Türkçe</option>
+              </select>
+              <h4 className="admin-qr-social-title">{t("admin.qr.socialTitle")}</h4>
+              <label>{t("admin.qr.socialInstagram")}</label>
+              <input
+                placeholder="@cigkofte"
+                value={firmDraft.socialInstagram || ""}
+                onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialInstagram: e.target.value }))}
+              />
+              <label>{t("admin.qr.socialWhatsapp")}</label>
+              <input
+                placeholder="+994501234567"
+                value={firmDraft.socialWhatsapp || ""}
+                onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialWhatsapp: e.target.value }))}
+              />
+              <label>{t("admin.qr.socialTiktok")}</label>
+              <input
+                placeholder="@cigkofte"
+                value={firmDraft.socialTiktok || ""}
+                onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialTiktok: e.target.value }))}
+              />
               <button type="button" className="btn btn-success btn-sm" onClick={saveFirmSettings}>
-                Genel Ayarları Kaydet
+                {t("admin.qr.saveFirm")}
               </button>
             </div>
           </div>
 
-          <h3 className="admin-section-title">Şubeler (menüde görünsün)</h3>
+          <h3 className="admin-section-title">{t("admin.qr.branchesTitle")}</h3>
           <div className="admin-qr-settings">
             {branches.map((branch) => {
               const draft = branchDrafts[branch.id] || {};
@@ -204,8 +235,10 @@ export default function AdminQrMenu() {
                       </h3>
                       {branch.address && <p className="hint-text">{branch.address}</p>}
                     </div>
-                    {branch.pendingOrders > 0 && (
-                      <span className="admin-badge pending">{branch.pendingOrders} bekleyen</span>
+                      {branch.pendingOrders > 0 && (
+                      <span className="admin-badge pending">
+                        {branch.pendingOrders} {t("admin.qr.pending")}
+                      </span>
                     )}
                   </div>
                   <div className="admin-qr-branch-form">
@@ -220,7 +253,7 @@ export default function AdminQrMenu() {
                           }))
                         }
                       />
-                      Müşteri seçim listesinde göster
+                      {t("admin.qr.showInPicker")}
                     </label>
                     <label className="checkbox-row">
                       <input
@@ -233,10 +266,10 @@ export default function AdminQrMenu() {
                           }))
                         }
                       />
-                      Sipariş kabul et
+                      {t("admin.qr.acceptOrders")}
                     </label>
                     <button type="button" className="btn btn-success btn-sm" onClick={() => saveBranchSettings(branch.id)}>
-                      Kaydet
+                      {t("common.save")}
                     </button>
                   </div>
                 </div>
@@ -285,7 +318,7 @@ export default function AdminQrMenu() {
                         {STATUS_LABELS[order.status] || order.status}
                       </span>
                     </div>
-                    <strong>{formatMoney(order.total)}</strong>
+                    <strong>{formatMoney(order.total, lang)}</strong>
                   </div>
                   <p className="admin-qr-order-branch">
                     <i className="fa fa-map-marker" /> Şube: #{order.branchNo} {order.branchName}

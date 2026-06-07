@@ -2,19 +2,22 @@ export function uid(prefix = "id") {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function formatMoney(value) {
+export function formatMoney(value, lang = "tr") {
   const num = Number(value) || 0;
+  if (lang === "az") {
+    return `${num.toLocaleString("az-AZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₼`;
+  }
   return `₺ ${num.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function formatDate(date = new Date()) {
+export function formatDate(date = new Date(), lang = "tr") {
   const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleDateString("tr-TR");
+  return d.toLocaleDateString(lang === "az" ? "az-AZ" : "tr-TR");
 }
 
-export function formatDateTime(date = new Date()) {
+export function formatDateTime(date = new Date(), lang = "tr") {
   const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleString("tr-TR");
+  return d.toLocaleString(lang === "az" ? "az-AZ" : "tr-TR");
 }
 
 export function todayISO() {

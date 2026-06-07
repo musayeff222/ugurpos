@@ -52,4 +52,9 @@ export function migrateQrMenu(db) {
 
   db.exec("UPDATE firm_settings SET menu_enabled = 1 WHERE menu_enabled = 0 OR menu_enabled IS NULL");
   db.exec("UPDATE branches SET menu_enabled = 1 WHERE active = 1 AND (menu_enabled = 0 OR menu_enabled IS NULL)");
+
+  addColumnIfMissing(db, "firm_settings", "menu_social_instagram", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
+  addColumnIfMissing(db, "firm_settings", "menu_social_whatsapp", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
+  addColumnIfMissing(db, "firm_settings", "menu_social_tiktok", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
+  addColumnIfMissing(db, "firm_settings", "menu_default_lang", db.dialect === "mysql" ? "VARCHAR(8) DEFAULT 'az'" : "TEXT DEFAULT 'az'");
 }

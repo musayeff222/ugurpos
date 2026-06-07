@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Modal from "../../components/ui/Modal";
+import PublicQrShell from "../../components/public/PublicQrShell";
+import { useLocale } from "../../context/LocaleContext";
 import { formatMoney } from "../../utils/format";
 import {
   fetchPublicBranchMenu,
@@ -12,6 +14,7 @@ import "../../styles/public-qr-menu.css";
 export default function PublicBranchMenu() {
   const { branchId } = useParams();
   const navigate = useNavigate();
+  const { t, lang } = useLocale();
   const [menu, setMenu] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -39,6 +42,7 @@ export default function PublicBranchMenu() {
 
   const cartTotal = cart.reduce((sum, line) => sum + line.qty * line.price, 0);
   const cartCount = cart.reduce((sum, line) => sum + line.qty, 0);
+  const money = (value) => formatMoney(value, lang);
 
   const addToCart = (product) => {
     setCart((prev) => {
@@ -87,41 +91,42 @@ export default function PublicBranchMenu() {
 
   if (loading) {
     return (
-      <div className="public-menu-page">
-        <div className="public-menu-loading">Menü yükleniyor…</div>
-      </div>
+      <PublicQrShell firm={menu?.firm}>
+        <div className="public-menu-loading">{t("qr.loadingMenu")}</div>
+      </PublicQrShell>
     );
   }
 
   if (error && !menu) {
     return (
-      <div className="public-menu-page">
+      <PublicQrShell firm={menu?.firm}>
         <div className="public-menu-error card">{error}</div>
         <Link to="/m" className="btn btn-default">
-          Şube Seçimine Dön
+          {t("qr.backToBranches")}
         </Link>
-      </div>
+      </PublicQrShell>
     );
   }
 
   const branch = menu.branch;
+  const branchLabel = `#${branch.branchNo} ${branch.name}`;
 
   return (
-    <div className="public-menu-page">
+    <PublicQrShell firm={menu.firm}>
       <header className="public-menu-header">
         <Link to="/m" className="public-menu-back">
-          ← Şube değiştir
+          ← {t("qr.changeBranch")}
         </Link>
-        <div className="public-menu-header__badge">QR Menü</div>
+        <div className="public-menu-header__badge">{t("qr.badge")}</div>
         <h1>{branch.menuTitle || branch.name}</h1>
         {branch.menuWelcome && <p>{branch.menuWelcome}</p>}
         <div className="public-menu-branch-tag">
           <i className="fa fa-map-marker" />
-          Sipariş şubesi: <strong>#{branch.branchNo} {branch.name}</strong>
+          {t("qr.orderBranch")}: <strong>{branchLabel}</strong>
           {branch.address ? ` · ${branch.address}` : ""}
         </div>
         {!branch.menuAcceptOrders && (
-          <div className="public-menu-notice">Bu şube şu an yalnızca menü görüntüleme modundadır.</div>
+          <div className="public-menu-notice">{t("qr.viewOnlyNotice")}</div>
         )}
       </header>
 
@@ -129,7 +134,7 @@ export default function PublicBranchMenu() {
 
       <div className="public-menu-groups">
         <button type="button" className={activeGroup === "all" ? "active" : ""} onClick={() => setActiveGroup("all")}>
-          Tümü
+          {t("common.all")}
         </button>
         {menu.groups.map((group) => (
           <button
@@ -159,39 +164,39 @@ export default function PublicBranchMenu() {
             )}
             <div className="public-menu-product__body">
               <h3>{product.name}</h3>
-              <strong>{formatMoney(product.price1)}</strong>
+              <strong>{money(product.price1)}</strong>
               {branch.menuAcceptOrders && (
                 <button type="button" className="btn btn-success btn-sm" onClick={() => addToCart(product)}>
-                  Sepete Ekle
+                  {t("qr.addToCart")}
                 </button>
               )}
             </div>
           </article>
         ))}
-        {products.length === 0 && <p className="public-menu-empty">Bu grupta ürün yok.</p>}
+        {products.length === 0 && <p className="public-menu-empty">{t("qr.noProducts")}</p>}
       </div>
 
       {branch.menuAcceptOrders && cartCount > 0 && (
         <div className="public-menu-cart-bar">
           <button type="button" className="public-menu-cart-toggle" onClick={() => setCartOpen(true)}>
-            Sepet ({cartCount}) — {formatMoney(cartTotal)}
+            {t("qr.cart")} ({cartCount}) — {money(cartTotal)}
           </button>
           <button type="button" className="btn btn-success" onClick={() => setCheckoutOpen(true)}>
-            Sipariş Ver
+            {t("qr.orderNow")}
           </button>
         </div>
       )}
 
-      <Modal open={cartOpen} onClose={() => setCartOpen(false)} title="Sepetim">
+      <Modal open={cartOpen} onClose={() => setCartOpen(false)} title={t("qr.myCart")}>
         {cart.length === 0 ? (
-          <p>Sepet boş.</p>
+          <p>{t("qr.cartEmpty")}</p>
         ) : (
           <ul className="public-menu-cart-list">
             {cart.map((line) => (
               <li key={line.productId}>
                 <div>
                   <strong>{line.name}</strong>
-                  <span>{formatMoney(line.price)}</span>
+                  <span>{money(line.price)}</span>
                 </div>
                 <div className="public-menu-cart-qty">
                   <button type="button" onClick={() => updateQty(line.productId, line.qty - 1)}>
@@ -207,8 +212,8 @@ export default function PublicBranchMenu() {
           </ul>
         )}
         <div className="public-menu-cart-total">
-          <span>Toplam</span>
-          <strong>{formatMoney(cartTotal)}</strong>
+          <span>{t("common.total")}</span>
+          <strong>{money(cartTotal)}</strong>
         </div>
         <button
           type="button"
@@ -219,39 +224,41 @@ export default function PublicBranchMenu() {
             setCheckoutOpen(true);
           }}
         >
-          Siparişi Tamamla
+          {t("qr.completeOrder")}
         </button>
       </Modal>
 
-      <Modal open={checkoutOpen} onClose={() => setCheckoutOpen(false)} title="Sipariş Bilgileri">
+      <Modal open={checkoutOpen} onClose={() => setCheckoutOpen(false)} title={t("qr.checkoutTitle")}>
         <form className="public-menu-checkout" onSubmit={handleSubmitOrder}>
           <p className="public-menu-checkout-branch">
-            Siparişiniz <strong>#{branch.branchNo} {branch.name}</strong> şubesine iletilecek.
+            {t("qr.checkoutBranch", { branch: branchLabel })}
           </p>
-          <label>Ad Soyad *</label>
+          <label>{t("qr.fullName")} *</label>
           <input
             value={form.customerName}
             onChange={(e) => setForm({ ...form, customerName: e.target.value })}
             required
           />
-          <label>Telefon</label>
+          <label>{t("qr.phone")}</label>
           <input
             value={form.customerPhone}
             onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
           />
-          <label>Masa / Not</label>
+          <label>{t("qr.tableNote")}</label>
           <input
             value={form.tableNo}
             onChange={(e) => setForm({ ...form, tableNo: e.target.value })}
-            placeholder="Masa 5"
+            placeholder={t("qr.tablePlaceholder")}
           />
-          <label>Sipariş notu</label>
+          <label>{t("qr.orderNote")}</label>
           <textarea rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
           <button type="submit" className="btn btn-success" disabled={submitting || cart.length === 0}>
-            {submitting ? "Gönderiliyor…" : `Siparişi Gönder (${formatMoney(cartTotal)})`}
+            {submitting
+              ? t("qr.sending")
+              : t("qr.sendOrder", { total: money(cartTotal) })}
           </button>
         </form>
       </Modal>
-    </div>
+    </PublicQrShell>
   );
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useWebOrders } from "../context/WebOrdersContext";
+import LanguageSwitcher from "./public/LanguageSwitcher";
 
 export default function Topbar({ menuOpen, onMenuToggle }) {
   const { user, logout, activeBranchName } = useAuth();
@@ -38,6 +39,7 @@ export default function Topbar({ menuOpen, onMenuToggle }) {
         </div>
 
         <div className="infobar">
+          <LanguageSwitcher compact />
           <Link to="/web-orders" className="icon-btn web-orders-bell" aria-label="Web siparişler">
             <i className="fa fa-bell-o" />
             {pendingCount > 0 && <span className="topbar-badge">{pendingCount}</span>}

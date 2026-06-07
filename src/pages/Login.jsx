@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import LanguageSwitcher from "../components/public/LanguageSwitcher";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import "../styles/login.css";
 
 export default function Login() {
   const { loginBranch, isAuthenticated, isAdmin, isBranchUser } = useAuth();
+  const { t } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");
@@ -26,7 +29,7 @@ export default function Login() {
     setError("");
 
     if (!email.trim() || !password.trim()) {
-      setError("E-posta ve şifre girin.");
+      setError(t("login.errorEmpty"));
       return;
     }
 
@@ -35,23 +38,26 @@ export default function Login() {
       const isMobile = window.matchMedia("(max-width: 991px)").matches;
       navigate(location.state?.from?.pathname || (isMobile ? "/menu" : "/dashboard"), { replace: true });
     } catch (err) {
-      setError(err.message === "Invalid credentials" ? "Geçersiz e-posta veya şifre." : err.message);
+      setError(err.message === "Invalid credentials" ? t("login.errorInvalid") : err.message);
     }
   };
 
   return (
     <div className="login-page">
+      <div className="login-lang-bar">
+        <LanguageSwitcher compact />
+      </div>
       <div className="login-container">
         <div className="login-grid">
           <div className="login-card">
             <form onSubmit={handleSubmit}>
-              <h4>POS — Şube Girişi</h4>
-              <p className="login-hint">Satış, stok ve kasa işlemleri için şube e-postanız ile giriş yapın.</p>
+              <h4>{t("login.title")}</h4>
+              <p className="login-hint">{t("login.hint")}</p>
 
               <div className="form-group">
                 <input
                   type="email"
-                  placeholder="Şube E-postası"
+                  placeholder={t("login.email")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="username"
@@ -61,7 +67,7 @@ export default function Login() {
               <div className="form-group">
                 <input
                   type="password"
-                  placeholder="Giriş Şifresi"
+                  placeholder={t("login.password")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
@@ -71,11 +77,11 @@ export default function Login() {
               {error && <p className="login-error">{error}</p>}
 
               <button type="submit" className="btn-login">
-                POS&apos;a Gir
+                {t("login.submit")}
               </button>
 
               <div className="login-links">
-                <Link to="/login/admin">Yönetici / Admin girişi →</Link>
+                <Link to="/login/admin">{t("login.adminLink")}</Link>
               </div>
             </form>
           </div>
