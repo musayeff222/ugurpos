@@ -6,7 +6,7 @@ import { createDefaultState } from "./defaults";
 const StoreContext = createContext(null);
 
 export function StoreProvider({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, activeBranchId } = useAuth();
   const [state, setState] = useState(createDefaultState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -29,7 +29,7 @@ export function StoreProvider({ children }) {
       .then(setState)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, activeBranchId]);
 
   const apiActions = useMemo(
     () => ({

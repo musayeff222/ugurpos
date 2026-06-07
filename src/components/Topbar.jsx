@@ -1,17 +1,41 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useStore } from "../store/StoreContext";
 
 export default function Topbar({ menuOpen, onMenuToggle }) {
-  const { user, logout } = useAuth();
+  const { user, logout, switchBranch, isAdmin, branches, activeBranchId, activeBranchName } = useAuth();
+  const { refresh } = useStore();
   const navigate = useNavigate();
   const [branchOpen, setBranchOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
+  const [branchSearch, setBranchSearch] = useState("");
+  const [switching, setSwitching] = useState(false);
+
+  const filteredBranches = useMemo(() => {
+    const q = branchSearch.trim().toLocaleLowerCase("tr");
+    const list = (branches || []).filter((b) => b.active);
+    if (!q) return list;
+    return list.filter((b) => b.name.toLocaleLowerCase("tr").includes(q));
+  }, [branches, branchSearch]);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const handleSwitchBranch = async (branchId) => {
+    if (branchId === activeBranchId || switching) return;
+    setSwitching(true);
+    try {
+      await switchBranch(branchId);
+      await refresh();
+      setBranchOpen(false);
+      setBranchSearch("");
+    } finally {
+      setSwitching(false);
+    }
   };
 
   return (
@@ -67,18 +91,34 @@ export default function Topbar({ menuOpen, onMenuToggle }) {
 
           <div className="dropdown-wrap">
             <button type="button" className="top-link" onClick={() => setBranchOpen(!branchOpen)}>
-              {user?.branch || "ANA HESAP"} <i className="fa fa-sitemap" />
+              {activeBranchName || user?.branchName || "ANA HESAP"} <i className="fa fa-sitemap" />
             </button>
             {branchOpen && (
               <div className="dropdown-menu branch-menu">
-                <p className="dropdown-hint">Geçiş yapmak istediğiniz şubenizin üzerine tıklayınız</p>
-                <input type="text" placeholder="Şube adı yazınız..." className="branch-search" />
-                <button type="button" className="dropdown-item active-branch">
-                  <i className="fa fa-arrow-circle-o-right" /> ANA HESAP
-                </button>
-                <Link to="/branchs" className="dropdown-item strong" onClick={() => setBranchOpen(false)}>
-                  Şube bilgileri / Yeni şube ekle
-                </Link>
+                <p className="dropdown-hint">Geçiş yapmak istediğiniz şubenin üzerine tıklayınız</p>
+                <input
+                  type="text"
+                  placeholder="Şube adı yazınız..."
+                  className="branch-search"
+                  value={branchSearch}
+                  onChange={(e) => setBranchSearch(e.target.value)}
+                />
+                {filteredBranches.map((branch) => (
+                  <button
+                    key={branch.id}
+                    type="button"
+                    className={`dropdown-item ${branch.id === activeBranchId ? "active-branch" : ""}`}
+                    onClick={() => handleSwitchBranch(branch.id)}
+                    disabled={switching}
+                  >
+                    <i className="fa fa-arrow-circle-o-right" /> {branch.name}
+                  </button>
+                ))}
+                {isAdmin && (
+                  <Link to="/admin/branches" className="dropdown-item strong" onClick={() => setBranchOpen(false)}>
+                    Şube bilgileri / Yeni şube ekle
+                  </Link>
+                )}
               </div>
             )}
           </div>
@@ -92,20 +132,16 @@ export default function Topbar({ menuOpen, onMenuToggle }) {
                 <Link to="/profile" onClick={() => setProfileOpen(false)}>
                   <i className="fa fa-gear" /> Profilim
                 </Link>
-                <Link to="/desktopapps" onClick={() => setProfileOpen(false)}>
-                  <i className="fa fa-desktop" /> Masaüstü Cihazlarım
-                </Link>
-                <Link to="/receipteditor" onClick={() => setProfileOpen(false)}>
-                  <i className="fa fa-file-o" /> Fiş Şablonu Tasarım Aracı
-                </Link>
+                {isAdmin && (
+                  <Link to="/admin" onClick={() => setProfileOpen(false)}>
+                    <i className="fa fa-shield" /> Admin Panel
+                  </Link>
+                )}
                 <Link to="/integration" onClick={() => setProfileOpen(false)}>
                   <i className="fa fa-refresh" /> Entegrasyon Bilgisi
                 </Link>
                 <Link to="/buyingInformation" onClick={() => setProfileOpen(false)}>
                   <i className="fa fa-credit-card" /> Lisans Satın Al
-                </Link>
-                <Link to="/changepass" onClick={() => setProfileOpen(false)}>
-                  <i className="fa fa-key" /> E-posta / Parola / GSM Değiştir
                 </Link>
                 <button type="button" className="dropdown-item logout" onClick={handleLogout}>
                   <i className="fa fa-power-off" /> Çıkış Yap

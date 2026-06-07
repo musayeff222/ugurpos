@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { initSchema } from "./schema.js";
+import { ensureDefaultBranch, rowToBranch } from "./migrate-branches.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.VERCEL ? path.join("/tmp", "ugurpos") : path.join(__dirname, "..", "data");
@@ -30,10 +31,14 @@ function seedIfEmpty(database) {
   const userCount = database.prepare("SELECT COUNT(*) as c FROM users").get().c;
   if (userCount > 0) return;
 
+  const firmId = "U261269153";
+  const branch = ensureDefaultBranch(database, firmId, "ANA HESAP");
+  const branchId = branch.id;
+
   const hash = bcrypt.hashSync("admin123", 10);
   database.prepare(
-    "INSERT INTO users (id, email, password_hash, firm_id, firm_name) VALUES (?, ?, ?, ?, ?)"
-  ).run("u1", "admin@benimpos.com", hash, "U261269153", "SMARTADMİN");
+    "INSERT INTO users (id, email, password_hash, firm_id, firm_name, branch, role, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+  ).run("u1", "admin@benimpos.com", hash, firmId, "SMARTADMİN", "ANA HESAP", "admin", branchId);
 
   const groups = [
     ["g1", "Gıda"],
@@ -41,8 +46,8 @@ function seedIfEmpty(database) {
     ["g3", "Temizlik"],
     ["g4", "Diğer"],
   ];
-  const insGroup = database.prepare("INSERT INTO groups (id, name) VALUES (?, ?)");
-  groups.forEach((g) => insGroup.run(...g));
+  const insGroup = database.prepare("INSERT INTO groups (id, name, branch_id) VALUES (?, ?, ?)");
+  groups.forEach((g) => insGroup.run(g[0], g[1], branchId));
 
   const products = [
     ["p1", "8690000000011", "STK-001", "Ekmek", "g1", 120, 20, 1, 8, 12, 11, "Adet"],
@@ -52,61 +57,61 @@ function seedIfEmpty(database) {
     ["p5", "8690000000059", "STK-005", "Yumurta 15li", "g1", 30, 8, 1, 75, 95, 92, "Paket"],
   ];
   const insProduct = database.prepare(`
-    INSERT INTO products (id, barcode, stock_code, name, group_id, stock, critical_stock, vat, buy_price, price1, price2, unit, on_sale_page, active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
+    INSERT INTO products (id, barcode, stock_code, name, group_id, stock, critical_stock, vat, buy_price, price1, price2, unit, on_sale_page, active, branch_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?)
   `);
-  products.forEach((p) => insProduct.run(...p));
+  products.forEach((p) => insProduct.run(...p, branchId));
 
   database.prepare(`
-    INSERT INTO customers (id, name, phone, address, note, credit_limit, debt, purchase_count, last_payment_date)
-    VALUES ('c1', 'Perakende Müşteri', '', '', '', 0, 0, 0, NULL),
-           ('c2', 'Ahmet Market', '5320000001', 'Ankara', 'Veresiye müşteri', 5000, 850, 12, '2026-05-20'),
-           ('c3', 'Mehmet Bakkal', '5330000002', 'İstanbul', '', 3000, 0, 5, '2026-05-15')
-  `).run();
+    INSERT INTO customers (id, name, phone, address, note, credit_limit, debt, purchase_count, last_payment_date, branch_id)
+    VALUES ('c1', 'Perakende Müşteri', '', '', '', 0, 0, 0, NULL, ?),
+           ('c2', 'Ahmet Market', '5320000001', 'Ankara', 'Veresiye müşteri', 5000, 850, 12, '2026-05-20', ?),
+           ('c3', 'Mehmet Bakkal', '5330000002', 'İstanbul', '', 3000, 0, 5, '2026-05-15', ?)
+  `).run(branchId, branchId, branchId);
 
   database.prepare(`
-    INSERT INTO staff (id, name, code, role, active) VALUES
-    ('s1', 'Admin', 'ADM001', 'Yönetici', 1),
-    ('s2', 'Kasiyer 1', 'KS001', 'Kasiyer', 1)
-  `).run();
+    INSERT INTO staff (id, name, code, role, active, branch_id) VALUES
+    ('s1', 'Admin', 'ADM001', 'Yönetici', 1, ?),
+    ('s2', 'Kasiyer 1', 'KS001', 'Kasiyer', 1, ?)
+  `).run(branchId, branchId);
 
   database.prepare(`
-    INSERT INTO firms (id, name, phone, tax_no, balance) VALUES
-    ('f1', 'Metro Toptan', '0312 000 0000', '1234567890', 0),
-    ('f2', 'Anadolu Gıda', '0212 000 0000', '9876543210', 1250)
-  `).run();
+    INSERT INTO firms (id, name, phone, tax_no, balance, branch_id) VALUES
+    ('f1', 'Metro Toptan', '0312 000 0000', '1234567890', 0, ?),
+    ('f2', 'Anadolu Gıda', '0212 000 0000', '9876543210', 1250, ?)
+  `).run(branchId, branchId);
 
   database.prepare(`
-    INSERT INTO payment_methods (id, name, active) VALUES
-    ('pm1', 'Nakit', 1), ('pm2', 'POS / Kredi Kartı', 1),
-    ('pm3', 'Açık Hesap', 1), ('pm4', 'Parçalı Ödeme', 1)
-  `).run();
+    INSERT INTO payment_methods (id, name, active, branch_id) VALUES
+    ('pm1', 'Nakit', 1, ?), ('pm2', 'POS / Kredi Kartı', 1, ?),
+    ('pm3', 'Açık Hesap', 1, ?), ('pm4', 'Parçalı Ödeme', 1, ?)
+  `).run(branchId, branchId, branchId, branchId);
 
   database.prepare(`
-    INSERT INTO income_types (id, name) VALUES ('it1', 'Ek Satış Geliri'), ('it2', 'Faiz Geliri')
-  `).run();
+    INSERT INTO income_types (id, name, branch_id) VALUES ('it1', 'Ek Satış Geliri', ?), ('it2', 'Faiz Geliri', ?)
+  `).run(branchId, branchId);
   database.prepare(`
-    INSERT INTO expense_types (id, name) VALUES ('et1', 'Kira'), ('et2', 'Elektrik'), ('et3', 'Personel Maaşı')
-  `).run();
+    INSERT INTO expense_types (id, name, branch_id) VALUES ('et1', 'Kira', ?), ('et2', 'Elektrik', ?), ('et3', 'Personel Maaşı', ?)
+  `).run(branchId, branchId, branchId);
 
   database.prepare(`
-    INSERT INTO tasks (id, title, status, assignee, due_date) VALUES
-    ('t1', 'Stok sayımı yap', 'open', 'Admin', '2026-05-30'),
-    ('t2', 'Yeni ürün fiyatlarını güncelle', 'done', 'Kasiyer 1', '2026-05-25')
-  `).run();
+    INSERT INTO tasks (id, title, status, assignee, due_date, branch_id) VALUES
+    ('t1', 'Stok sayımı yap', 'open', 'Admin', '2026-05-30', ?),
+    ('t2', 'Yeni ürün fiyatlarını güncelle', 'done', 'Kasiyer 1', '2026-05-25', ?)
+  `).run(branchId, branchId);
 
   database.prepare(`
-    INSERT INTO notices (id, title, read_flag, date) VALUES
-    ('n1', 'E-posta İle Satış Performans Raporu', 0, '2026-05-20'),
-    ('n2', 'İki Faktörlü Doğrulama (2FA) Yayınlandı', 0, '2026-05-18'),
-    ('n3', 'Ürün Bazlı İskonto', 1, '2026-05-10')
-  `).run();
+    INSERT INTO notices (id, title, read_flag, date, branch_id) VALUES
+    ('n1', 'E-posta İle Satış Performans Raporu', 0, '2026-05-20', ?),
+    ('n2', 'İki Faktörlü Doğrulama (2FA) Yayınlandı', 0, '2026-05-18', ?),
+    ('n3', 'Ürün Bazlı İskonto', 1, '2026-05-10', ?)
+  `).run(branchId, branchId, branchId);
 
   database.prepare(`
-    INSERT INTO integrations (id, name, status, description) VALUES
-    ('i1', 'E-Fatura', 'inactive', 'E-fatura entegrasyonu'),
-    ('i2', 'Yazarkasa', 'inactive', 'ÖKC entegrasyonu')
-  `).run();
+    INSERT INTO integrations (id, name, status, description, branch_id) VALUES
+    ('i1', 'E-Fatura', 'inactive', 'E-fatura entegrasyonu', ?),
+    ('i2', 'Yazarkasa', 'inactive', 'ÖKC entegrasyonu', ?)
+  `).run(branchId, branchId);
 
   console.log("Database seeded. Login: admin@benimpos.com / admin123");
 }
@@ -174,116 +179,198 @@ export function getSaleWithItems(database, saleId) {
   };
 }
 
-export function getAllState(database) {
-  const products = database.prepare("SELECT * FROM products ORDER BY name").all().map(rowToProduct);
-  const customers = database.prepare("SELECT * FROM customers ORDER BY name").all().map(rowToCustomer);
+export function getAllState(database, branchId) {
+  if (!branchId) {
+    return {
+      products: [],
+      customers: [],
+      sales: [],
+      groups: [],
+      firms: [],
+      staff: [],
+      paymentMethods: [],
+      income: [],
+      expense: [],
+      incomeTypes: [],
+      expenseTypes: [],
+      tasks: [],
+      notices: [],
+      stockCounts: [],
+      purchaseInvoices: [],
+      refundRequests: [],
+      integrations: [],
+      variants: [],
+      subProducts: [],
+      eInvoices: [],
+    };
+  }
+
+  const products = database
+    .prepare("SELECT * FROM products WHERE branch_id = ? ORDER BY name")
+    .all(branchId)
+    .map(rowToProduct);
+  const customers = database
+    .prepare("SELECT * FROM customers WHERE branch_id = ? ORDER BY name")
+    .all(branchId)
+    .map(rowToCustomer);
   const sales = database
-    .prepare("SELECT id FROM sales ORDER BY created_at DESC")
-    .all()
+    .prepare("SELECT id FROM sales WHERE branch_id = ? ORDER BY created_at DESC")
+    .all(branchId)
     .map((r) => getSaleWithItems(database, r.id));
-  const groups = database.prepare("SELECT * FROM groups ORDER BY name").all().map((r) => ({ id: r.id, name: r.name }));
-  const firms = database.prepare("SELECT * FROM firms ORDER BY name").all().map((r) => ({
-    id: r.id,
-    name: r.name,
-    phone: r.phone || "",
-    taxNo: r.tax_no || "",
-    balance: r.balance,
-  }));
-  const staff = database.prepare("SELECT * FROM staff ORDER BY name").all().map((r) => ({
-    id: r.id,
-    name: r.name,
-    code: r.code || "",
-    role: r.role || "",
-    active: !!r.active,
-  }));
-  const paymentMethods = database.prepare("SELECT * FROM payment_methods").all().map((r) => ({
-    id: r.id,
-    name: r.name,
-    active: !!r.active,
-  }));
-  const income = database.prepare("SELECT * FROM income_entries ORDER BY date DESC").all().map((r) => ({
-    id: r.id,
-    title: r.title,
-    amount: r.amount,
-    typeId: r.type_id,
-    date: r.date,
-  }));
-  const expense = database.prepare("SELECT * FROM expense_entries ORDER BY date DESC").all().map((r) => ({
-    id: r.id,
-    title: r.title,
-    amount: r.amount,
-    typeId: r.type_id,
-    date: r.date,
-  }));
-  const incomeTypes = database.prepare("SELECT * FROM income_types").all().map((r) => ({ id: r.id, name: r.name }));
-  const expenseTypes = database.prepare("SELECT * FROM expense_types").all().map((r) => ({ id: r.id, name: r.name }));
-  const tasks = database.prepare("SELECT * FROM tasks ORDER BY due_date DESC").all().map((r) => ({
-    id: r.id,
-    title: r.title,
-    status: r.status,
-    assignee: r.assignee || "",
-    dueDate: r.due_date || "",
-  }));
-  const notices = database.prepare("SELECT * FROM notices ORDER BY date DESC").all().map((r) => ({
-    id: r.id,
-    title: r.title,
-    read: !!r.read_flag,
-    date: r.date,
-  }));
-  const stockCounts = database.prepare("SELECT * FROM stock_counts ORDER BY date DESC").all().map((r) => ({
-    id: r.id,
-    productId: r.product_id,
-    productName: r.product_name,
-    previous: r.previous_stock,
-    counted: r.counted,
-    difference: r.difference,
-    note: r.note || "",
-    date: r.date,
-  }));
-  const purchaseInvoices = database.prepare("SELECT * FROM purchase_invoices ORDER BY date DESC").all().map((r) => ({
-    id: r.id,
-    invoiceNo: r.invoice_no,
-    firmId: r.firm_id,
-    firmName: r.firm_name || "",
-    total: r.total,
-    date: r.date,
-  }));
-  const refundRequests = database.prepare("SELECT * FROM refund_requests ORDER BY date DESC").all().map((r) => ({
-    id: r.id,
-    productName: r.product_name || "",
-    reason: r.reason || "",
-    status: r.status,
-    date: r.date,
-  }));
-  const integrations = database.prepare("SELECT * FROM integrations").all().map((r) => ({
-    id: r.id,
-    name: r.name,
-    status: r.status,
-    description: r.description || "",
-  }));
-  const variants = database.prepare("SELECT * FROM variants").all().map((r) => ({
-    id: r.id,
-    productId: r.product_id,
-    name: r.name,
-    sku: r.sku || "",
-    price: r.price,
-    stock: r.stock,
-  }));
-  const subProducts = database.prepare("SELECT * FROM sub_products").all().map((r) => ({
-    id: r.id,
-    parentProductId: r.parent_product_id,
-    name: r.name,
-    qty: r.qty,
-  }));
-  const eInvoices = database.prepare("SELECT * FROM e_invoices ORDER BY date DESC").all().map((r) => ({
-    id: r.id,
-    direction: r.direction,
-    invoiceNo: r.invoice_no || "",
-    customerName: r.customer_name || "",
-    total: r.total,
-    status: r.status,
-    date: r.date,
-  }));
+  const groups = database
+    .prepare("SELECT * FROM groups WHERE branch_id = ? ORDER BY name")
+    .all(branchId)
+    .map((r) => ({ id: r.id, name: r.name }));
+  const firms = database
+    .prepare("SELECT * FROM firms WHERE branch_id = ? ORDER BY name")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      phone: r.phone || "",
+      taxNo: r.tax_no || "",
+      balance: r.balance,
+    }));
+  const staff = database
+    .prepare("SELECT * FROM staff WHERE branch_id = ? ORDER BY name")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      code: r.code || "",
+      role: r.role || "",
+      active: !!r.active,
+    }));
+  const paymentMethods = database
+    .prepare("SELECT * FROM payment_methods WHERE branch_id = ?")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      active: !!r.active,
+    }));
+  const income = database
+    .prepare("SELECT * FROM income_entries WHERE branch_id = ? ORDER BY date DESC")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      amount: r.amount,
+      typeId: r.type_id,
+      date: r.date,
+    }));
+  const expense = database
+    .prepare("SELECT * FROM expense_entries WHERE branch_id = ? ORDER BY date DESC")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      amount: r.amount,
+      typeId: r.type_id,
+      date: r.date,
+    }));
+  const incomeTypes = database
+    .prepare("SELECT * FROM income_types WHERE branch_id = ?")
+    .all(branchId)
+    .map((r) => ({ id: r.id, name: r.name }));
+  const expenseTypes = database
+    .prepare("SELECT * FROM expense_types WHERE branch_id = ?")
+    .all(branchId)
+    .map((r) => ({ id: r.id, name: r.name }));
+  const tasks = database
+    .prepare("SELECT * FROM tasks WHERE branch_id = ? ORDER BY due_date DESC")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      status: r.status,
+      assignee: r.assignee || "",
+      dueDate: r.due_date || "",
+    }));
+  const notices = database
+    .prepare("SELECT * FROM notices WHERE branch_id = ? ORDER BY date DESC")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      read: !!r.read_flag,
+      date: r.date,
+    }));
+  const stockCounts = database
+    .prepare("SELECT * FROM stock_counts WHERE branch_id = ? ORDER BY date DESC")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      productId: r.product_id,
+      productName: r.product_name,
+      previous: r.previous_stock,
+      counted: r.counted,
+      difference: r.difference,
+      note: r.note || "",
+      date: r.date,
+    }));
+  const purchaseInvoices = database
+    .prepare("SELECT * FROM purchase_invoices WHERE branch_id = ? ORDER BY date DESC")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      invoiceNo: r.invoice_no,
+      firmId: r.firm_id,
+      firmName: r.firm_name || "",
+      total: r.total,
+      date: r.date,
+    }));
+  const refundRequests = database
+    .prepare("SELECT * FROM refund_requests WHERE branch_id = ? ORDER BY date DESC")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      productName: r.product_name || "",
+      reason: r.reason || "",
+      status: r.status,
+      date: r.date,
+    }));
+  const integrations = database
+    .prepare("SELECT * FROM integrations WHERE branch_id = ?")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      status: r.status,
+      description: r.description || "",
+    }));
+  const variants = database
+    .prepare("SELECT * FROM variants WHERE branch_id = ?")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      productId: r.product_id,
+      name: r.name,
+      sku: r.sku || "",
+      price: r.price,
+      stock: r.stock,
+    }));
+  const subProducts = database
+    .prepare("SELECT * FROM sub_products WHERE branch_id = ?")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      parentProductId: r.parent_product_id,
+      name: r.name,
+      qty: r.qty,
+    }));
+  const eInvoices = database
+    .prepare("SELECT * FROM e_invoices WHERE branch_id = ? ORDER BY date DESC")
+    .all(branchId)
+    .map((r) => ({
+      id: r.id,
+      direction: r.direction,
+      invoiceNo: r.invoice_no || "",
+      customerName: r.customer_name || "",
+      total: r.total,
+      status: r.status,
+      date: r.date,
+    }));
 
   return {
     products,
@@ -308,3 +395,5 @@ export function getAllState(database) {
     eInvoices,
   };
 }
+
+export { rowToBranch };

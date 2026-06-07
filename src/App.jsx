@@ -36,6 +36,9 @@ import {
 } from "./pages/MiscPages";
 import LabelPrintPage from "./pages/LabelPrintPage";
 import ScalePrintPage from "./pages/ScalePrintPage";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminBranches from "./pages/admin/AdminBranches";
 
 function HomeRedirect() {
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 991px)").matches;
@@ -46,6 +49,11 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="branches" element={<AdminBranches />} />
+      </Route>
+      <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomeRedirect />} />
         <Route path="menu" element={<MobileMenuPage />} />

@@ -13,27 +13,30 @@ function buildEan13(base12) {
   return b + ean13CheckDigit(b);
 }
 
-/** Turkey domestic prefix 869 + unique sequence */
-export function generateProductBarcode(db) {
+/** Turkey domestic prefix 869 + unique sequence per branch */
+export function generateProductBarcode(db, branchId) {
   const prefix = "869";
-  const count = db.prepare("SELECT COUNT(*) as c FROM products").get().c;
+  const count = db.prepare("SELECT COUNT(*) as c FROM products WHERE branch_id = ?").get(branchId).c;
 
   for (let i = 0; i < 200; i++) {
     const seq = String(count + i + 1).padStart(9, "0");
     const barcode = buildEan13(prefix + seq);
-    const exists = db.prepare("SELECT id FROM products WHERE barcode = ?").get(barcode);
+    const exists = db
+      .prepare("SELECT id FROM products WHERE barcode = ? AND branch_id = ?")
+      .get(barcode, branchId);
     if (!exists) return barcode;
   }
 
-  const fallback = buildEan13(prefix + Date.now().toString().slice(-9));
-  return fallback;
+  return buildEan13(prefix + Date.now().toString().slice(-9));
 }
 
-export function generateStockCode(db) {
-  const count = db.prepare("SELECT COUNT(*) as c FROM products").get().c;
+export function generateStockCode(db, branchId) {
+  const count = db.prepare("SELECT COUNT(*) as c FROM products WHERE branch_id = ?").get(branchId).c;
   for (let i = count + 1; i < count + 500; i++) {
     const code = `STK-${String(i).padStart(4, "0")}`;
-    const exists = db.prepare("SELECT id FROM products WHERE stock_code = ?").get(code);
+    const exists = db
+      .prepare("SELECT id FROM products WHERE stock_code = ? AND branch_id = ?")
+      .get(code, branchId);
     if (!exists) return code;
   }
   return `STK-${Date.now().toString().slice(-6)}`;

@@ -11,17 +11,38 @@ export function AuthProvider({ children }) {
   });
   const [loading, setLoading] = useState(false);
 
+  const persistUser = (account, token) => {
+    if (token) setToken(token);
+    localStorage.setItem(USER_KEY, JSON.stringify(account));
+    setUser(account);
+  };
+
   const login = async (email, password) => {
     setLoading(true);
     try {
       const { token, user: account } = await api.login(email, password);
-      setToken(token);
-      localStorage.setItem(USER_KEY, JSON.stringify(account));
-      setUser(account);
+      persistUser(account, token);
       return account;
     } finally {
       setLoading(false);
     }
+  };
+
+  const switchBranch = async (branchId) => {
+    const { token, user: account } = await api.switchBranch(branchId);
+    persistUser(account, token);
+    return account;
+  };
+
+  const refreshBranches = async () => {
+    const branches = await api.getBranches();
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, branches };
+      localStorage.setItem(USER_KEY, JSON.stringify(next));
+      return next;
+    });
+    return branches;
   };
 
   const logout = () => {
@@ -36,8 +57,14 @@ export function AuthProvider({ children }) {
         user,
         login,
         logout,
+        switchBranch,
+        refreshBranches,
         loading,
         isAuthenticated: !!user && !!getToken(),
+        isAdmin: user?.role === "admin",
+        activeBranchId: user?.branchId,
+        activeBranchName: user?.branchName,
+        branches: user?.branches || [],
       }}
     >
       {children}

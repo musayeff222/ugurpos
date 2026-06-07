@@ -20,10 +20,10 @@ export default function Profile() {
             <span>Firma No</span> {user?.firmId || "—"}
           </p>
           <p>
-            <span>Şube</span> {user?.branch || "ANA HESAP"}
+            <span>Şube</span> {user?.branchName || user?.branch || "ANA HESAP"}
           </p>
           <p>
-            <span>Rol</span> Yönetici
+            <span>Rol</span> {user?.role === "admin" ? "Yönetici (Admin)" : user?.role || "Kullanıcı"}
           </p>
         </div>
       </div>
@@ -35,6 +35,13 @@ export default function Profile() {
           <Link to="/integration" className="btn btn-default">
             Entegrasyonlar
           </Link>{" "}
+          {user?.role === "admin" && (
+            <>
+              <Link to="/admin" className="btn btn-primary">
+                Admin Panel
+              </Link>{" "}
+            </>
+          )}
           <Link to="/buyingInformation" className="btn btn-default">
             Lisans
           </Link>

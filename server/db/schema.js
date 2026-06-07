@@ -1,3 +1,5 @@
+import { migrateBranches } from "./migrate-branches.js";
+
 export function initSchema(db) {
   db.exec(`
     PRAGMA foreign_keys = ON;
@@ -213,4 +215,6 @@ export function initSchema(db) {
   if (!productCols.includes("unit")) {
     db.exec("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'Adet'");
   }
+
+  migrateBranches(db);
 }

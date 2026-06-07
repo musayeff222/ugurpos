@@ -2,9 +2,17 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "benimpos-dev-secret-change-in-production";
 
-export function signToken(user) {
+export function signToken(user, branchId, branchName) {
   return jwt.sign(
-    { id: user.id, email: user.email, firmId: user.firm_id, firmName: user.firm_name, branch: user.branch },
+    {
+      id: user.id,
+      email: user.email,
+      firmId: user.firm_id,
+      firmName: user.firm_name,
+      branchId: branchId || user.branch_id,
+      branchName: branchName || user.branch,
+      role: user.role || "admin",
+    },
     JWT_SECRET,
     { expiresIn: "7d" }
   );

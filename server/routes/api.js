@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { getDb, getAllState, getSaleWithItems, uid, rowToProduct, rowToCustomer } from "../db/index.js";
 import { generateProductBarcode, generateStockCode } from "../utils/barcode.js";
+import { branchMiddleware } from "../middleware/branch.js";
 
 const router = Router();
+router.use(branchMiddleware);
 
 function generateSaleCode() {
   const now = new Date();
@@ -11,23 +13,30 @@ function generateSaleCode() {
 }
 
 // Full state sync (for frontend bootstrap)
-router.get("/state", (_req, res) => {
-  res.json(getAllState(getDb()));
+router.get("/state", (req, res) => {
+  res.json(getAllState(getDb(), req.branchId));
 });
 
 // Dashboard
-router.get("/dashboard/summary", (_req, res) => {
+router.get("/dashboard/summary", (req, res) => {
   const db = getDb();
+  const { branchId } = req;
   const today = new Date().toISOString().slice(0, 10);
   const month = today.slice(0, 7);
   const todaySales = db
-    .prepare("SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE date(created_at)=? AND payment_type != 'refund'")
-    .get(today);
+    .prepare(
+      "SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND date(created_at)=? AND payment_type != 'refund'"
+    )
+    .get(branchId, today);
   const monthSales = db
-    .prepare("SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE substr(created_at,1,7)=? AND payment_type != 'refund'")
-    .get(month);
-  const debt = db.prepare("SELECT COALESCE(SUM(debt),0) as t FROM customers").get();
-  const critical = db.prepare("SELECT COUNT(*) as c FROM products WHERE stock <= critical_stock").get();
+    .prepare(
+      "SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales WHERE branch_id = ? AND substr(created_at,1,7)=? AND payment_type != 'refund'"
+    )
+    .get(branchId, month);
+  const debt = db.prepare("SELECT COALESCE(SUM(debt),0) as t FROM customers WHERE branch_id = ?").get(branchId);
+  const critical = db
+    .prepare("SELECT COUNT(*) as c FROM products WHERE branch_id = ? AND stock <= critical_stock")
+    .get(branchId);
   res.json({
     todayCount: todaySales.c,
     todayTotal: todaySales.t,
@@ -35,16 +44,16 @@ router.get("/dashboard/summary", (_req, res) => {
     monthTotal: monthSales.t,
     totalDebt: debt.t,
     criticalStock: critical.c,
-    productCount: db.prepare("SELECT COUNT(*) as c FROM products").get().c,
-    customerCount: db.prepare("SELECT COUNT(*) as c FROM customers").get().c,
+    productCount: db.prepare("SELECT COUNT(*) as c FROM products WHERE branch_id = ?").get(branchId).c,
+    customerCount: db.prepare("SELECT COUNT(*) as c FROM customers WHERE branch_id = ?").get(branchId).c,
   });
 });
 
 // Products
 router.get("/products", (req, res) => {
   const db = getDb();
-  let sql = "SELECT * FROM products WHERE 1=1";
-  const params = [];
+  let sql = "SELECT * FROM products WHERE branch_id = ?";
+  const params = [req.branchId];
   if (req.query.active === "true") sql += " AND active = 1";
   if (req.query.onSalePage === "true") sql += " AND on_sale_page = 1";
   if (req.query.search) {
@@ -61,7 +70,7 @@ router.get("/products", (req, res) => {
 });
 
 router.get("/products/:id", (req, res) => {
-  const row = getDb().prepare("SELECT * FROM products WHERE id = ?").get(req.params.id);
+  const row = getDb().prepare("SELECT * FROM products WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
   if (!row) return res.status(404).json({ error: "Not found" });
   res.json(rowToProduct(row));
 });
@@ -70,11 +79,11 @@ router.post("/products", (req, res) => {
   const db = getDb();
   const p = req.body;
   const id = uid("p");
-  const barcode = (p.barcode && String(p.barcode).trim()) || generateProductBarcode(db);
-  const stockCode = (p.stockCode && String(p.stockCode).trim()) || generateStockCode(db);
+  const barcode = (p.barcode && String(p.barcode).trim()) || generateProductBarcode(db, req.branchId);
+  const stockCode = (p.stockCode && String(p.stockCode).trim()) || generateStockCode(db, req.branchId);
   db.prepare(`
-    INSERT INTO products (id, barcode, stock_code, name, group_id, stock, critical_stock, vat, buy_price, price1, price2, unit, on_sale_page, active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    INSERT INTO products (id, barcode, stock_code, name, group_id, stock, critical_stock, vat, buy_price, price1, price2, unit, on_sale_page, active, branch_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
   `).run(
     id,
     barcode,
@@ -88,14 +97,15 @@ router.post("/products", (req, res) => {
     Number(p.price1) || 0,
     Number(p.price2) || 0,
     p.unit || "Adet",
-    p.onSalePage ? 1 : 0
+    p.onSalePage ? 1 : 0,
+    req.branchId
   );
   res.status(201).json(rowToProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(id)));
 });
 
 router.patch("/products/:id", (req, res) => {
   const db = getDb();
-  const existing = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id);
+  const existing = db.prepare("SELECT * FROM products WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
   if (!existing) return res.status(404).json({ error: "Not found" });
   const p = { ...rowToProduct(existing), ...req.body };
   db.prepare(`
@@ -123,34 +133,34 @@ router.patch("/products/:id", (req, res) => {
 router.delete("/products", (req, res) => {
   const ids = req.body.ids || [];
   const db = getDb();
-  const del = db.prepare("DELETE FROM products WHERE id = ?");
-  ids.forEach((id) => del.run(id));
+  const del = db.prepare("DELETE FROM products WHERE id = ? AND branch_id = ?");
+  ids.forEach((id) => del.run(id, req.branchId));
   res.json({ ok: true });
 });
 
 // Groups
-router.get("/groups", (_req, res) => {
-  res.json(getDb().prepare("SELECT id, name FROM groups ORDER BY name").all());
+router.get("/groups", (req, res) => {
+  res.json(getDb().prepare("SELECT id, name FROM groups WHERE branch_id = ? ORDER BY name").all(req.branchId));
 });
 
 router.post("/groups", (req, res) => {
   const id = uid("g");
-  getDb().prepare("INSERT INTO groups (id, name) VALUES (?, ?)").run(id, req.body.name);
+  getDb().prepare("INSERT INTO groups (id, name, branch_id) VALUES (?, ?, ?)").run(id, req.body.name, req.branchId);
   res.status(201).json({ id, name: req.body.name });
 });
 
 router.delete("/groups/:id", (req, res) => {
-  getDb().prepare("DELETE FROM groups WHERE id = ?").run(req.params.id);
+  getDb().prepare("DELETE FROM groups WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 // Customers
-router.get("/customers", (_req, res) => {
-  res.json(getDb().prepare("SELECT * FROM customers ORDER BY name").all().map(rowToCustomer));
+router.get("/customers", (req, res) => {
+  res.json(getDb().prepare("SELECT * FROM customers WHERE branch_id = ? ORDER BY name").all(req.branchId).map(rowToCustomer));
 });
 
 router.get("/customers/:id", (req, res) => {
-  const row = getDb().prepare("SELECT * FROM customers WHERE id = ?").get(req.params.id);
+  const row = getDb().prepare("SELECT * FROM customers WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
   if (!row) return res.status(404).json({ error: "Not found" });
   res.json(rowToCustomer(row));
 });
@@ -160,15 +170,15 @@ router.post("/customers", (req, res) => {
   const c = req.body;
   const id = uid("c");
   db.prepare(`
-    INSERT INTO customers (id, name, phone, address, note, credit_limit, debt, purchase_count)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-  `).run(id, c.name, c.phone || "", c.address || "", c.note || "", Number(c.creditLimit) || 0, Number(c.debt) || 0);
+    INSERT INTO customers (id, name, phone, address, note, credit_limit, debt, purchase_count, branch_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
+  `).run(id, c.name, c.phone || "", c.address || "", c.note || "", Number(c.creditLimit) || 0, Number(c.debt) || 0, req.branchId);
   res.status(201).json(rowToCustomer(db.prepare("SELECT * FROM customers WHERE id = ?").get(id)));
 });
 
 router.patch("/customers/:id", (req, res) => {
   const db = getDb();
-  const existing = rowToCustomer(db.prepare("SELECT * FROM customers WHERE id = ?").get(req.params.id));
+  const existing = rowToCustomer(db.prepare("SELECT * FROM customers WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId));
   if (!existing) return res.status(404).json({ error: "Not found" });
   const c = { ...existing, ...req.body };
   db.prepare(`
@@ -178,14 +188,14 @@ router.patch("/customers/:id", (req, res) => {
 });
 
 router.delete("/customers/:id", (req, res) => {
-  getDb().prepare("DELETE FROM customers WHERE id = ?").run(req.params.id);
+  getDb().prepare("DELETE FROM customers WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 router.post("/customers/:id/payments", (req, res) => {
   const db = getDb();
   const amount = Number(req.body.amount);
-  const customer = db.prepare("SELECT * FROM customers WHERE id = ?").get(req.params.id);
+  const customer = db.prepare("SELECT * FROM customers WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
   if (!customer) return res.status(404).json({ error: "Not found" });
   const newDebt = Math.max(0, customer.debt - amount);
   const today = new Date().toISOString().slice(0, 10);
@@ -196,8 +206,8 @@ router.post("/customers/:id/payments", (req, res) => {
 // Sales
 router.get("/sales", (req, res) => {
   const db = getDb();
-  let sql = "SELECT id FROM sales WHERE 1=1";
-  const params = [];
+  let sql = "SELECT id FROM sales WHERE branch_id = ?";
+  const params = [req.branchId];
   if (req.query.customerId) {
     sql += " AND customer_id = ?";
     params.push(req.query.customerId);
@@ -227,18 +237,18 @@ router.post("/sales", (req, res) => {
 
   const tx = db.transaction(() => {
     db.prepare(`
-      INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(saleId, code, now, paymentType, customerId || null, staffName || "Admin", note || "", disc, discountType || "TL", Number(paidAmount) || 0, subtotal);
+      INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total, branch_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(saleId, code, now, paymentType, customerId || null, staffName || "Admin", note || "", disc, discountType || "TL", Number(paidAmount) || 0, subtotal, req.branchId);
 
     const insItem = db.prepare(`
       INSERT INTO sale_items (id, sale_id, product_id, name, qty, price, discount, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    const updStock = db.prepare("UPDATE products SET stock = CASE WHEN stock - ? < 0 THEN 0 ELSE stock - ? END WHERE id = ?");
+    const updStock = db.prepare("UPDATE products SET stock = CASE WHEN stock - ? < 0 THEN 0 ELSE stock - ? END WHERE id = ? AND branch_id = ?");
 
     items.forEach((item) => {
       insItem.run(uid("line"), saleId, item.productId || null, item.name, item.qty, item.price, item.discount || 0, item.note || "");
-      if (item.productId && paymentType !== "refund") updStock.run(item.qty, item.qty, item.productId);
+      if (item.productId && paymentType !== "refund") updStock.run(item.qty, item.qty, item.productId, req.branchId);
     });
 
     if (customerId) {
@@ -267,9 +277,9 @@ router.post("/refunds", (req, res) => {
   const negativeItems = items.map((i) => ({ ...i, qty: Math.abs(i.qty) }));
 
   // Restore stock
-  const updStock = db.prepare("UPDATE products SET stock = stock + ? WHERE id = ?");
+  const updStock = db.prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND branch_id = ?");
   negativeItems.forEach((item) => {
-    if (item.productId) updStock.run(item.qty, item.productId);
+    if (item.productId) updStock.run(item.qty, item.productId, req.branchId);
   });
 
   // Create refund sale with negative total
@@ -279,9 +289,9 @@ router.post("/refunds", (req, res) => {
   const total = -negativeItems.reduce((s, i) => s + i.qty * i.price, 0);
 
   db.prepare(`
-    INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total)
-    VALUES (?, ?, ?, 'refund', NULL, 'Admin', ?, 0, 'TL', 0, ?)
-  `).run(saleId, code, now, note || "İade", total);
+    INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total, branch_id)
+    VALUES (?, ?, ?, 'refund', NULL, 'Admin', ?, 0, 'TL', 0, ?, ?)
+  `).run(saleId, code, now, note || "İade", total, req.branchId);
 
   const insItem = db.prepare(`
     INSERT INTO sale_items (id, sale_id, product_id, name, qty, price, discount, note) VALUES (?, ?, ?, ?, ?, ?, 0, ?)
@@ -294,11 +304,11 @@ router.post("/refunds", (req, res) => {
 });
 
 // Staff
-router.get("/staff", (_req, res) => {
+router.get("/staff", (req, res) => {
   res.json(
     getDb()
-      .prepare("SELECT * FROM staff ORDER BY name")
-      .all()
+      .prepare("SELECT * FROM staff WHERE branch_id = ? ORDER BY name")
+      .all(req.branchId)
       .map((r) => ({ id: r.id, name: r.name, code: r.code, role: r.role, active: !!r.active }))
   );
 });
@@ -306,34 +316,37 @@ router.get("/staff", (_req, res) => {
 router.post("/staff", (req, res) => {
   const id = uid("s");
   const { name, code, role } = req.body;
-  getDb().prepare("INSERT INTO staff (id, name, code, role, active) VALUES (?, ?, ?, ?, 1)").run(id, name, code || "", role || "");
+  getDb()
+    .prepare("INSERT INTO staff (id, name, code, role, active, branch_id) VALUES (?, ?, ?, ?, 1, ?)")
+    .run(id, name, code || "", role || "", req.branchId);
   res.status(201).json({ id, name, code, role, active: true });
 });
 
 router.patch("/staff/:id", (req, res) => {
   const db = getDb();
   const s = req.body;
-  db.prepare("UPDATE staff SET name=?, code=?, role=?, active=? WHERE id=?").run(
+  db.prepare("UPDATE staff SET name=?, code=?, role=?, active=? WHERE id=? AND branch_id=?").run(
     s.name,
     s.code,
     s.role,
     s.active ? 1 : 0,
-    req.params.id
+    req.params.id,
+    req.branchId
   );
   res.json({ ok: true });
 });
 
 router.delete("/staff/:id", (req, res) => {
-  getDb().prepare("DELETE FROM staff WHERE id = ?").run(req.params.id);
+  getDb().prepare("DELETE FROM staff WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 // Firms
-router.get("/firms", (_req, res) => {
+router.get("/firms", (req, res) => {
   res.json(
     getDb()
-      .prepare("SELECT * FROM firms ORDER BY name")
-      .all()
+      .prepare("SELECT * FROM firms WHERE branch_id = ? ORDER BY name")
+      .all(req.branchId)
       .map((r) => ({ id: r.id, name: r.name, phone: r.phone, taxNo: r.tax_no, balance: r.balance }))
   );
 });
@@ -341,13 +354,15 @@ router.get("/firms", (_req, res) => {
 router.post("/firms", (req, res) => {
   const id = uid("f");
   const { name, phone, taxNo } = req.body;
-  getDb().prepare("INSERT INTO firms (id, name, phone, tax_no, balance) VALUES (?, ?, ?, ?, 0)").run(id, name, phone || "", taxNo || "");
+  getDb()
+    .prepare("INSERT INTO firms (id, name, phone, tax_no, balance, branch_id) VALUES (?, ?, ?, ?, 0, ?)")
+    .run(id, name, phone || "", taxNo || "", req.branchId);
   res.status(201).json({ id, name, phone, taxNo, balance: 0 });
 });
 
 router.patch("/firms/:id", (req, res) => {
   const db = getDb();
-  const existing = db.prepare("SELECT * FROM firms WHERE id = ?").get(req.params.id);
+  const existing = db.prepare("SELECT * FROM firms WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
   if (!existing) return res.status(404).json({ error: "Not found" });
   const { name, phone, taxNo, balance } = req.body;
   db.prepare("UPDATE firms SET name=?, phone=?, tax_no=?, balance=? WHERE id=?").run(
@@ -362,190 +377,207 @@ router.patch("/firms/:id", (req, res) => {
 });
 
 router.delete("/firms/:id", (req, res) => {
-  getDb().prepare("DELETE FROM firms WHERE id = ?").run(req.params.id);
+  getDb().prepare("DELETE FROM firms WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 // Payment methods
-router.get("/payment-methods", (_req, res) => {
+router.get("/payment-methods", (req, res) => {
   res.json(
     getDb()
-      .prepare("SELECT * FROM payment_methods")
-      .all()
+      .prepare("SELECT * FROM payment_methods WHERE branch_id = ?")
+      .all(req.branchId)
       .map((r) => ({ id: r.id, name: r.name, active: !!r.active }))
   );
 });
 
 router.post("/payment-methods", (req, res) => {
   const id = uid("pm");
-  getDb().prepare("INSERT INTO payment_methods (id, name, active) VALUES (?, ?, 1)").run(id, req.body.name);
+  getDb()
+    .prepare("INSERT INTO payment_methods (id, name, active, branch_id) VALUES (?, ?, 1, ?)")
+    .run(id, req.body.name, req.branchId);
   res.status(201).json({ id, name: req.body.name, active: true });
 });
 
 router.patch("/payment-methods/:id", (req, res) => {
-  getDb().prepare("UPDATE payment_methods SET name=?, active=? WHERE id=?").run(req.body.name, req.body.active ? 1 : 0, req.params.id);
+  getDb()
+    .prepare("UPDATE payment_methods SET name=?, active=? WHERE id=? AND branch_id=?")
+    .run(req.body.name, req.body.active ? 1 : 0, req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 // Finance
-router.get("/income", (_req, res) => {
-  res.json(getAllState(getDb()).income);
+router.get("/income", (req, res) => {
+  res.json(getAllState(getDb(), req.branchId).income);
 });
 
 router.post("/income", (req, res) => {
   const id = uid("inc");
   const { title, amount, typeId, date } = req.body;
-  getDb().prepare("INSERT INTO income_entries (id, title, amount, type_id, date) VALUES (?, ?, ?, ?, ?)").run(id, title, Number(amount), typeId, date || new Date().toISOString().slice(0, 10));
+  getDb()
+    .prepare("INSERT INTO income_entries (id, title, amount, type_id, date, branch_id) VALUES (?, ?, ?, ?, ?, ?)")
+    .run(id, title, Number(amount), typeId, date || new Date().toISOString().slice(0, 10), req.branchId);
   res.status(201).json({ id, title, amount: Number(amount), typeId, date });
 });
 
-router.get("/expense", (_req, res) => {
-  res.json(getAllState(getDb()).expense);
+router.get("/expense", (req, res) => {
+  res.json(getAllState(getDb(), req.branchId).expense);
 });
 
 router.post("/expense", (req, res) => {
   const id = uid("exp");
   const { title, amount, typeId, date } = req.body;
-  getDb().prepare("INSERT INTO expense_entries (id, title, amount, type_id, date) VALUES (?, ?, ?, ?, ?)").run(id, title, Number(amount), typeId, date || new Date().toISOString().slice(0, 10));
+  getDb()
+    .prepare("INSERT INTO expense_entries (id, title, amount, type_id, date, branch_id) VALUES (?, ?, ?, ?, ?, ?)")
+    .run(id, title, Number(amount), typeId, date || new Date().toISOString().slice(0, 10), req.branchId);
   res.status(201).json({ id, title, amount: Number(amount), typeId, date });
 });
 
-router.get("/income-types", (_req, res) => res.json(getAllState(getDb()).incomeTypes));
-router.get("/expense-types", (_req, res) => res.json(getAllState(getDb()).expenseTypes));
+router.get("/income-types", (req, res) => res.json(getAllState(getDb(), req.branchId).incomeTypes));
+router.get("/expense-types", (req, res) => res.json(getAllState(getDb(), req.branchId).expenseTypes));
 
 router.post("/income-types", (req, res) => {
   const id = uid("it");
-  getDb().prepare("INSERT INTO income_types (id, name) VALUES (?, ?)").run(id, req.body.name);
+  getDb().prepare("INSERT INTO income_types (id, name, branch_id) VALUES (?, ?, ?)").run(id, req.body.name, req.branchId);
   res.status(201).json({ id, name: req.body.name });
 });
 
 router.post("/expense-types", (req, res) => {
   const id = uid("et");
-  getDb().prepare("INSERT INTO expense_types (id, name) VALUES (?, ?)").run(id, req.body.name);
+  getDb().prepare("INSERT INTO expense_types (id, name, branch_id) VALUES (?, ?, ?)").run(id, req.body.name, req.branchId);
   res.status(201).json({ id, name: req.body.name });
 });
 
 // Tasks
-router.get("/tasks", (_req, res) => res.json(getAllState(getDb()).tasks));
+router.get("/tasks", (req, res) => res.json(getAllState(getDb(), req.branchId).tasks));
 
 router.post("/tasks", (req, res) => {
   const id = uid("t");
   const { title, assignee, dueDate, status } = req.body;
-  getDb().prepare("INSERT INTO tasks (id, title, status, assignee, due_date) VALUES (?, ?, ?, ?, ?)").run(id, title, status || "open", assignee || "", dueDate || "");
+  getDb()
+    .prepare("INSERT INTO tasks (id, title, status, assignee, due_date, branch_id) VALUES (?, ?, ?, ?, ?, ?)")
+    .run(id, title, status || "open", assignee || "", dueDate || "", req.branchId);
   res.status(201).json({ id, title, status: status || "open", assignee, dueDate });
 });
 
 router.patch("/tasks/:id", (req, res) => {
   const { title, status, assignee, dueDate } = req.body;
-  getDb().prepare("UPDATE tasks SET title=?, status=?, assignee=?, due_date=? WHERE id=?").run(title, status, assignee, dueDate, req.params.id);
+  getDb()
+    .prepare("UPDATE tasks SET title=?, status=?, assignee=?, due_date=? WHERE id=? AND branch_id=?")
+    .run(title, status, assignee, dueDate, req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 router.delete("/tasks/:id", (req, res) => {
-  getDb().prepare("DELETE FROM tasks WHERE id = ?").run(req.params.id);
+  getDb().prepare("DELETE FROM tasks WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 // Stock counts
-router.get("/stock-counts", (_req, res) => res.json(getAllState(getDb()).stockCounts));
+router.get("/stock-counts", (req, res) => res.json(getAllState(getDb(), req.branchId).stockCounts));
 
 router.post("/stock-counts", (req, res) => {
   const db = getDb();
   const { productId, counted, note } = req.body;
-  const product = db.prepare("SELECT * FROM products WHERE id = ?").get(productId);
+  const product = db.prepare("SELECT * FROM products WHERE id = ? AND branch_id = ?").get(productId, req.branchId);
   if (!product) return res.status(404).json({ error: "Product not found" });
   const id = uid("sc");
   const date = new Date().toISOString().slice(0, 10);
   const diff = Number(counted) - product.stock;
   db.prepare(`
-    INSERT INTO stock_counts (id, product_id, product_name, previous_stock, counted, difference, note, date)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, productId, product.name, product.stock, Number(counted), diff, note || "", date);
-  db.prepare("UPDATE products SET stock = ? WHERE id = ?").run(Number(counted), productId);
+    INSERT INTO stock_counts (id, product_id, product_name, previous_stock, counted, difference, note, date, branch_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, productId, product.name, product.stock, Number(counted), diff, note || "", date, req.branchId);
+  db.prepare("UPDATE products SET stock = ? WHERE id = ? AND branch_id = ?").run(Number(counted), productId, req.branchId);
   res.status(201).json({ id, productId, productName: product.name, previous: product.stock, counted: Number(counted), difference: diff, note, date });
 });
 
 // Purchase invoices
-router.get("/purchase-invoices", (_req, res) => res.json(getAllState(getDb()).purchaseInvoices));
+router.get("/purchase-invoices", (req, res) => res.json(getAllState(getDb(), req.branchId).purchaseInvoices));
 
 router.post("/purchase-invoices", (req, res) => {
   const db = getDb();
   const { invoiceNo, firmId, total, date } = req.body;
-  const firm = db.prepare("SELECT * FROM firms WHERE id = ?").get(firmId);
+  const firm = db.prepare("SELECT * FROM firms WHERE id = ? AND branch_id = ?").get(firmId, req.branchId);
   const id = uid("pi");
-  db.prepare("INSERT INTO purchase_invoices (id, invoice_no, firm_id, firm_name, total, date) VALUES (?, ?, ?, ?, ?, ?)").run(
-    id,
-    invoiceNo,
-    firmId,
-    firm?.name || "",
-    Number(total),
-    date || new Date().toISOString().slice(0, 10)
-  );
+  db.prepare(
+    "INSERT INTO purchase_invoices (id, invoice_no, firm_id, firm_name, total, date, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).run(id, invoiceNo, firmId, firm?.name || "", Number(total), date || new Date().toISOString().slice(0, 10), req.branchId);
   res.status(201).json({ id, invoiceNo, firmId, firmName: firm?.name, total: Number(total), date });
 });
 
 // Refund requests
-router.get("/refund-requests", (_req, res) => res.json(getAllState(getDb()).refundRequests));
+router.get("/refund-requests", (req, res) => res.json(getAllState(getDb(), req.branchId).refundRequests));
 
 router.post("/refund-requests", (req, res) => {
   const id = uid("rr");
   const { productName, reason } = req.body;
   const date = new Date().toISOString().slice(0, 10);
-  getDb().prepare("INSERT INTO refund_requests (id, product_name, reason, status, date) VALUES (?, ?, ?, 'pending', ?)").run(id, productName, reason, date);
+  getDb()
+    .prepare("INSERT INTO refund_requests (id, product_name, reason, status, date, branch_id) VALUES (?, ?, ?, 'pending', ?, ?)")
+    .run(id, productName, reason, date, req.branchId);
   res.status(201).json({ id, productName, reason, status: "pending", date });
 });
 
 router.patch("/refund-requests/:id", (req, res) => {
-  getDb().prepare("UPDATE refund_requests SET status=? WHERE id=?").run(req.body.status, req.params.id);
+  getDb()
+    .prepare("UPDATE refund_requests SET status=? WHERE id=? AND branch_id=?")
+    .run(req.body.status, req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 // Notices
-router.get("/notices", (_req, res) => res.json(getAllState(getDb()).notices));
+router.get("/notices", (req, res) => res.json(getAllState(getDb(), req.branchId).notices));
 
 router.patch("/notices/:id/read", (req, res) => {
-  getDb().prepare("UPDATE notices SET read_flag = 1 WHERE id = ?").run(req.params.id);
+  getDb().prepare("UPDATE notices SET read_flag = 1 WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 // Integrations
-router.get("/integrations", (_req, res) => res.json(getAllState(getDb()).integrations));
+router.get("/integrations", (req, res) => res.json(getAllState(getDb(), req.branchId).integrations));
 
 router.patch("/integrations/:id", (req, res) => {
-  getDb().prepare("UPDATE integrations SET status=? WHERE id=?").run(req.body.status, req.params.id);
+  getDb()
+    .prepare("UPDATE integrations SET status=? WHERE id=? AND branch_id=?")
+    .run(req.body.status, req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 // Variants & sub-products
-router.get("/variants", (_req, res) => res.json(getAllState(getDb()).variants));
+router.get("/variants", (req, res) => res.json(getAllState(getDb(), req.branchId).variants));
 router.post("/variants", (req, res) => {
   const id = uid("v");
   const { productId, name, sku, price, stock } = req.body;
-  getDb().prepare("INSERT INTO variants (id, product_id, name, sku, price, stock) VALUES (?, ?, ?, ?, ?, ?)").run(id, productId, name, sku || "", Number(price) || 0, Number(stock) || 0);
+  getDb()
+    .prepare("INSERT INTO variants (id, product_id, name, sku, price, stock, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run(id, productId, name, sku || "", Number(price) || 0, Number(stock) || 0, req.branchId);
   res.status(201).json({ id, productId, name, sku, price, stock });
 });
 router.delete("/variants/:id", (req, res) => {
-  getDb().prepare("DELETE FROM variants WHERE id = ?").run(req.params.id);
+  getDb().prepare("DELETE FROM variants WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
-router.get("/sub-products", (_req, res) => res.json(getAllState(getDb()).subProducts));
+router.get("/sub-products", (req, res) => res.json(getAllState(getDb(), req.branchId).subProducts));
 router.post("/sub-products", (req, res) => {
   const id = uid("sp");
   const { parentProductId, name, qty } = req.body;
-  getDb().prepare("INSERT INTO sub_products (id, parent_product_id, name, qty) VALUES (?, ?, ?, ?)").run(id, parentProductId, name, Number(qty) || 1);
+  getDb()
+    .prepare("INSERT INTO sub_products (id, parent_product_id, name, qty, branch_id) VALUES (?, ?, ?, ?, ?)")
+    .run(id, parentProductId, name, Number(qty) || 1, req.branchId);
   res.status(201).json({ id, parentProductId, name, qty });
 });
 router.delete("/sub-products/:id", (req, res) => {
-  getDb().prepare("DELETE FROM sub_products WHERE id = ?").run(req.params.id);
+  getDb().prepare("DELETE FROM sub_products WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
   res.json({ ok: true });
 });
 
 // E-invoices
 router.get("/e-invoices", (req, res) => {
   const db = getDb();
-  let sql = "SELECT * FROM e_invoices WHERE 1=1";
-  const params = [];
+  let sql = "SELECT * FROM e_invoices WHERE branch_id = ?";
+  const params = [req.branchId];
   if (req.query.direction) {
     sql += " AND direction = ?";
     params.push(req.query.direction);
@@ -572,8 +604,10 @@ router.post("/e-invoices", (req, res) => {
   const { direction, invoiceNo, customerName, total } = req.body;
   const date = new Date().toISOString().slice(0, 10);
   getDb()
-    .prepare("INSERT INTO e_invoices (id, direction, invoice_no, customer_name, total, status, date) VALUES (?, ?, ?, ?, ?, 'sent', ?)")
-    .run(id, direction || "outgoing", invoiceNo || "", customerName || "", Number(total) || 0, date);
+    .prepare(
+      "INSERT INTO e_invoices (id, direction, invoice_no, customer_name, total, status, date, branch_id) VALUES (?, ?, ?, ?, ?, 'sent', ?, ?)"
+    )
+    .run(id, direction || "outgoing", invoiceNo || "", customerName || "", Number(total) || 0, date, req.branchId);
   res.status(201).json({ id, direction, invoiceNo, customerName, total, status: "sent", date });
 });
 
@@ -581,8 +615,10 @@ router.post("/e-invoices", (req, res) => {
 router.get("/reports/daily", (req, res) => {
   const date = req.query.date || new Date().toISOString().slice(0, 10);
   const sales = getDb()
-    .prepare("SELECT id FROM sales WHERE date(created_at)=? AND payment_type != 'refund' ORDER BY created_at DESC")
-    .all(date)
+    .prepare(
+      "SELECT id FROM sales WHERE branch_id = ? AND date(created_at)=? AND payment_type != 'refund' ORDER BY created_at DESC"
+    )
+    .all(req.branchId, date)
     .map((r) => getSaleWithItems(getDb(), r.id));
   res.json(sales);
 });
@@ -593,16 +629,18 @@ router.get("/reports/historical", (req, res) => {
   const rows = getDb()
     .prepare(`
       SELECT date(created_at) as date, COUNT(*) as count, SUM(total) as total
-      FROM sales WHERE payment_type != 'refund' AND date(created_at) BETWEEN ? AND ?
+      FROM sales WHERE branch_id = ? AND payment_type != 'refund' AND date(created_at) BETWEEN ? AND ?
       GROUP BY date(created_at) ORDER BY date DESC
     `)
-    .all(from, to);
+    .all(req.branchId, from, to);
   res.json(rows.map((r) => ({ id: r.date, date: r.date, count: r.count, total: r.total })));
 });
 
-router.get("/reports/products", (_req, res) => {
+router.get("/reports/products", (req, res) => {
   const db = getDb();
-  const sales = db.prepare("SELECT id FROM sales WHERE payment_type != 'refund'").all();
+  const sales = db
+    .prepare("SELECT id FROM sales WHERE branch_id = ? AND payment_type != 'refund'")
+    .all(req.branchId);
   const map = {};
   sales.forEach(({ id }) => {
     getSaleWithItems(db, id).items.forEach((item) => {
@@ -615,8 +653,8 @@ router.get("/reports/products", (_req, res) => {
   res.json(Object.values(map).sort((a, b) => b.total - a.total));
 });
 
-router.get("/reports/groups", (_req, res) => {
-  const state = getAllState(getDb());
+router.get("/reports/groups", (req, res) => {
+  const state = getAllState(getDb(), req.branchId);
   const groupMap = Object.fromEntries(state.groups.map((g) => [g.id, g.name]));
   const map = {};
   state.sales
@@ -633,16 +671,16 @@ router.get("/reports/groups", (_req, res) => {
   res.json(Object.values(map).sort((a, b) => b.total - a.total));
 });
 
-router.get("/reports/stock", (_req, res) => {
+router.get("/reports/stock", (req, res) => {
   const db = getDb();
   const sold = {};
-  db.prepare("SELECT id FROM sales").all().forEach(({ id }) => {
+  db.prepare("SELECT id FROM sales WHERE branch_id = ?").all(req.branchId).forEach(({ id }) => {
     getSaleWithItems(db, id).items.forEach((item) => {
       if (item.productId) sold[item.productId] = (sold[item.productId] || 0) + item.qty;
     });
   });
   res.json(
-    getAllState(db).products.map((p) => ({
+    getAllState(db, req.branchId).products.map((p) => ({
       id: p.id,
       name: p.name,
       stock: p.stock,
@@ -652,8 +690,8 @@ router.get("/reports/stock", (_req, res) => {
   );
 });
 
-router.get("/reports/staff-motions", (_req, res) => {
-  res.json(getAllState(getDb()).sales);
+router.get("/reports/staff-motions", (req, res) => {
+  res.json(getAllState(getDb(), req.branchId).sales);
 });
 
 export default router;
