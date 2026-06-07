@@ -7,6 +7,7 @@ import { initSchema } from "./schema.js";
 import { ensureDefaultBranch, rowToBranch } from "./migrate-branches.js";
 import { useMysql } from "./dialect.js";
 import { createMysqlDb, getMysqlConfigFromEnv } from "./mysql-driver.js";
+import { seedCigkofteProducts, seedCigkofteForAllBranches } from "../seed/cigkofte/seedProducts.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,8 +42,23 @@ export function getDb() {
     }
     initSchema(db);
     seedIfEmpty(db);
+    ensureCigkofteCatalog(db);
   }
   return db;
+}
+
+function ensureCigkofteCatalog(database) {
+  try {
+    const results = seedCigkofteForAllBranches(database, DATA_DIR, { uid });
+    const touched = results.filter((r) => r.added > 0);
+    if (touched.length > 0) {
+      console.log(
+        `[DB] Cigkofte urunleri eklendi: ${touched.map((r) => `${r.branchName} (${r.added})`).join(", ")}`
+      );
+    }
+  } catch (err) {
+    console.warn("[DB] Cigkofte urun seed atlandi:", err.message);
+  }
 }
 
 export function getDbDriver() {
@@ -72,27 +88,11 @@ function seedIfEmpty(database) {
     "INSERT INTO users (id, email, password_hash, firm_id, firm_name, branch, role, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
   ).run("u1", "admin@benimpos.com", hash, firmId, "SMARTADMİN", "ANA HESAP", "admin", branchId);
 
-  const groups = [
-    ["g1", "Gıda"],
-    ["g2", "İçecek"],
-    ["g3", "Temizlik"],
-    ["g4", "Diğer"],
-  ];
+  const groups = [["g_cigkofte", "Çiğköfte"]];
   const insGroup = database.prepare("INSERT INTO `groups` (id, name, branch_id) VALUES (?, ?, ?)");
   groups.forEach((g) => insGroup.run(g[0], g[1], branchId));
 
-  const products = [
-    ["p1", "8690000000011", "STK-001", "Ekmek", "g1", 120, 20, 1, 8, 12, 11, "Adet"],
-    ["p2", "8690000000028", "STK-002", "Süt 1L", "g2", 48, 10, 1, 28, 38, 36, "Litre"],
-    ["p3", "8690000000035", "STK-003", "Su 1.5L", "g2", 96, 24, 1, 4, 8, 7, "Litre"],
-    ["p4", "8690000000042", "STK-004", "Deterjan 3kg", "g3", 15, 5, 20, 145, 199, 189, "KG"],
-    ["p5", "8690000000059", "STK-005", "Yumurta 15li", "g1", 30, 8, 1, 75, 95, 92, "Paket"],
-  ];
-  const insProduct = database.prepare(`
-    INSERT INTO products (id, barcode, stock_code, name, group_id, stock, critical_stock, vat, buy_price, price1, price2, unit, on_sale_page, active, branch_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?)
-  `);
-  products.forEach((p) => insProduct.run(...p, branchId));
+  seedCigkofteProducts(database, branchId, DATA_DIR, { uid });
 
   database.prepare(`
     INSERT INTO customers (id, name, phone, address, note, credit_limit, debt, purchase_count, last_payment_date, branch_id)

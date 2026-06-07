@@ -24,7 +24,7 @@
     "postinstall": "node scripts/postinstall.mjs",
     "start": "node server.js",
     "hostinger:build": "npm run build",
-    "setup-mysql": "node scripts/setup-mysql.mjs",
+    "seed:cigkofte": "node scripts/seed-cigkofte-products.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
