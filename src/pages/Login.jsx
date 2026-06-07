@@ -7,7 +7,7 @@ export default function Login() {
   const { loginBranch, isAuthenticated, isAdmin, isBranchUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [branchCode, setBranchCode] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -25,17 +25,17 @@ export default function Login() {
     e.preventDefault();
     setError("");
 
-    if (!branchCode.trim() || !password.trim()) {
-      setError("Şube kodu ve parola girin.");
+    if (!email.trim() || !password.trim()) {
+      setError("E-posta ve şifre girin.");
       return;
     }
 
     try {
-      await loginBranch(branchCode.trim().toUpperCase(), password);
+      await loginBranch(email.trim(), password);
       const isMobile = window.matchMedia("(max-width: 991px)").matches;
       navigate(location.state?.from?.pathname || (isMobile ? "/menu" : "/dashboard"), { replace: true });
     } catch (err) {
-      setError(err.message === "Invalid credentials" ? "Geçersiz şube kodu veya parola." : err.message);
+      setError(err.message === "Invalid credentials" ? "Geçersiz e-posta veya şifre." : err.message);
     }
   };
 
@@ -46,14 +46,14 @@ export default function Login() {
           <div className="login-card">
             <form onSubmit={handleSubmit}>
               <h4>POS — Şube Girişi</h4>
-              <p className="login-hint">Satış, stok ve kasa işlemleri için şube kodunuz ile giriş yapın.</p>
+              <p className="login-hint">Satış, stok ve kasa işlemleri için şube e-postanız ile giriş yapın.</p>
 
               <div className="form-group">
                 <input
-                  type="text"
-                  placeholder="Şube Giriş Kodu"
-                  value={branchCode}
-                  onChange={(e) => setBranchCode(e.target.value.toUpperCase())}
+                  type="email"
+                  placeholder="Şube E-postası"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   autoComplete="username"
                 />
               </div>
@@ -61,7 +61,7 @@ export default function Login() {
               <div className="form-group">
                 <input
                   type="password"
-                  placeholder="Şube Parolası"
+                  placeholder="Giriş Şifresi"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
@@ -86,7 +86,9 @@ export default function Login() {
               Web, mobil ve masaüstü tüm platformlarda satış, stok, ürün yönetimi, raporlama ve cari hesap takibi.
             </p>
             <h4>Her şube ayrı</h4>
-            <p>Şube kodu ve parola admin panelden oluşturulur. Yönetim için <Link to="/login/admin">/login/admin</Link></p>
+            <p>
+              Şube e-postası ve şifre admin panelden oluşturulur. Yönetim için <Link to="/login/admin">/login/admin</Link>
+            </p>
           </div>
         </div>
       </div>

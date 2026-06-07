@@ -30,10 +30,10 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const loginBranch = async (loginCode, password) => {
+  const loginBranch = async (email, password) => {
     setLoading(true);
     try {
-      const { token, user: account } = await api.branchLogin(loginCode, password);
+      const { token, user: account } = await api.branchLogin(email, password);
       sessionStorage.removeItem(ADMIN_BACKUP_KEY);
       persistUser(account, token);
       return account;

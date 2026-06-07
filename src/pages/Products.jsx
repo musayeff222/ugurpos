@@ -5,6 +5,7 @@ import DataTable from "../components/ui/DataTable";
 import PageHeader from "../components/ui/PageHeader";
 import { formatMoney } from "../utils/format";
 import { runAsync } from "../utils/runAsync";
+import { getProductImageSrc } from "../utils/productImage";
 
 export default function Products() {
   const { state, deleteProducts } = useStore();
@@ -83,6 +84,19 @@ export default function Products() {
                 render: (r) => (
                   <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggleSelect(r.id)} />
                 ),
+              },
+              {
+                key: "image",
+                label: "Resim",
+                width: "56px",
+                render: (r) =>
+                  r.hasImage ? (
+                    <img className="product-thumb" src={getProductImageSrc(r)} alt="" loading="lazy" />
+                  ) : (
+                    <span className="product-thumb product-thumb--empty">
+                      <i className="fa fa-picture-o" />
+                    </span>
+                  ),
               },
               { key: "barcode", label: "Barkod" },
               { key: "name", label: "Ürün adı" },

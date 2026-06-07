@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useStore } from "../store/StoreContext";
 import Modal from "../components/ui/Modal";
 import { calcCartTotal, formatMoney, uid } from "../utils/format";
+import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
 import "../styles/sales.css";
 
@@ -679,6 +680,13 @@ export default function Sales() {
               )}
               {fastProducts.map((p) => (
                 <button key={p.id} type="button" className="sales-fast-item" onClick={() => addProductToCart(p)}>
+                  {p.hasImage ? (
+                    <img className="sales-fast-item__img" src={getProductImageSrc(p)} alt="" loading="lazy" />
+                  ) : (
+                    <span className="sales-fast-item__icon">
+                      <i className="fa fa-cube" />
+                    </span>
+                  )}
                   <span>{p.name}</span>
                   <strong>{formatMoney(p.price1)}</strong>
                 </button>

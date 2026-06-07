@@ -22,7 +22,7 @@ export default function AdminBranchDetail() {
   const [tab, setTab] = useState("edit");
   const [branch, setBranch] = useState(null);
   const [activity, setActivity] = useState(null);
-  const [form, setForm] = useState({ name: "", loginCode: "", password: "", address: "", phone: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", address: "" });
   const [message, setMessage] = useState(location.state?.message || "");
   const [error, setError] = useState("");
   const [entering, setEntering] = useState(false);
@@ -32,10 +32,9 @@ export default function AdminBranchDetail() {
     setBranch(data);
     setForm({
       name: data.name,
-      loginCode: data.loginCode || "",
+      email: data.email || "",
       password: "",
       address: data.address || "",
-      phone: data.phone || "",
     });
   };
 
@@ -96,7 +95,7 @@ export default function AdminBranchDetail() {
   return (
     <div>
       <PageHeader
-        title={branch?.name || "Şube"}
+        title={branch ? `#${branch.branchNo} — ${branch.name}` : "Şube"}
         actions={
           <>
             <Link to="/admin/branches" className="btn btn-default">
@@ -134,10 +133,12 @@ export default function AdminBranchDetail() {
               </strong>
             </div>
             <div className="admin-stat-card">
-              <span>Giriş Kodu</span>
-              <strong>
-                <code>{branch.loginCode}</code>
-              </strong>
+              <span>Şube No</span>
+              <strong>#{branch.branchNo || "—"}</strong>
+            </div>
+            <div className="admin-stat-card">
+              <span>Giriş E-postası</span>
+              <strong>{branch.email || "—"}</strong>
             </div>
           </div>
 
@@ -159,13 +160,18 @@ export default function AdminBranchDetail() {
               <label>Şube Adı *</label>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
 
-              <label>Giriş Kodu</label>
+              <label>Şube No</label>
+              <input value={`#${branch.branchNo || "—"}`} disabled readOnly />
+
+              <label>Giriş E-postası *</label>
               <input
-                value={form.loginCode}
-                onChange={(e) => setForm({ ...form, loginCode: e.target.value.toUpperCase() })}
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
               />
 
-              <label>Yeni Parola (boş = değişmez)</label>
+              <label>Yeni Şifre (boş = değişmez)</label>
               <input
                 type="password"
                 value={form.password}
@@ -174,9 +180,6 @@ export default function AdminBranchDetail() {
 
               <label>Adres</label>
               <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-
-              <label>Telefon</label>
-              <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
 
               <div className="form-actions">
                 <button type="button" className="btn btn-warning" onClick={toggleActive}>
@@ -197,7 +200,8 @@ export default function AdminBranchDetail() {
                 <>
                   <div className="card">
                     <h3>Son Satışlar</h3>
-                    <table className="data-table">
+                    <div className="admin-table-wrap">
+                      <table className="data-table">
                       <thead>
                         <tr>
                           <th>Tarih</th>
@@ -225,11 +229,13 @@ export default function AdminBranchDetail() {
                         )}
                       </tbody>
                     </table>
+                    </div>
                   </div>
 
                   <div className="card">
                     <h3>Stok Sayımları</h3>
-                    <table className="data-table">
+                    <div className="admin-table-wrap">
+                      <table className="data-table">
                       <thead>
                         <tr>
                           <th>Tarih</th>
@@ -257,6 +263,7 @@ export default function AdminBranchDetail() {
                         )}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 </>
               )}

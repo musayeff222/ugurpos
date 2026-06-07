@@ -4,7 +4,7 @@ import { getDb } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
 import { signAdminToken, signBranchToken, authMiddleware } from "../middleware/auth.js";
 import { getBranchesForFirm } from "../middleware/branch.js";
-import { verifyBranchPassword } from "../utils/branchAuth.js";
+import { verifyBranchPassword, normalizeBranchEmail } from "../utils/branchAuth.js";
 
 const router = Router();
 
@@ -23,7 +23,8 @@ function buildAdminResponse(db, user, branchId) {
     firmName: user.firm_name,
     branchId: branch?.id || branchId,
     branchName: branch?.name || user.branch || "ANA HESAP",
-    loginCode: branch?.login_code || "",
+    branchNo: branch?.code ? String(parseInt(branch.code, 10) || branch.code) : "",
+    email: branch?.email || "",
     role: user.role || "admin",
     loginType: "admin",
     branches,
@@ -38,7 +39,8 @@ function buildBranchResponse(db, branch) {
     firmName,
     branchId: branch.id,
     branchName: branch.name,
-    loginCode: branch.login_code,
+    branchNo: branch.code ? String(parseInt(branch.code, 10) || branch.code) : "",
+    email: branch.email,
     role: "branch",
     loginType: "branch",
     branches: [rowToBranch(branch)],
@@ -69,15 +71,15 @@ router.post("/login", (req, res) => {
 });
 
 router.post("/branch-login", (req, res) => {
-  const { loginCode, password } = req.body;
-  if (!loginCode?.trim() || !password) {
-    return res.status(400).json({ error: "Şube kodu ve parola gerekli" });
+  const { email, password } = req.body;
+  if (!email?.trim() || !password) {
+    return res.status(400).json({ error: "E-posta ve parola gerekli" });
   }
 
   const db = getDb();
   const branch = db
-    .prepare("SELECT * FROM branches WHERE login_code = ? AND active = 1")
-    .get(loginCode.trim().toUpperCase());
+    .prepare("SELECT * FROM branches WHERE email = ? AND active = 1")
+    .get(normalizeBranchEmail(email));
 
   if (!branch || !verifyBranchPassword(password, branch.password_hash)) {
     return res.status(401).json({ error: "Invalid credentials" });

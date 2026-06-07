@@ -23,6 +23,11 @@ export function getDb() {
   return db;
 }
 
+export function getDataDir() {
+  getDb();
+  return DATA_DIR;
+}
+
 export function uid(prefix = "id") {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -133,6 +138,8 @@ export function rowToProduct(row) {
     unit: row.unit || "Adet",
     onSalePage: !!row.on_sale_page,
     active: !!row.active,
+    hasImage: !!row.image_path,
+    imageUrl: row.image_path ? `/api/products/${row.id}/image` : null,
   };
 }
 

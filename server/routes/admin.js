@@ -3,8 +3,10 @@ import { getDb, uid, getSaleWithItems } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
 import { adminMiddleware } from "../middleware/admin.js";
 import { seedBranchDefaults } from "../utils/branchDefaults.js";
-import { generateBranchLoginCode, hashBranchPassword } from "../utils/branchAuth.js";
+import { hashBranchPassword, getNextBranchNumber, isValidBranchEmail, normalizeBranchEmail } from "../utils/branchAuth.js";
 import { signAdminToken } from "../middleware/auth.js";
+import { ensureFirmSettings, rowToMenuBranch, rowToFirmMenu } from "../utils/qrMenu.js";
+import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 
 const router = Router();
 router.use(adminMiddleware);
@@ -48,7 +50,7 @@ router.get("/summary", (req, res) => {
       `SELECT b.*,
         (SELECT COUNT(*) FROM products p WHERE p.branch_id = b.id) as product_count,
         (SELECT COUNT(*) FROM sales s WHERE s.branch_id = b.id) as sale_count
-       FROM branches b WHERE b.firm_id = ? ORDER BY b.name`
+       FROM branches b WHERE b.firm_id = ? ORDER BY CAST(b.code AS INTEGER), b.name`
     )
     .all(firmId);
 
@@ -68,7 +70,7 @@ router.get("/summary", (req, res) => {
 router.get("/branches", (req, res) => {
   const db = getDb();
   const rows = db
-    .prepare("SELECT * FROM branches WHERE firm_id = ? ORDER BY name")
+    .prepare("SELECT * FROM branches WHERE firm_id = ? ORDER BY CAST(code AS INTEGER), name")
     .all(req.user.firmId);
   res.json(
     rows.map((row) => ({
@@ -158,7 +160,8 @@ router.post("/branches/:id/enter", (req, res) => {
       firmName: user.firm_name,
       branchId: branch.id,
       branchName: branch.name,
-      loginCode: branch.login_code,
+      branchNo: branch.code ? String(parseInt(branch.code, 10) || branch.code) : "",
+      email: branch.email,
       role: "admin",
       loginType: "admin",
       impersonating: true,
@@ -169,37 +172,39 @@ router.post("/branches/:id/enter", (req, res) => {
 
 router.post("/branches", (req, res) => {
   const db = getDb();
-  const { name, code, address, phone, password, loginCode } = req.body;
+  const { name, email, password, address } = req.body;
   if (!name?.trim()) {
     return res.status(400).json({ error: "Şube adı zorunludur" });
+  }
+  if (!email?.trim()) {
+    return res.status(400).json({ error: "Şube e-postası zorunludur" });
+  }
+  if (!isValidBranchEmail(email)) {
+    return res.status(400).json({ error: "Geçerli bir e-posta girin" });
   }
   if (!password?.trim()) {
     return res.status(400).json({ error: "Şube parolası zorunludur" });
   }
 
-  const id = uid("br");
-  const branchCode =
-    code?.trim() ||
-    String(db.prepare("SELECT COUNT(*) as c FROM branches WHERE firm_id = ?").get(req.user.firmId).c + 1).padStart(
-      3,
-      "0"
-    );
-  const branchLoginCode = (loginCode?.trim() || generateBranchLoginCode(db, req.user.firmId, name, branchCode)).toUpperCase();
-  const loginTaken = db.prepare("SELECT id FROM branches WHERE login_code = ?").get(branchLoginCode);
-  if (loginTaken) {
-    return res.status(400).json({ error: "Bu giriş kodu zaten kullanılıyor" });
+  const normalizedEmail = normalizeBranchEmail(email);
+  const emailTaken = db.prepare("SELECT id FROM branches WHERE email = ?").get(normalizedEmail);
+  if (emailTaken) {
+    return res.status(400).json({ error: "Bu e-posta zaten kullanılıyor" });
   }
 
+  const id = uid("br");
+  const branchNo = getNextBranchNumber(db, req.user.firmId);
   const passwordHash = hashBranchPassword(password);
 
   const tx = db.transaction(() => {
     db.prepare(
-      "INSERT INTO branches (id, firm_id, name, code, login_code, password_hash, address, phone, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
-    ).run(id, req.user.firmId, name.trim(), branchCode, branchLoginCode, passwordHash, address || "", phone || "");
+      "INSERT INTO branches (id, firm_id, name, code, email, password_hash, address, active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)"
+    ).run(id, req.user.firmId, name.trim(), branchNo, normalizedEmail, passwordHash, address?.trim() || "");
     seedBranchDefaults(db, id);
   });
 
   tx();
+  ensureFirmSettings(db, req.user.firmId, req.user.firmName);
   res.status(201).json(rowToBranch(db.prepare("SELECT * FROM branches WHERE id = ?").get(id)));
 });
 
@@ -208,26 +213,25 @@ router.patch("/branches/:id", (req, res) => {
   const existing = getBranchOr404(db, req.params.id, req.user.firmId);
   if (!existing) return res.status(404).json({ error: "Şube bulunamadı" });
 
-  const { name, code, address, phone, active, password, loginCode } = req.body;
-  const nextLoginCode = loginCode?.trim()
-    ? loginCode.trim().toUpperCase()
-    : existing.login_code;
-  if (nextLoginCode !== existing.login_code) {
-    const taken = db.prepare("SELECT id FROM branches WHERE login_code = ? AND id != ?").get(nextLoginCode, req.params.id);
-    if (taken) return res.status(400).json({ error: "Bu giriş kodu zaten kullanılıyor" });
+  const { name, email, address, active, password } = req.body;
+  const nextEmail = email?.trim() ? normalizeBranchEmail(email) : existing.email;
+  if (email?.trim() && !isValidBranchEmail(nextEmail)) {
+    return res.status(400).json({ error: "Geçerli bir e-posta girin" });
+  }
+  if (nextEmail !== existing.email) {
+    const taken = db.prepare("SELECT id FROM branches WHERE email = ? AND id != ?").get(nextEmail, req.params.id);
+    if (taken) return res.status(400).json({ error: "Bu e-posta zaten kullanılıyor" });
   }
 
   const nextPasswordHash = password?.trim() ? hashBranchPassword(password) : existing.password_hash;
 
   db.prepare(
-    "UPDATE branches SET name=?, code=?, login_code=?, password_hash=?, address=?, phone=?, active=? WHERE id=?"
+    "UPDATE branches SET name=?, email=?, password_hash=?, address=?, active=? WHERE id=?"
   ).run(
     name ?? existing.name,
-    code ?? existing.code,
-    nextLoginCode,
+    nextEmail,
     nextPasswordHash,
     address ?? existing.address,
-    phone ?? existing.phone,
     active === false ? 0 : active === true ? 1 : existing.active,
     req.params.id
   );
@@ -249,6 +253,102 @@ router.delete("/branches/:id", (req, res) => {
 
   db.prepare("UPDATE branches SET active = 0 WHERE id = ?").run(req.params.id);
   res.json({ ok: true });
+});
+
+router.get("/qr-menu", (req, res) => {
+  const db = getDb();
+  const firmRow = ensureFirmSettings(db, req.user.firmId, req.user.firmName);
+  const rows = db
+    .prepare("SELECT * FROM branches WHERE firm_id = ? ORDER BY CAST(code AS INTEGER), name")
+    .all(req.user.firmId);
+
+  const branches = rows.map((row) => {
+    const menu = rowToMenuBranch(row);
+    const pending = db
+      .prepare("SELECT COUNT(*) as c FROM qr_orders WHERE branch_id = ? AND status = 'pending'")
+      .get(row.id).c;
+    return { ...menu, pendingOrders: pending };
+  });
+
+  res.json({
+    firm: rowToFirmMenu(firmRow, req.user.firmName),
+    branches,
+  });
+});
+
+router.patch("/qr-menu", (req, res) => {
+  const db = getDb();
+  const firmRow = ensureFirmSettings(db, req.user.firmId, req.user.firmName);
+  const { menuEnabled, menuTitle, menuWelcome } = req.body;
+
+  db.prepare(
+    `UPDATE firm_settings SET
+      menu_enabled = ?,
+      menu_title = ?,
+      menu_welcome = ?
+     WHERE firm_id = ?`
+  ).run(
+    menuEnabled === true ? 1 : menuEnabled === false ? 0 : firmRow.menu_enabled,
+    menuTitle ?? firmRow.menu_title ?? req.user.firmName,
+    menuWelcome ?? firmRow.menu_welcome ?? "",
+    req.user.firmId
+  );
+
+  res.json({
+    firm: rowToFirmMenu(db.prepare("SELECT * FROM firm_settings WHERE firm_id = ?").get(req.user.firmId), req.user.firmName),
+  });
+});
+
+router.patch("/qr-menu/branches/:id", (req, res) => {
+  const db = getDb();
+  const existing = getBranchOr404(db, req.params.id, req.user.firmId);
+  if (!existing) return res.status(404).json({ error: "Şube bulunamadı" });
+
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.params.id);
+
+  const { menuEnabled, menuAcceptOrders } = req.body;
+  db.prepare(
+    `UPDATE branches SET
+      menu_enabled = ?,
+      menu_accept_orders = ?
+     WHERE id = ?`
+  ).run(
+    menuEnabled === true ? 1 : menuEnabled === false ? 0 : branch.menu_enabled,
+    menuAcceptOrders === false ? 0 : menuAcceptOrders === true ? 1 : branch.menu_accept_orders,
+    req.params.id
+  );
+
+  res.json(rowToMenuBranch(db.prepare("SELECT * FROM branches WHERE id = ?").get(req.params.id)));
+});
+
+router.get("/qr-orders", (req, res) => {
+  const db = getDb();
+  const orders = listQrOrders(db, {
+    firmId: req.user.firmId,
+    branchId: req.query.branchId || null,
+    status: req.query.status || "all",
+    limit: Number(req.query.limit) || 100,
+  });
+  res.json(orders);
+});
+
+router.patch("/qr-orders/:id", (req, res) => {
+  const db = getDb();
+  const order = db
+    .prepare(
+      `SELECT o.* FROM qr_orders o
+       JOIN branches b ON b.id = o.branch_id
+       WHERE o.id = ? AND b.firm_id = ?`
+    )
+    .get(req.params.id, req.user.firmId);
+  if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
+
+  try {
+    const updated = updateQrOrderStatus(db, req.params.id, req.body.status, order.branch_id);
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 export default router;

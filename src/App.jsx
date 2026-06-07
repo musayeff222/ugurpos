@@ -42,6 +42,10 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBranches from "./pages/admin/AdminBranches";
 import AdminBranchCreate from "./pages/admin/AdminBranchCreate";
 import AdminBranchDetail from "./pages/admin/AdminBranchDetail";
+import AdminQrMenu from "./pages/admin/AdminQrMenu";
+import PublicMenuLanding from "./pages/public/PublicMenuLanding";
+import PublicBranchMenu from "./pages/public/PublicBranchMenu";
+import PublicOrderStatus from "./pages/public/PublicOrderStatus";
 
 function HomeRedirect() {
   const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 991px)").matches;
@@ -53,11 +57,15 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/login/admin" element={<AdminLogin />} />
+      <Route path="/m/order/:orderId" element={<PublicOrderStatus />} />
+      <Route path="/m/:slug/:branchId" element={<PublicBranchMenu />} />
+      <Route path="/m/:slug" element={<PublicMenuLanding />} />
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
         <Route path="branches" element={<AdminBranches />} />
         <Route path="branches/new" element={<AdminBranchCreate />} />
         <Route path="branches/:id" element={<AdminBranchDetail />} />
+        <Route path="qr-menu" element={<AdminQrMenu />} />
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />
       <Route path="/" element={<MainLayout />}>

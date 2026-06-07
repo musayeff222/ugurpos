@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
 import PageHeader from "../components/ui/PageHeader";
+import ProductImageField from "../components/ProductImageField";
 import { DEFAULT_PRODUCT_UNIT, PRODUCT_UNITS } from "../data/productUnits";
 
 const emptyForm = {
@@ -25,13 +26,26 @@ export default function ProductForm() {
   const editId = params.get("id");
   const existing = state.products.find((p) => p.id === editId);
   const [form, setForm] = useState(emptyForm);
+  const [imageValue, setImageValue] = useState(undefined);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (existing) setForm({ ...emptyForm, ...existing });
-  }, [existing]);
+    if (existing) {
+      setForm({ ...emptyForm, ...existing });
+      setImageValue(undefined);
+    } else {
+      setForm(emptyForm);
+      setImageValue(undefined);
+    }
+  }, [existing?.id]);
 
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const buildImagePayload = () => {
+    if (imageValue === undefined) return {};
+    if (imageValue === null) return { removeImage: true };
+    return { imageData: imageValue.data, imageMime: imageValue.mime };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,6 +62,7 @@ export default function ProductForm() {
       price1: Number(form.price1),
       price2: Number(form.price2),
       groupId: form.groupId || state.groups[0]?.id,
+      ...buildImagePayload(),
     };
     try {
       if (existing) {
@@ -56,6 +71,7 @@ export default function ProductForm() {
           barcode: existing.barcode,
           stockCode: form.stockCode || existing.stockCode,
         });
+        setImageValue(undefined);
         setMessage("Ürün güncellendi.");
       } else {
         await addProduct(payload);
@@ -91,6 +107,9 @@ export default function ProductForm() {
             <input value={existing.stockCode || ""} readOnly disabled />
           </>
         )}
+
+        <label>Ürün Resmi</label>
+        <ProductImageField product={existing} value={imageValue} onChange={setImageValue} />
 
         <label>Ürün Adı *</label>
         <input value={form.name} onChange={(e) => setField("name", e.target.value)} required />

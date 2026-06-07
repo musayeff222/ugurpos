@@ -17,7 +17,10 @@ export default function Profile() {
                 <span>Şube</span> {user?.branchName || "—"}
               </p>
               <p>
-                <span>Giriş Kodu</span> {user?.loginCode || "—"}
+                <span>Şube No</span> #{user?.branchNo || "—"}
+              </p>
+              <p>
+                <span>Giriş E-postası</span> {user?.email || "—"}
               </p>
               <p>
                 <span>Firma</span> {user?.firmName || "—"}

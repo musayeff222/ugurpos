@@ -32,8 +32,10 @@ export default function AdminBranches() {
           <div key={b.id} className={`admin-branch-card ${b.active ? "" : "inactive"}`}>
             <div className="admin-branch-card__head">
               <div>
-                <h3>{b.name}</h3>
-                <code>{b.loginCode}</code>
+                <h3>
+                  #{b.branchNo} {b.name}
+                </h3>
+                <span className="admin-branch-email">{b.email}</span>
               </div>
               <span className={`admin-badge ${b.active ? "ok" : "off"}`}>{b.active ? "Aktif" : "Pasif"}</span>
             </div>

@@ -30,8 +30,8 @@ export const api = {
   login: (email, password) =>
     request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
 
-  branchLogin: (loginCode, password) =>
-    request("/auth/branch-login", { method: "POST", body: JSON.stringify({ loginCode, password }) }),
+  branchLogin: (email, password) =>
+    request("/auth/branch-login", { method: "POST", body: JSON.stringify({ email, password }) }),
 
   getBranches: () => request("/auth/branches"),
 
@@ -43,6 +43,25 @@ export const api = {
   createBranch: (branch) => request("/admin/branches", { method: "POST", body: JSON.stringify(branch) }),
   updateBranch: (id, patch) => request(`/admin/branches/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteBranch: (id) => request(`/admin/branches/${id}`, { method: "DELETE" }),
+
+  getAdminQrMenu: () => request("/admin/qr-menu"),
+  updateAdminQrMenu: (patch) =>
+    request("/admin/qr-menu", { method: "PATCH", body: JSON.stringify(patch) }),
+  updateAdminQrMenuBranch: (id, patch) =>
+    request(`/admin/qr-menu/branches/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  getAdminQrOrders: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/admin/qr-orders${q ? `?${q}` : ""}`);
+  },
+  updateAdminQrOrder: (id, status) =>
+    request(`/admin/qr-orders/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+
+  getQrOrders: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/qr-orders${q ? `?${q}` : ""}`);
+  },
+  updateQrOrder: (id, status) =>
+    request(`/qr-orders/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
 
   getState: () => request("/state"),
 

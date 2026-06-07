@@ -1,6 +1,5 @@
 import {
   DEFAULT_BRANCH_PASSWORD,
-  generateBranchLoginCode,
   hashBranchPassword,
 } from "../utils/branchAuth.js";
 
@@ -31,16 +30,44 @@ const BRANCHED_TABLES = [
   "e_invoices",
 ];
 
+function defaultBranchEmail(db, branch) {
+  const admin = db.prepare("SELECT email FROM users WHERE firm_id = ? LIMIT 1").get(branch.firm_id);
+  const domain = admin?.email?.includes("@") ? admin.email.split("@")[1] : "benimpos.com";
+  const num = branch.code ? String(parseInt(branch.code, 10) || branch.code) : "1";
+  let candidate = `sube${num}@${domain}`;
+  let i = 0;
+  while (db.prepare("SELECT id FROM branches WHERE email = ? AND id != ?").get(candidate, branch.id)) {
+    i += 1;
+    candidate = `sube${num}${i}@${domain}`;
+  }
+  return candidate;
+}
+
 function ensureBranchCredentials(db, branch) {
-  if (branch.login_code && branch.password_hash) return branch;
-  const loginCode = generateBranchLoginCode(db, branch.firm_id, branch.name, branch.code);
-  const passwordHash = hashBranchPassword(DEFAULT_BRANCH_PASSWORD);
-  db.prepare("UPDATE branches SET login_code = ?, password_hash = ? WHERE id = ?").run(
-    loginCode,
-    passwordHash,
-    branch.id
-  );
-  return db.prepare("SELECT * FROM branches WHERE id = ?").get(branch.id);
+  let next = branch;
+  const updates = [];
+  const values = [];
+
+  if (!next.email) {
+    updates.push("email = ?");
+    values.push(defaultBranchEmail(db, next));
+  }
+  if (!next.password_hash) {
+    updates.push("password_hash = ?");
+    values.push(hashBranchPassword(DEFAULT_BRANCH_PASSWORD));
+  }
+  if (!next.code) {
+    updates.push("code = ?");
+    values.push("1");
+  }
+
+  if (updates.length) {
+    values.push(next.id);
+    db.prepare(`UPDATE branches SET ${updates.join(", ")} WHERE id = ?`).run(...values);
+    next = db.prepare("SELECT * FROM branches WHERE id = ?").get(next.id);
+  }
+
+  return next;
 }
 
 export function migrateBranches(db) {
@@ -66,6 +93,9 @@ export function migrateBranches(db) {
   }
   if (!branchCols.includes("password_hash")) {
     db.exec("ALTER TABLE branches ADD COLUMN password_hash TEXT");
+  }
+  if (!branchCols.includes("email")) {
+    db.exec("ALTER TABLE branches ADD COLUMN email TEXT");
   }
 
   const userCols = db.prepare("PRAGMA table_info(users)").all().map((c) => c.name);
@@ -115,18 +145,18 @@ export function migrateBranches(db) {
 
   db.prepare("SELECT * FROM branches").all().forEach((branch) => ensureBranchCredentials(db, branch));
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_login_code ON branches(login_code)");
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_email ON branches(email)");
 }
 
 export function ensureDefaultBranch(db, firmId, name = "ANA HESAP") {
   let branch = db.prepare("SELECT * FROM branches WHERE firm_id = ? AND name = ?").get(firmId, name);
   if (!branch) {
     const branchId = localUid("br");
-    const code = "001";
-    const loginCode = generateBranchLoginCode(db, firmId, name, code);
+    const code = "1";
     const passwordHash = hashBranchPassword(DEFAULT_BRANCH_PASSWORD);
     db.prepare(
-      "INSERT INTO branches (id, firm_id, name, code, login_code, password_hash, active) VALUES (?, ?, ?, ?, ?, ?, 1)"
-    ).run(branchId, firmId, name, code, loginCode, passwordHash);
+      "INSERT INTO branches (id, firm_id, name, code, password_hash, active) VALUES (?, ?, ?, ?, ?, 1)"
+    ).run(branchId, firmId, name, code, passwordHash);
     branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(branchId);
   } else {
     branch = ensureBranchCredentials(db, branch);
@@ -136,11 +166,14 @@ export function ensureDefaultBranch(db, firmId, name = "ANA HESAP") {
 
 export function rowToBranch(row) {
   if (!row) return null;
+  const branchNo = row.code ? String(parseInt(row.code, 10) || row.code) : "";
   return {
     id: row.id,
     firmId: row.firm_id,
     name: row.name,
-    code: row.code || "",
+    branchNo,
+    code: branchNo,
+    email: row.email || "",
     loginCode: row.login_code || "",
     address: row.address || "",
     phone: row.phone || "",

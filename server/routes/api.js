@@ -1,10 +1,33 @@
 import { Router } from "express";
-import { getDb, getAllState, getSaleWithItems, uid, rowToProduct, rowToCustomer } from "../db/index.js";
+import { getDb, getDataDir, getAllState, getSaleWithItems, uid, rowToProduct, rowToCustomer } from "../db/index.js";
 import { generateProductBarcode, generateStockCode } from "../utils/barcode.js";
 import { branchMiddleware } from "../middleware/branch.js";
+import {
+  saveProductImage,
+  deleteProductImage,
+  resolveProductImageFile,
+  contentTypeForImagePath,
+} from "../utils/productImage.js";
+import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 
 const router = Router();
 router.use(branchMiddleware);
+
+function applyProductImage(db, branchId, productId, body, existingPath = null) {
+  if (body.removeImage) {
+    deleteProductImage(getDataDir(), branchId, productId);
+    db.prepare("UPDATE products SET image_path = NULL WHERE id = ? AND branch_id = ?").run(productId, branchId);
+    return null;
+  }
+
+  if (body.imageData && body.imageMime) {
+    const filename = saveProductImage(getDataDir(), branchId, productId, body.imageData, body.imageMime);
+    db.prepare("UPDATE products SET image_path = ? WHERE id = ? AND branch_id = ?").run(filename, productId, branchId);
+    return filename;
+  }
+
+  return existingPath;
+}
 
 function generateSaleCode() {
   const now = new Date();
@@ -69,6 +92,21 @@ router.get("/products", (req, res) => {
   res.json(db.prepare(sql).all(...params).map(rowToProduct));
 });
 
+router.get("/products/:id/image", (req, res) => {
+  const db = getDb();
+  const row = db
+    .prepare("SELECT image_path FROM products WHERE id = ? AND branch_id = ?")
+    .get(req.params.id, req.branchId);
+  if (!row?.image_path) return res.status(404).end();
+
+  const filePath = resolveProductImageFile(getDataDir(), req.branchId, row.image_path);
+  if (!filePath) return res.status(404).end();
+
+  res.setHeader("Content-Type", contentTypeForImagePath(row.image_path));
+  res.setHeader("Cache-Control", "private, max-age=3600");
+  res.sendFile(filePath);
+});
+
 router.get("/products/:id", (req, res) => {
   const row = getDb().prepare("SELECT * FROM products WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
   if (!row) return res.status(404).json({ error: "Not found" });
@@ -100,6 +138,7 @@ router.post("/products", (req, res) => {
     p.onSalePage ? 1 : 0,
     req.branchId
   );
+  applyProductImage(db, req.branchId, id, p);
   res.status(201).json(rowToProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(id)));
 });
 
@@ -127,14 +166,22 @@ router.patch("/products/:id", (req, res) => {
     p.active !== false ? 1 : 0,
     req.params.id
   );
+  applyProductImage(db, req.branchId, req.params.id, req.body, existing.image_path);
   res.json(rowToProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
 });
 
 router.delete("/products", (req, res) => {
   const ids = req.body.ids || [];
   const db = getDb();
+  const find = db.prepare("SELECT id, image_path FROM products WHERE id = ? AND branch_id = ?");
   const del = db.prepare("DELETE FROM products WHERE id = ? AND branch_id = ?");
-  ids.forEach((id) => del.run(id, req.branchId));
+  ids.forEach((id) => {
+    const row = find.get(id, req.branchId);
+    if (row) {
+      deleteProductImage(getDataDir(), req.branchId, id);
+      del.run(id, req.branchId);
+    }
+  });
   res.json({ ok: true });
 });
 
@@ -692,6 +739,25 @@ router.get("/reports/stock", (req, res) => {
 
 router.get("/reports/staff-motions", (req, res) => {
   res.json(getAllState(getDb(), req.branchId).sales);
+});
+
+router.get("/qr-orders", (req, res) => {
+  const orders = listQrOrders(getDb(), {
+    branchId: req.branchId,
+    status: req.query.status || "all",
+    limit: Number(req.query.limit) || 50,
+  });
+  res.json(orders);
+});
+
+router.patch("/qr-orders/:id", (req, res) => {
+  try {
+    const updated = updateQrOrderStatus(getDb(), req.params.id, req.body.status, req.branchId);
+    if (!updated) return res.status(404).json({ error: "Sipariş bulunamadı" });
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 export default router;

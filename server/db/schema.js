@@ -1,4 +1,5 @@
 import { migrateBranches } from "./migrate-branches.js";
+import { migrateQrMenu } from "./migrate-qr-menu.js";
 
 export function initSchema(db) {
   db.exec(`
@@ -215,6 +216,10 @@ export function initSchema(db) {
   if (!productCols.includes("unit")) {
     db.exec("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'Adet'");
   }
+  if (!productCols.includes("image_path")) {
+    db.exec("ALTER TABLE products ADD COLUMN image_path TEXT");
+  }
 
   migrateBranches(db);
+  migrateQrMenu(db);
 }

@@ -23,24 +23,31 @@ export function signAdminToken(user, branchId, branchName, options = {}) {
 export function signBranchToken(branch, firmName) {
   return signToken({
     id: `branch_${branch.id}`,
-    email: null,
+    email: branch.email,
     firmId: branch.firm_id,
     firmName,
     branchId: branch.id,
     branchName: branch.name,
-    loginCode: branch.login_code,
+    branchNo: branch.code ? String(parseInt(branch.code, 10) || branch.code) : "",
     role: "branch",
     loginType: "branch",
   });
 }
 
-export function authMiddleware(req, res, next) {
+function readAuthToken(req) {
   const header = req.headers.authorization;
-  if (!header?.startsWith("Bearer ")) {
+  if (header?.startsWith("Bearer ")) return header.slice(7);
+  if (typeof req.query.token === "string" && req.query.token) return req.query.token;
+  return null;
+}
+
+export function authMiddleware(req, res, next) {
+  const token = readAuthToken(req);
+  if (!token) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   try {
-    req.user = jwt.verify(header.slice(7), JWT_SECRET);
+    req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch {
     return res.status(401).json({ error: "Invalid token" });

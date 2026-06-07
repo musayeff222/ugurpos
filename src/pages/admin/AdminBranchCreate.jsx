@@ -7,7 +7,7 @@ import PageHeader from "../../components/ui/PageHeader";
 export default function AdminBranchCreate() {
   const { refreshBranches } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", loginCode: "", password: "", address: "", phone: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", address: "" });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -18,8 +18,12 @@ export default function AdminBranchCreate() {
       setError("Şube adı zorunludur.");
       return;
     }
+    if (!form.email.trim()) {
+      setError("Şube e-postası zorunludur.");
+      return;
+    }
     if (!form.password.trim()) {
-      setError("Şube parolası zorunludur.");
+      setError("Giriş şifresi zorunludur.");
       return;
     }
     setSaving(true);
@@ -27,7 +31,7 @@ export default function AdminBranchCreate() {
       const created = await api.createBranch(form);
       await refreshBranches();
       navigate(`/admin/branches/${created.id}`, {
-        state: { message: `Şube oluşturuldu. Giriş kodu: ${created.loginCode}` },
+        state: { message: `Şube #${created.branchNo} oluşturuldu.` },
       });
     } catch (err) {
       setError(err.message || "Kayıt başarısız.");
@@ -49,32 +53,34 @@ export default function AdminBranchCreate() {
       {error && <div className="alert alert-danger">{error}</div>}
 
       <form className="card form-grid admin-branch-form" onSubmit={handleSubmit}>
-        <p className="hint-text">Her şube tamamen ayrı veriye sahip olur. Giriş kodu ve parola POS girişi içindir.</p>
+        <p className="hint-text">
+          Şube numarası otomatik atanır (1, 2, 3 …). POS girişi için e-posta ve şifre kullanılır.
+        </p>
 
         <label>Şube Adı *</label>
         <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
 
-        <label>Giriş Kodu (boş = otomatik)</label>
+        <label>Şube Giriş E-postası *</label>
         <input
-          value={form.loginCode}
-          onChange={(e) => setForm({ ...form, loginCode: e.target.value.toUpperCase() })}
-          placeholder="Örn: U261269-KADIKOY"
+          type="email"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          placeholder="ornek@sube.com"
+          autoComplete="off"
+          required
         />
 
-        <label>Şube Parolası *</label>
+        <label>Giriş Şifresi *</label>
         <input
           type="password"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
-          placeholder="POS giriş parolası"
+          placeholder="POS giriş şifresi"
           required
         />
 
         <label>Adres</label>
         <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-
-        <label>Telefon</label>
-        <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
 
         <div className="form-actions">
           <Link to="/admin/branches" className="btn btn-default">

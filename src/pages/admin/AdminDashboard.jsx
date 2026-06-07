@@ -49,11 +49,13 @@ export default function AdminDashboard() {
                 Yönet
               </Link>
             </div>
-            <table className="data-table">
+            <div className="admin-table-wrap">
+              <table className="data-table">
               <thead>
                 <tr>
+                  <th>No</th>
                   <th>Şube</th>
-                  <th>Giriş Kodu</th>
+                  <th>Giriş E-postası</th>
                   <th>Ürün</th>
                   <th>Satış</th>
                   <th>Durum</th>
@@ -62,12 +64,11 @@ export default function AdminDashboard() {
               <tbody>
                 {summary.branches.map((b) => (
                   <tr key={b.id}>
+                    <td>#{b.branchNo || "—"}</td>
                     <td>
                       <Link to={`/admin/branches/${b.id}`}>{b.name}</Link>
                     </td>
-                    <td>
-                      <code>{b.loginCode || "—"}</code>
-                    </td>
+                    <td>{b.email || "—"}</td>
                     <td>{b.productCount}</td>
                     <td>{b.saleCount}</td>
                     <td>{b.active ? "Aktif" : "Pasif"}</td>
@@ -75,6 +76,7 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}

@@ -7,6 +7,7 @@ import { authMiddleware } from "./middleware/auth.js";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
 import apiRoutes from "./routes/api.js";
+import publicRoutes from "./routes/public.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -14,11 +15,13 @@ const app = express();
 getDb();
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "5mb" }));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "ugurpos-api" });
 });
+
+app.use("/api/public", publicRoutes);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", authMiddleware, adminRoutes);
