@@ -102,19 +102,44 @@ export function createMysqlDb(config) {
     connectionLimit: 10,
     charset: "utf8mb4",
     dateStrings: true,
+    ...(config.socketPath ? { socketPath: config.socketPath } : {}),
   });
 
   const db = new MysqlDb(pool);
-  awaitSync(pool.query("SELECT 1"));
+  try {
+    awaitSync(pool.query("SELECT 1"));
+  } catch (err) {
+    if (err.code === "ER_ACCESS_DENIED_ERROR") {
+      throw new Error(
+        `MySQL erisim reddedildi (${config.user}@${config.host}/${config.database}). ` +
+          "Hostinger hPanel: MYSQL_HOST=127.0.0.1 kullanin, kullanici sifresini ve veritabani atamasini kontrol edin."
+      );
+    }
+    if (err.code === "ER_BAD_DB_ERROR") {
+      throw new Error(
+        `MySQL veritabani bulunamadi: ${config.database}. hPanel'den veritabani olusturup MYSQL_DATABASE ile eslestirin.`
+      );
+    }
+    throw err;
+  }
   return db;
 }
 
+/** Hostinger'da localhost → ::1 olur; MySQL kullanicisi genelde 127.0.0.1 icin tanimlidir. */
+export function resolveMysqlHost(host) {
+  const value = String(host || process.env.MYSQL_HOST || "127.0.0.1").trim();
+  if (!value || value === "localhost") return "127.0.0.1";
+  return value;
+}
+
 export function getMysqlConfigFromEnv() {
+  const socketPath = process.env.MYSQL_SOCKET?.trim();
   return {
-    host: process.env.MYSQL_HOST || "localhost",
+    host: resolveMysqlHost(process.env.MYSQL_HOST),
     port: process.env.MYSQL_PORT || 3306,
-    user: process.env.MYSQL_USER || "root",
-    password: process.env.MYSQL_PASSWORD || "",
-    database: process.env.MYSQL_DATABASE || "ugurpos",
+    user: (process.env.MYSQL_USER || "").trim(),
+    password: process.env.MYSQL_PASSWORD ?? "",
+    database: (process.env.MYSQL_DATABASE || "ugurpos").trim(),
+    ...(socketPath ? { socketPath } : {}),
   };
 }

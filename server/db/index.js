@@ -32,8 +32,9 @@ function createSqliteDb() {
 export function getDb() {
   if (!db) {
     if (useMysql()) {
-      db = createMysqlDb(getMysqlConfigFromEnv());
-      console.log("[DB] MySQL:", getMysqlConfigFromEnv().database);
+      const cfg = getMysqlConfigFromEnv();
+      db = createMysqlDb(cfg);
+      console.log(`[DB] MySQL: ${cfg.user}@${cfg.host}/${cfg.database}`);
     } else {
       db = createSqliteDb();
       console.log("[DB] SQLite:", DB_PATH);
