@@ -2,10 +2,18 @@ import { getDb } from "../db/index.js";
 
 export function branchMiddleware(req, res, next) {
   const db = getDb();
-  const branchId = req.headers["x-branch-id"] || req.user.branchId;
+
+  let branchId = req.user.branchId;
+  if (req.user.role === "admin") {
+    branchId = req.headers["x-branch-id"] || req.user.branchId;
+  }
 
   if (!branchId) {
     return res.status(400).json({ error: "Şube seçimi gerekli" });
+  }
+
+  if (req.user.role === "branch" && branchId !== req.user.branchId) {
+    return res.status(403).json({ error: "Bu şubeye erişim yetkiniz yok" });
   }
 
   const branch = db
@@ -31,6 +39,7 @@ export function getBranchesForFirm(firmId) {
       firmId: row.firm_id,
       name: row.name,
       code: row.code || "",
+      loginCode: row.login_code || "",
       address: row.address || "",
       phone: row.phone || "",
       active: !!row.active,

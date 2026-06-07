@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import PageHeader from "../../components/ui/PageHeader";
 
-const emptyForm = { name: "", code: "", address: "", phone: "" };
+const emptyForm = { name: "", code: "", loginCode: "", password: "", address: "", phone: "" };
 
 export default function AdminBranches() {
   const { refreshBranches } = useAuth();
@@ -33,11 +33,17 @@ export default function AdminBranches() {
     setError("");
     try {
       if (editId) {
-        await api.updateBranch(editId, form);
+        const payload = { ...form };
+        if (!payload.password) delete payload.password;
+        await api.updateBranch(editId, payload);
         setMessage("Şube güncellendi.");
       } else {
-        await api.createBranch(form);
-        setMessage("Yeni şube oluşturuldu.");
+        if (!form.password.trim()) {
+          setError("Yeni şube için parola zorunludur.");
+          return;
+        }
+        const created = await api.createBranch(form);
+        setMessage(`Şube oluşturuldu. Giriş kodu: ${created.loginCode}`);
       }
       await load();
       await refreshBranches();
@@ -52,6 +58,8 @@ export default function AdminBranches() {
     setForm({
       name: branch.name,
       code: branch.code || "",
+      loginCode: branch.loginCode || "",
+      password: "",
       address: branch.address || "",
       phone: branch.phone || "",
     });
@@ -97,6 +105,22 @@ export default function AdminBranches() {
           placeholder="Boş bırakılırsa otomatik"
         />
 
+        <label>Giriş Kodu {editId ? "" : "(boş = otomatik)"}</label>
+        <input
+          value={form.loginCode}
+          onChange={(e) => setForm({ ...form, loginCode: e.target.value.toUpperCase() })}
+          placeholder="Örn: U261269-002"
+        />
+
+        <label>{editId ? "Yeni Parola (boş = değişmez)" : "Şube Parolası *"}</label>
+        <input
+          type="password"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          placeholder={editId ? "Değiştirmek için yazın" : "Şube giriş parolası"}
+          required={!editId}
+        />
+
         <label>Adres</label>
         <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
 
@@ -117,13 +141,14 @@ export default function AdminBranches() {
 
       <div className="card">
         <h3>Tüm Şubeler ({branches.length})</h3>
+        <p className="hint-text">Her şube kendi giriş kodu ve parolası ile bağımsız giriş yapar.</p>
         <table className="data-table">
           <thead>
             <tr>
               <th>Şube</th>
               <th>Kod</th>
+              <th>Giriş Kodu</th>
               <th>Telefon</th>
-              <th>Adres</th>
               <th>Durum</th>
               <th>İşlem</th>
             </tr>
@@ -133,8 +158,10 @@ export default function AdminBranches() {
               <tr key={b.id}>
                 <td>{b.name}</td>
                 <td>{b.code || "—"}</td>
+                <td>
+                  <code>{b.loginCode || "—"}</code>
+                </td>
                 <td>{b.phone || "—"}</td>
-                <td>{b.address || "—"}</td>
                 <td>{b.active ? "Aktif" : "Pasif"}</td>
                 <td className="admin-actions">
                   <button type="button" className="btn btn-default btn-xs" onClick={() => startEdit(b)}>

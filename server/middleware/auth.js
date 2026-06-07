@@ -2,20 +2,35 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "benimpos-dev-secret-change-in-production";
 
-export function signToken(user, branchId, branchName) {
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      firmId: user.firm_id,
-      firmName: user.firm_name,
-      branchId: branchId || user.branch_id,
-      branchName: branchName || user.branch,
-      role: user.role || "admin",
-    },
-    JWT_SECRET,
-    { expiresIn: "7d" }
-  );
+export function signToken(payload) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+}
+
+export function signAdminToken(user, branchId, branchName) {
+  return signToken({
+    id: user.id,
+    email: user.email,
+    firmId: user.firm_id,
+    firmName: user.firm_name,
+    branchId: branchId || user.branch_id,
+    branchName: branchName || user.branch,
+    role: user.role || "admin",
+    loginType: "admin",
+  });
+}
+
+export function signBranchToken(branch, firmName) {
+  return signToken({
+    id: `branch_${branch.id}`,
+    email: null,
+    firmId: branch.firm_id,
+    firmName,
+    branchId: branch.id,
+    branchName: branch.name,
+    loginCode: branch.login_code,
+    role: "branch",
+    loginType: "branch",
+  });
 }
 
 export function authMiddleware(req, res, next) {

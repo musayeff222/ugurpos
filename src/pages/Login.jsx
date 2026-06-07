@@ -4,11 +4,12 @@ import { useAuth } from "../context/AuthContext";
 import "../styles/login.css";
 
 export default function Login() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, loginBranch, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [loginType, setLoginType] = useState("firma");
   const [email, setEmail] = useState("");
+  const [branchCode, setBranchCode] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -19,17 +20,34 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      setError("E-posta ve parola girin.");
+    setError("");
+
+    if (loginType === "firma") {
+      if (!email.trim() || !password.trim()) {
+        setError("E-posta ve parola girin.");
+        return;
+      }
+      try {
+        await login(email.trim(), password);
+        const isMobile = window.matchMedia("(max-width: 991px)").matches;
+        navigate(location.state?.from?.pathname || (isMobile ? "/menu" : "/dashboard"), { replace: true });
+      } catch (err) {
+        setError(err.message === "Invalid credentials" ? "Geçersiz e-posta veya parola." : err.message);
+      }
       return;
     }
-    setError("");
+
+    if (!branchCode.trim() || !password.trim()) {
+      setError("Şube kodu ve parola girin.");
+      return;
+    }
+
     try {
-      await login(email.trim(), password);
+      await loginBranch(branchCode.trim().toUpperCase(), password);
       const isMobile = window.matchMedia("(max-width: 991px)").matches;
       navigate(location.state?.from?.pathname || (isMobile ? "/menu" : "/dashboard"), { replace: true });
     } catch (err) {
-      setError(err.message === "Invalid credentials" ? "Geçersiz e-posta veya parola." : err.message);
+      setError(err.message === "Invalid credentials" ? "Geçersiz şube kodu veya parola." : err.message);
     }
   };
 
@@ -49,27 +67,39 @@ export default function Login() {
                     checked={loginType === "firma"}
                     onChange={() => setLoginType("firma")}
                   />
-                  Firma Girişi
+                  Firma / Admin Girişi
                 </label>
                 <label>
                   <input
                     type="radio"
                     name="type"
-                    checked={loginType === "personel"}
-                    onChange={() => setLoginType("personel")}
+                    checked={loginType === "sube"}
+                    onChange={() => setLoginType("sube")}
                   />
-                  Personel girişi
+                  Şube Girişi
                 </label>
               </div>
 
-              <div className="form-group">
-                <input
-                  type="text"
-                  placeholder="E-posta / Personel Kodu"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
+              {loginType === "firma" ? (
+                <div className="form-group">
+                  <input
+                    type="text"
+                    placeholder="E-posta"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <div className="form-group">
+                  <input
+                    type="text"
+                    placeholder="Şube Giriş Kodu (örn: U261269-001)"
+                    value={branchCode}
+                    onChange={(e) => setBranchCode(e.target.value.toUpperCase())}
+                  />
+                </div>
+              )}
+
               <div className="form-group">
                 <input
                   type="password"
@@ -78,10 +108,9 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              {loginType === "personel" && (
-                <div className="form-group">
-                  <input type="text" placeholder="Firma numaranız (Personel girişi için)" />
-                </div>
+
+              {loginType === "sube" && (
+                <p className="login-hint">Her şubenin kendi giriş kodu ve parolası vardır. Admin panelden oluşturulur.</p>
               )}
 
               {error && <p className="login-error">{error}</p>}
@@ -93,9 +122,6 @@ export default function Login() {
               <div className="login-links">
                 <a href="#forgot">Parolanızı mı unuttunuz?</a>
               </div>
-              <p className="register-link">
-                Hesabınız yok mu? <a href="#register">Ücretsiz kayıt olun!</a>
-              </p>
             </form>
           </div>
 
@@ -105,8 +131,8 @@ export default function Login() {
               Web, mobil ve masaüstü tüm platformlarda işlerinizi takip edin. Satış, stok, ürün yönetimi,
               detaylı raporlama, cari hesap takibi, personel izleme ve daha fazlası.
             </p>
-            <h4>E-Fatura ve Yazarkasa Entegrasyonları!</h4>
-            <p>Güçlü e-fatura ve yazarkasa entegrasyonları ile tüm süreçleriniz çok kolay!</p>
+            <h4>Çoklu şube desteği</h4>
+            <p>Her şube ayrı kod ve parola ile giriş yapar. Yönetici tüm şubeleri admin panelden yönetir.</p>
           </div>
         </div>
       </div>

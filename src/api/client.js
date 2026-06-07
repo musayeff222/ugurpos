@@ -43,6 +43,9 @@ export const api = {
   login: (email, password) =>
     request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
 
+  branchLogin: (loginCode, password) =>
+    request("/auth/branch-login", { method: "POST", body: JSON.stringify({ loginCode, password }) }),
+
   getBranches: () => request("/auth/branches"),
   switchBranch: (branchId) =>
     request("/auth/switch-branch", { method: "POST", body: JSON.stringify({ branchId }) }),

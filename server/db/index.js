@@ -113,7 +113,7 @@ function seedIfEmpty(database) {
     ('i2', 'Yazarkasa', 'inactive', 'ÖKC entegrasyonu', ?)
   `).run(branchId, branchId);
 
-  console.log("Database seeded. Login: admin@benimpos.com / admin123");
+  console.log("Database seeded. Admin: admin@benimpos.com / admin123 | Şube varsayılan parola: sube123");
 }
 
 export function rowToProduct(row) {

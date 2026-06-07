@@ -46,7 +46,7 @@ export default function AdminDashboard() {
               <thead>
                 <tr>
                   <th>Şube</th>
-                  <th>Kod</th>
+                  <th>Giriş Kodu</th>
                   <th>Ürün</th>
                   <th>Satış</th>
                   <th>Durum</th>
@@ -56,7 +56,9 @@ export default function AdminDashboard() {
                 {summary.branches.map((b) => (
                   <tr key={b.id}>
                     <td>{b.name}</td>
-                    <td>{b.code || "—"}</td>
+                    <td>
+                      <code>{b.loginCode || "—"}</code>
+                    </td>
                     <td>{b.productCount}</td>
                     <td>{b.saleCount}</td>
                     <td>{b.active ? "Aktif" : "Pasif"}</td>

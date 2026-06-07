@@ -3,6 +3,7 @@ import { getDb, uid } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
 import { adminMiddleware } from "../middleware/admin.js";
 import { seedBranchDefaults } from "../utils/branchDefaults.js";
+import { generateBranchLoginCode, hashBranchPassword } from "../utils/branchAuth.js";
 
 const router = Router();
 router.use(adminMiddleware);
@@ -44,9 +45,12 @@ router.get("/branches", (req, res) => {
 
 router.post("/branches", (req, res) => {
   const db = getDb();
-  const { name, code, address, phone } = req.body;
+  const { name, code, address, phone, password, loginCode } = req.body;
   if (!name?.trim()) {
     return res.status(400).json({ error: "Şube adı zorunludur" });
+  }
+  if (!password?.trim()) {
+    return res.status(400).json({ error: "Şube parolası zorunludur" });
   }
 
   const id = uid("br");
@@ -56,11 +60,18 @@ router.post("/branches", (req, res) => {
       3,
       "0"
     );
+  const branchLoginCode = (loginCode?.trim() || generateBranchLoginCode(db, req.user.firmId, name, branchCode)).toUpperCase();
+  const loginTaken = db.prepare("SELECT id FROM branches WHERE login_code = ?").get(branchLoginCode);
+  if (loginTaken) {
+    return res.status(400).json({ error: "Bu giriş kodu zaten kullanılıyor" });
+  }
+
+  const passwordHash = hashBranchPassword(password);
 
   const tx = db.transaction(() => {
     db.prepare(
-      "INSERT INTO branches (id, firm_id, name, code, address, phone, active) VALUES (?, ?, ?, ?, ?, ?, 1)"
-    ).run(id, req.user.firmId, name.trim(), branchCode, address || "", phone || "");
+      "INSERT INTO branches (id, firm_id, name, code, login_code, password_hash, address, phone, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
+    ).run(id, req.user.firmId, name.trim(), branchCode, branchLoginCode, passwordHash, address || "", phone || "");
     seedBranchDefaults(db, id);
   });
 
@@ -75,10 +86,24 @@ router.patch("/branches/:id", (req, res) => {
     .get(req.params.id, req.user.firmId);
   if (!existing) return res.status(404).json({ error: "Şube bulunamadı" });
 
-  const { name, code, address, phone, active } = req.body;
-  db.prepare("UPDATE branches SET name=?, code=?, address=?, phone=?, active=? WHERE id=?").run(
+  const { name, code, address, phone, active, password, loginCode } = req.body;
+  const nextLoginCode = loginCode?.trim()
+    ? loginCode.trim().toUpperCase()
+    : existing.login_code;
+  if (nextLoginCode !== existing.login_code) {
+    const taken = db.prepare("SELECT id FROM branches WHERE login_code = ? AND id != ?").get(nextLoginCode, req.params.id);
+    if (taken) return res.status(400).json({ error: "Bu giriş kodu zaten kullanılıyor" });
+  }
+
+  const nextPasswordHash = password?.trim() ? hashBranchPassword(password) : existing.password_hash;
+
+  db.prepare(
+    "UPDATE branches SET name=?, code=?, login_code=?, password_hash=?, address=?, phone=?, active=? WHERE id=?"
+  ).run(
     name ?? existing.name,
     code ?? existing.code,
+    nextLoginCode,
+    nextPasswordHash,
     address ?? existing.address,
     phone ?? existing.phone,
     active === false ? 0 : active === true ? 1 : existing.active,

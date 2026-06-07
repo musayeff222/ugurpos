@@ -28,6 +28,17 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const loginBranch = async (loginCode, password) => {
+    setLoading(true);
+    try {
+      const { token, user: account } = await api.branchLogin(loginCode, password);
+      persistUser(account, token);
+      return account;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const switchBranch = async (branchId) => {
     const { token, user: account } = await api.switchBranch(branchId);
     persistUser(account, token);
@@ -56,12 +67,14 @@ export function AuthProvider({ children }) {
       value={{
         user,
         login,
+        loginBranch,
         logout,
         switchBranch,
         refreshBranches,
         loading,
         isAuthenticated: !!user && !!getToken(),
         isAdmin: user?.role === "admin",
+        isBranchUser: user?.role === "branch" || user?.loginType === "branch",
         activeBranchId: user?.branchId,
         activeBranchName: user?.branchName,
         branches: user?.branches || [],
