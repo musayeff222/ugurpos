@@ -1,0 +1,9 @@
+{
+  "type": "express-fullstack",
+  "framework": "express",
+  "entryFile": "app.js",
+  "buildCommand": "npm run hostinger:build",
+  "startCommand": "npm start",
+  "outputDirectory": "dist",
+  "notes": "React build (dist/) is served by Express in app.js — not a static-only site."
+}
