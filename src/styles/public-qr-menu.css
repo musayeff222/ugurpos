@@ -1,10 +1,75 @@
 .public-menu-page {
+  --qr-primary: #c0392b;
+  --qr-primary-light: #e74c3c;
+  --qr-primary-dark: #8b1a12;
+  --qr-page-bg-start: #fff8f5;
+  --qr-page-bg-end: #f4f6fb;
+  --qr-header-shadow: rgba(192, 57, 43, 0.28);
+  --qr-price: #c0392b;
+  --qr-nav-active: #c0392b;
+  --qr-badge: #e74c3c;
+  --qr-link: #c0392b;
+  --qr-picker-hover-border: #e74c3c;
+  --qr-picker-hover-bg: #fff8f6;
+  --qr-alert-bg: #fdecea;
+  --qr-alert-text: #c0392b;
   min-height: 100vh;
-  background: linear-gradient(180deg, #fff8f5 0%, #f4f6fb 220px);
+  background: linear-gradient(180deg, var(--qr-page-bg-start) 0%, var(--qr-page-bg-end) 220px);
   padding: 12px 16px 88px;
   max-width: 720px;
   margin: 0 auto;
   padding-bottom: calc(88px + env(safe-area-inset-bottom));
+}
+
+.public-menu-page.qr-theme-dark {
+  --qr-primary: #f59e0b;
+  --qr-primary-light: #fbbf24;
+  --qr-primary-dark: #0f172a;
+  --qr-page-bg-start: #0b1220;
+  --qr-page-bg-end: #1e293b;
+  --qr-header-shadow: rgba(0, 0, 0, 0.35);
+  --qr-price: #fbbf24;
+  --qr-nav-active: #f59e0b;
+  --qr-badge: #f59e0b;
+  --qr-link: #fbbf24;
+  --qr-picker-hover-border: #f59e0b;
+  --qr-picker-hover-bg: #1e293b;
+  --qr-alert-bg: #422006;
+  --qr-alert-text: #fcd34d;
+}
+
+.public-menu-page.qr-theme-fresh {
+  --qr-primary: #059669;
+  --qr-primary-light: #10b981;
+  --qr-primary-dark: #0d5c4a;
+  --qr-page-bg-start: #ecfdf5;
+  --qr-page-bg-end: #d1fae5;
+  --qr-header-shadow: rgba(16, 185, 129, 0.28);
+  --qr-price: #059669;
+  --qr-nav-active: #059669;
+  --qr-badge: #10b981;
+  --qr-link: #059669;
+  --qr-picker-hover-border: #10b981;
+  --qr-picker-hover-bg: #ecfdf5;
+  --qr-alert-bg: #ecfdf5;
+  --qr-alert-text: #047857;
+}
+
+.public-menu-page.qr-theme-elegant {
+  --qr-primary: #1e3a5f;
+  --qr-primary-light: #2563eb;
+  --qr-primary-dark: #172554;
+  --qr-page-bg-start: #f8fafc;
+  --qr-page-bg-end: #e2e8f0;
+  --qr-header-shadow: rgba(30, 58, 95, 0.28);
+  --qr-price: #b45309;
+  --qr-nav-active: #1e3a5f;
+  --qr-badge: #d4af37;
+  --qr-link: #1e3a5f;
+  --qr-picker-hover-border: #d4af37;
+  --qr-picker-hover-bg: #fffbeb;
+  --qr-alert-bg: #eff6ff;
+  --qr-alert-text: #1e3a5f;
 }
 
 .public-menu-toolbar {
@@ -49,7 +114,7 @@
 }
 
 .lang-switcher button.active {
-  background: linear-gradient(135deg, #c0392b, #e74c3c);
+  background: linear-gradient(135deg, var(--qr-primary), var(--qr-primary-light));
   color: #fff;
 }
 
@@ -130,12 +195,12 @@
 }
 
 .public-menu-header {
-  background: linear-gradient(145deg, #8b1a12 0%, #c0392b 45%, #e74c3c 100%);
+  background: linear-gradient(145deg, var(--qr-primary-dark) 0%, var(--qr-primary) 45%, var(--qr-primary-light) 100%);
   color: #fff;
   border-radius: 20px;
   padding: 24px 20px;
   margin-bottom: 16px;
-  box-shadow: 0 8px 24px rgba(192, 57, 43, 0.28);
+  box-shadow: 0 8px 24px var(--qr-header-shadow);
 }
 
 .public-menu-header__badge {
@@ -176,8 +241,8 @@
 }
 
 .public-menu-alert {
-  background: #fdecea;
-  color: #c0392b;
+  background: var(--qr-alert-bg);
+  color: var(--qr-alert-text);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 12px;
@@ -201,9 +266,9 @@
 }
 
 .public-menu-groups button.active {
-  background: linear-gradient(135deg, #c0392b, #e74c3c);
+  background: linear-gradient(135deg, var(--qr-primary), var(--qr-primary-light));
   color: #fff;
-  border-color: #c0392b;
+  border-color: var(--qr-primary);
 }
 
 .public-menu-grid {
@@ -252,7 +317,7 @@
 }
 
 .public-menu-product__body strong {
-  color: #c0392b;
+  color: var(--qr-price);
   font-size: 15px;
 }
 
@@ -433,8 +498,8 @@
 }
 
 .public-branch-picker__item:hover {
-  border-color: #e74c3c;
-  background: #fff8f6;
+  border-color: var(--qr-picker-hover-border);
+  background: var(--qr-picker-hover-bg);
 }
 
 .public-menu-empty-card {
@@ -530,7 +595,7 @@
 }
 
 .public-qr-bottom-nav a.active {
-  color: #c0392b;
+  color: var(--qr-nav-active);
 }
 
 .public-qr-bottom-nav a i {
@@ -544,7 +609,7 @@
   min-width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: #e74c3c;
+  background: var(--qr-badge);
   color: #fff;
   font-size: 10px;
   font-style: normal;
@@ -611,7 +676,7 @@
 .link-btn {
   border: none;
   background: none;
-  color: #c0392b;
+  color: var(--qr-link);
   font-weight: 700;
   cursor: pointer;
   text-decoration: underline;

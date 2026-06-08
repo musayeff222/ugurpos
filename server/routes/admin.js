@@ -8,6 +8,7 @@ import { signAdminToken } from "../middleware/auth.js";
 import { ensureFirmSettings, enrichMenuBranch, rowToFirmMenu } from "../utils/qrMenu.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 import { saveMenuLogo, deleteMenuLogo } from "../utils/menuLogo.js";
+import { normalizeMenuTheme } from "../utils/menuTheme.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -294,9 +295,11 @@ router.patch("/qr-menu", (req, res) => {
     logoData,
     logoMime,
     removeLogo,
+    menuTheme,
   } = req.body;
 
   const lang = menuDefaultLang === "tr" ? "tr" : menuDefaultLang === "az" ? "az" : firmRow.menu_default_lang || "az";
+  const theme = menuTheme != null ? normalizeMenuTheme(menuTheme, firmRow.menu_theme) : firmRow.menu_theme || "classic";
 
   let logoPath = firmRow.menu_logo_path;
   if (removeLogo) {
@@ -317,7 +320,8 @@ router.patch("/qr-menu", (req, res) => {
       menu_default_lang = ?,
       menu_open_time = ?,
       menu_close_time = ?,
-      menu_logo_path = ?
+      menu_logo_path = ?,
+      menu_theme = ?
      WHERE firm_id = ?`
   ).run(
     menuEnabled === false ? 0 : 1,
@@ -330,6 +334,7 @@ router.patch("/qr-menu", (req, res) => {
     menuOpenTime ?? firmRow.menu_open_time ?? "09:00",
     menuCloseTime ?? firmRow.menu_close_time ?? "23:00",
     logoPath,
+    theme,
     req.user.firmId
   );
 

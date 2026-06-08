@@ -5,9 +5,10 @@ import { useLocale } from "../../context/LocaleContext";
 export default function PublicQrShell({ firm, children }) {
   const { t } = useLocale();
   const social = firm?.social || {};
+  const theme = firm?.theme || "classic";
 
   return (
-    <div className="public-menu-page">
+    <div className={`public-menu-page qr-theme-${theme}`}>
       <div className="public-menu-toolbar">
         <LanguageSwitcher compact />
         {Object.values(social).some(Boolean) && (

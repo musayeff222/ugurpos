@@ -64,4 +64,10 @@ export function migrateQrMenu(db) {
   addColumnIfMissing(db, "branches", "menu_lng", db.dialect === "mysql" ? "DOUBLE" : "REAL");
   addColumnIfMissing(db, "branches", "menu_open_time", db.dialect === "mysql" ? "VARCHAR(8)" : "TEXT");
   addColumnIfMissing(db, "branches", "menu_close_time", db.dialect === "mysql" ? "VARCHAR(8)" : "TEXT");
+  addColumnIfMissing(
+    db,
+    "firm_settings",
+    "menu_theme",
+    db.dialect === "mysql" ? "VARCHAR(32) DEFAULT 'classic'" : "TEXT DEFAULT 'classic'"
+  );
 }

@@ -3,8 +3,17 @@ import { api } from "../../api/client";
 import { useLocale } from "../../context/LocaleContext";
 import PageHeader from "../../components/ui/PageHeader";
 import ProductImageField from "../../components/ProductImageField";
+import QrSocialLinks from "../../components/public/QrSocialLinks";
+import { QR_MENU_THEMES } from "../../constants/qrMenuThemes";
 import { formatMoney } from "../../utils/format";
 import { getMenuPublicUrl, getQrCodeUrl } from "../../utils/qrMenuPublic";
+
+const THEME_LABEL_KEYS = {
+  classic: "admin.qr.themeClassic",
+  dark: "admin.qr.themeDark",
+  fresh: "admin.qr.themeFresh",
+  elegant: "admin.qr.themeElegant",
+};
 
 const STATUS_LABELS = {
   pending: "Bekliyor",
@@ -48,6 +57,7 @@ export default function AdminQrMenu() {
       menuDefaultLang: data.firm.defaultLang || "az",
       menuOpenTime: data.firm.openTime || "09:00",
       menuCloseTime: data.firm.closeTime || "23:00",
+      menuTheme: data.firm.theme || "classic",
     });
     setLogoValue(undefined);
     setBranchDrafts(
@@ -90,6 +100,19 @@ export default function AdminQrMenu() {
   );
 
   const menuUrl = typeof window !== "undefined" ? getMenuPublicUrl() : "";
+
+  const logoPreviewSrc =
+    logoValue === null
+      ? null
+      : logoValue?.previewUrl || (logoValue === undefined && firm?.logoUrl ? firm.logoUrl : null);
+
+  const socialPreview = {
+    instagram: firmDraft.socialInstagram || "",
+    whatsapp: firmDraft.socialWhatsapp || "",
+    tiktok: firmDraft.socialTiktok || "",
+  };
+
+  const selectedTheme = QR_MENU_THEMES.find((item) => item.id === (firmDraft.menuTheme || "classic"));
 
   const saveFirmSettings = async () => {
     setMessage("");
@@ -185,6 +208,7 @@ export default function AdminQrMenu() {
             )}
 
             <div className="admin-qr-firm-form">
+              <h4 className="admin-qr-section-title">{t("admin.qr.sectionGeneral")}</h4>
               <label className="checkbox-row">
                 <input
                   type="checkbox"
@@ -204,15 +228,6 @@ export default function AdminQrMenu() {
                 value={firmDraft.menuWelcome || ""}
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuWelcome: e.target.value }))}
               />
-              <label>{t("admin.qr.menuLogo")}</label>
-              <ProductImageField
-                product={firm?.hasLogo ? { hasImage: true, id: "logo" } : null}
-                value={logoValue}
-                onChange={setLogoValue}
-              />
-              {firm?.logoUrl && logoValue === undefined && (
-                <img src={firm.logoUrl} alt="" className="admin-qr-logo-preview" />
-              )}
               <label>{t("admin.qr.menuHours")}</label>
               <div className="admin-qr-hours-row">
                 <input
@@ -235,29 +250,101 @@ export default function AdminQrMenu() {
                 <option value="az">Azərbaycan</option>
                 <option value="tr">Türkçe</option>
               </select>
-              <h4 className="admin-qr-social-title">{t("admin.qr.socialTitle")}</h4>
-              <label>{t("admin.qr.socialInstagram")}</label>
+            </div>
+          </div>
+
+          <div className="card admin-qr-firm-card">
+            <h3>{t("admin.qr.sectionLogoDesign")}</h3>
+            <p className="hint-text">{t("admin.qr.menuLogoHint")}</p>
+            <div className="admin-qr-logo-design">
+              <div className="admin-qr-logo-upload">
+                <label>{t("admin.qr.menuLogo")}</label>
+                <ProductImageField
+                  product={firm?.hasLogo && logoValue !== null ? { hasImage: true, id: "logo" } : null}
+                  value={logoValue}
+                  onChange={setLogoValue}
+                />
+              </div>
+              <div
+                className={`admin-qr-design-preview qr-theme-${firmDraft.menuTheme || "classic"}`}
+                style={selectedTheme ? { background: selectedTheme.preview } : undefined}
+              >
+                {logoPreviewSrc ? (
+                  <img src={logoPreviewSrc} alt="" className="admin-qr-design-preview__logo" />
+                ) : (
+                  <div className="admin-qr-design-preview__logo admin-qr-design-preview__logo--empty">
+                    <i className="fa fa-cutlery" />
+                  </div>
+                )}
+                <strong>{firmDraft.menuTitle || t("admin.qr.menuTitle")}</strong>
+                <span>{firmDraft.menuWelcome || "…"}</span>
+              </div>
+            </div>
+
+            <label>{t("admin.qr.menuDesign")}</label>
+            <p className="hint-text admin-qr-design-hint">{t("admin.qr.menuDesignHint")}</p>
+            <div className="admin-qr-theme-grid">
+              {QR_MENU_THEMES.map((theme) => (
+                <button
+                  key={theme.id}
+                  type="button"
+                  className={`admin-qr-theme-card ${firmDraft.menuTheme === theme.id ? "active" : ""}`}
+                  onClick={() => setFirmDraft((prev) => ({ ...prev, menuTheme: theme.id }))}
+                >
+                  <span className="admin-qr-theme-card__swatch" style={{ background: theme.preview }} />
+                  <span className="admin-qr-theme-card__colors">
+                    {theme.swatch.map((color) => (
+                      <i key={color} style={{ background: color }} />
+                    ))}
+                  </span>
+                  <strong>{t(THEME_LABEL_KEYS[theme.id])}</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="card admin-qr-firm-card">
+            <h3>{t("admin.qr.sectionSocial")}</h3>
+            <p className="hint-text">{t("admin.qr.socialHint")}</p>
+            <div className="admin-qr-social-form">
+              <label>
+                <i className="fa fa-instagram admin-qr-social-icon admin-qr-social-icon--ig" />
+                {t("admin.qr.socialInstagram")}
+              </label>
               <input
-                placeholder="@cigkofte"
+                placeholder="@cigkofte veya https://instagram.com/..."
                 value={firmDraft.socialInstagram || ""}
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialInstagram: e.target.value }))}
               />
-              <label>{t("admin.qr.socialWhatsapp")}</label>
+              <label>
+                <i className="fa fa-whatsapp admin-qr-social-icon admin-qr-social-icon--wa" />
+                {t("admin.qr.socialWhatsapp")}
+              </label>
               <input
                 placeholder="+994501234567"
                 value={firmDraft.socialWhatsapp || ""}
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialWhatsapp: e.target.value }))}
               />
-              <label>{t("admin.qr.socialTiktok")}</label>
+              <label>
+                <i className="fa fa-music admin-qr-social-icon admin-qr-social-icon--tt" />
+                {t("admin.qr.socialTiktok")}
+              </label>
               <input
-                placeholder="@cigkofte"
+                placeholder="@cigkofte veya https://tiktok.com/@..."
                 value={firmDraft.socialTiktok || ""}
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialTiktok: e.target.value }))}
               />
-              <button type="button" className="btn btn-success btn-sm" onClick={saveFirmSettings}>
-                {t("admin.qr.saveFirm")}
-              </button>
+              <div className="admin-qr-social-preview">
+                <span>{t("admin.qr.socialPreview")}</span>
+                <QrSocialLinks social={socialPreview} />
+              </div>
             </div>
+          </div>
+
+          <div className="admin-qr-save-all-wrap">
+            <button type="button" className="btn btn-success" onClick={saveFirmSettings}>
+              {t("admin.qr.saveFirm")}
+            </button>
           </div>
 
           <h3 className="admin-section-title">{t("admin.qr.branchesTitle")}</h3>
