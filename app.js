@@ -7,16 +7,26 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import app from "./server/app.js";
+import { resolveUploadsRoot } from "./server/utils/uploadsDir.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "dist");
 const distIndex = path.join(distDir, "index.html");
+const uploadsDir = resolveUploadsRoot();
 
 if (!process.env.VERCEL) {
   if (!fs.existsSync(distIndex)) {
     console.error("[UgurPOS] dist/index.html yok. Build: npm run build");
     process.exit(1);
   }
+
+  app.use(
+    "/uploads",
+    express.static(uploadsDir, {
+      maxAge: process.env.NODE_ENV === "production" ? "7d" : 0,
+      fallthrough: true,
+    })
+  );
 
   app.use(express.static(distDir));
 
@@ -51,6 +61,7 @@ try {
   app.listen(PORT, HOST, () => {
     console.log(`UgurPOS full-stack running on port ${PORT}`);
     console.log(`Static: ${distDir}`);
+    console.log(`Uploads: ${uploadsDir}`);
     if (process.env.NODE_ENV !== "production") {
       console.log("Login: admin@benimpos.com / admin123");
     }

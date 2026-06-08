@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { legacyUploadsRoot, resolveLegacyDataDir, resolveUploadsRoot } from "./uploadsDir.js";
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -11,8 +12,8 @@ const MIME_EXT = {
   "image/gif": ".gif",
 };
 
-export function getProductUploadDir(dataDir, branchId) {
-  const dir = path.join(dataDir, "uploads", "products", branchId);
+export function getProductUploadDir(branchId) {
+  const dir = path.join(resolveUploadsRoot(), "products", branchId);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -26,7 +27,7 @@ function removeExistingProductImages(dir, productId) {
   }
 }
 
-export function saveProductImage(dataDir, branchId, productId, base64Data, mime) {
+export function saveProductImage(branchId, productId, base64Data, mime) {
   if (!base64Data || !mime) {
     throw new Error("Resim verisi gerekli");
   }
@@ -44,22 +45,27 @@ export function saveProductImage(dataDir, branchId, productId, base64Data, mime)
 
   const ext = MIME_EXT[mime] || ".jpg";
   const filename = `${productId}${ext}`;
-  const dir = getProductUploadDir(dataDir, branchId);
+  const dir = getProductUploadDir(branchId);
   removeExistingProductImages(dir, productId);
   fs.writeFileSync(path.join(dir, filename), buffer);
   return filename;
 }
 
-export function deleteProductImage(dataDir, branchId, productId) {
-  const dir = getProductUploadDir(dataDir, branchId);
+export function deleteProductImage(branchId, productId) {
+  const dir = getProductUploadDir(branchId);
   removeExistingProductImages(dir, productId);
 }
 
-export function resolveProductImageFile(dataDir, branchId, imagePath) {
+export function resolveProductImageFile(branchId, imagePath) {
   if (!imagePath) return null;
-  const filePath = path.join(getProductUploadDir(dataDir, branchId), imagePath);
-  if (!fs.existsSync(filePath)) return null;
-  return filePath;
+
+  const primary = path.join(getProductUploadDir(branchId), imagePath);
+  if (fs.existsSync(primary)) return primary;
+
+  const legacy = path.join(legacyUploadsRoot(resolveLegacyDataDir()), "products", branchId, imagePath);
+  if (fs.existsSync(legacy)) return legacy;
+
+  return null;
 }
 
 export function contentTypeForImagePath(imagePath) {

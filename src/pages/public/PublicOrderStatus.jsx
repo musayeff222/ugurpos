@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
+import PublicQrBottomNav from "../../components/public/PublicQrBottomNav";
 import QrMenuHeader from "../../components/public/QrMenuHeader";
 import { useLocale } from "../../context/LocaleContext";
 import { formatMoney } from "../../utils/format";
@@ -48,9 +49,12 @@ export default function PublicOrderStatus() {
     );
   }
 
+  const shellFirm = order.firmName ? { menuTitle: order.firmName } : undefined;
+
   return (
-    <PublicQrShell>
+    <PublicQrShell firm={shellFirm}>
       <QrMenuHeader firm={{ menuTitle: t("qr.orderReceived") }} />
+      <div className="public-web-section">
       <div className="card public-order-status">
         <div className="public-order-status__icon">
           <i className="fa fa-check-circle" />
@@ -88,6 +92,8 @@ export default function PublicOrderStatus() {
           <strong>{money(order.total)}</strong>
         </div>
       </div>
+      </div>
+      <PublicQrBottomNav active="orders" />
     </PublicQrShell>
   );
 }

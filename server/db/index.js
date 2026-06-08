@@ -8,6 +8,8 @@ import { ensureDefaultBranch, rowToBranch } from "./migrate-branches.js";
 import { useMysql } from "./dialect.js";
 import { createMysqlDb, getMysqlConfigFromEnv } from "./mysql-driver.js";
 import { seedCigkofteProducts, seedCigkofteForAllBranches } from "../seed/cigkofte/seedProducts.js";
+import { migrateUploadsFromDataDir } from "../utils/migrateUploads.js";
+import { productImagePublicUrl } from "../utils/uploadsDir.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,6 +43,7 @@ export function getDb() {
       console.log("[DB] SQLite:", DB_PATH);
     }
     initSchema(db);
+    migrateUploadsFromDataDir(DATA_DIR);
     seedIfEmpty(db);
     ensureCigkofteCatalog(db);
   }
@@ -166,7 +169,7 @@ export function rowToProduct(row) {
     onSalePage: !!row.on_sale_page,
     active: !!row.active,
     hasImage: !!row.image_path,
-    imageUrl: row.image_path ? `/api/products/${row.id}/image` : null,
+    imageUrl: row.image_path ? productImagePublicUrl(row.branch_id, row.image_path) : null,
   };
 }
 

@@ -90,14 +90,14 @@ export const CIGKOFTA_PRODUCTS = [
   },
 ];
 
-function attachProductImage(db, dataDir, branchId, productId, imageFile) {
+function attachProductImage(db, branchId, productId, imageFile) {
   const src = path.join(SEED_IMAGE_DIR, imageFile);
   if (!fs.existsSync(src)) {
     console.warn(`[seed] Resim bulunamadi: ${imageFile}`);
     return false;
   }
 
-  const dir = getProductUploadDir(dataDir, branchId);
+  const dir = getProductUploadDir(branchId);
   const filename = `${productId}.jpg`;
   const dest = path.join(dir, filename);
   const row = db
@@ -185,7 +185,7 @@ export function seedCigkofteProducts(db, branchId, dataDir, { uid } = {}) {
       added += 1;
     }
 
-    attachProductImage(db, dataDir, branchId, productId, product.image);
+    attachProductImage(db, branchId, productId, product.image);
   }
 
   return { added, updated, total: CIGKOFTA_PRODUCTS.length };

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getDb, getDataDir, getAllState, getSaleWithItems, uid, rowToProduct, rowToCustomer } from "../db/index.js";
+import { getDb, getAllState, getSaleWithItems, uid, rowToProduct, rowToCustomer } from "../db/index.js";
 import { generateProductBarcode, generateStockCode } from "../utils/barcode.js";
 import { branchMiddleware } from "../middleware/branch.js";
 import {
@@ -16,13 +16,13 @@ router.use(branchMiddleware);
 
 function applyProductImage(db, branchId, productId, body, existingPath = null) {
   if (body.removeImage) {
-    deleteProductImage(getDataDir(), branchId, productId);
+    deleteProductImage(branchId, productId);
     db.prepare("UPDATE products SET image_path = NULL WHERE id = ? AND branch_id = ?").run(productId, branchId);
     return null;
   }
 
   if (body.imageData && body.imageMime) {
-    const filename = saveProductImage(getDataDir(), branchId, productId, body.imageData, body.imageMime);
+    const filename = saveProductImage(branchId, productId, body.imageData, body.imageMime);
     db.prepare("UPDATE products SET image_path = ? WHERE id = ? AND branch_id = ?").run(filename, productId, branchId);
     return filename;
   }
@@ -100,7 +100,7 @@ router.get("/products/:id/image", (req, res) => {
     .get(req.params.id, req.branchId);
   if (!row?.image_path) return res.status(404).end();
 
-  const filePath = resolveProductImageFile(getDataDir(), req.branchId, row.image_path);
+  const filePath = resolveProductImageFile(req.branchId, row.image_path);
   if (!filePath) return res.status(404).end();
 
   res.setHeader("Content-Type", contentTypeForImagePath(row.image_path));
@@ -179,7 +179,7 @@ router.delete("/products", (req, res) => {
   ids.forEach((id) => {
     const row = find.get(id, req.branchId);
     if (row) {
-      deleteProductImage(getDataDir(), req.branchId, id);
+      deleteProductImage(req.branchId, id);
       del.run(id, req.branchId);
     }
   });

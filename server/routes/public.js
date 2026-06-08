@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getDb, getDataDir, uid, rowToProduct } from "../db/index.js";
+import { getDb, uid, rowToProduct } from "../db/index.js";
 import {
   getDefaultFirmSettings,
   ensureFirmSettings,
@@ -193,7 +193,7 @@ router.get("/menu/logo", (req, res) => {
   if (!firmRow) return;
   if (!firmRow.menu_logo_path) return res.status(404).end();
 
-  const filePath = resolveMenuLogoFile(getDataDir(), firmRow.firm_id, firmRow.menu_logo_path);
+  const filePath = resolveMenuLogoFile(firmRow.firm_id, firmRow.menu_logo_path);
   if (!filePath) return res.status(404).end();
 
   res.setHeader("Content-Type", contentTypeForImagePath(firmRow.menu_logo_path));
@@ -223,7 +223,7 @@ router.get("/menu/branches/:branchId/products/:productId/image", (req, res) => {
     .get(req.params.productId, branch.id);
   if (!product?.image_path) return res.status(404).end();
 
-  const filePath = resolveProductImageFile(getDataDir(), branch.id, product.image_path);
+  const filePath = resolveProductImageFile(branch.id, product.image_path);
   if (!filePath) return res.status(404).end();
 
   res.setHeader("Content-Type", contentTypeForImagePath(product.image_path));
@@ -269,7 +269,7 @@ router.get("/menu/:slug/branches/:branchId/products/:productId/image", (req, res
     .get(req.params.productId, branch.id);
   if (!product?.image_path) return res.status(404).end();
 
-  const filePath = resolveProductImageFile(getDataDir(), branch.id, product.image_path);
+  const filePath = resolveProductImageFile(branch.id, product.image_path);
   if (!filePath) return res.status(404).end();
 
   res.setHeader("Content-Type", contentTypeForImagePath(product.image_path));

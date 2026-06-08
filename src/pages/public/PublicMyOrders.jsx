@@ -45,7 +45,7 @@ export default function PublicMyOrders() {
   return (
     <PublicQrShell>
       <QrMenuHeader firm={{ menuTitle: t("qr.nav.orders") }} />
-      <div className="public-my-orders">
+      <div className="public-web-section public-my-orders">
         {orders.length === 0 ? (
           <div className="card public-menu-empty-card">
             <p>{t("qr.myOrdersEmpty")}</p>

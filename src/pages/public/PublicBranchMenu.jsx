@@ -98,7 +98,8 @@ export default function PublicBranchMenu() {
 
       {error && <div className="public-menu-alert">{error}</div>}
 
-      <div className="public-menu-groups">
+      <div className="public-web-section">
+        <div className="public-menu-groups public-menu-groups--sticky">
         <button type="button" className={activeGroup === "all" ? "active" : ""} onClick={() => setActiveGroup("all")}>
           {t("common.all")}
         </button>
@@ -130,16 +131,25 @@ export default function PublicBranchMenu() {
             )}
             <div className="public-menu-product__body">
               <h3>{product.name}</h3>
-              <strong>{money(product.price1)}</strong>
-              {canOrder && (
-                <button type="button" className="btn btn-success btn-sm" onClick={() => addToCart(product)}>
-                  {t("qr.addToCart")}
-                </button>
-              )}
+              <div className="public-menu-product__foot">
+                <strong>{money(product.price1)}</strong>
+                {canOrder && (
+                  <button
+                    type="button"
+                    className="public-btn-add"
+                    onClick={() => addToCart(product)}
+                    aria-label={t("qr.addToCart")}
+                  >
+                    <i className="fa fa-plus" />
+                    <span>{t("qr.addToCart")}</span>
+                  </button>
+                )}
+              </div>
             </div>
           </article>
         ))}
         {products.length === 0 && <p className="public-menu-empty">{t("qr.noProducts")}</p>}
+      </div>
       </div>
 
       <PublicQrBottomNav branchId={branchId} cartCount={cartCount} active="menu" />

@@ -3,6 +3,8 @@ captured/
 login.html
 server/data/
 !server/data/.gitkeep
+public_html/uploads/*
+!public_html/uploads/.gitkeep
 *.db
 .env
 .env.local

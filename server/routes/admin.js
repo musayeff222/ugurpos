@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getDb, getDataDir, uid, getSaleWithItems } from "../db/index.js";
+import { getDb, uid, getSaleWithItems } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
 import { adminMiddleware } from "../middleware/admin.js";
 import { seedBranchDefaults } from "../utils/branchDefaults.js";
@@ -334,10 +334,10 @@ router.patch("/qr-menu", (req, res) => {
 
   let logoPath = firmRow.menu_logo_path;
   if (removeLogo) {
-    deleteMenuLogo(getDataDir(), req.user.firmId);
+    deleteMenuLogo(req.user.firmId);
     logoPath = null;
   } else if (logoData && logoMime) {
-    logoPath = saveMenuLogo(getDataDir(), req.user.firmId, logoData, logoMime);
+    logoPath = saveMenuLogo(req.user.firmId, logoData, logoMime);
   }
 
   db.prepare(

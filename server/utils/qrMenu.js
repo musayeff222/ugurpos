@@ -1,4 +1,5 @@
 import { isMenuOpen, resolveMenuHours } from "./menuHours.js";
+import { menuLogoPublicUrl } from "./uploadsDir.js";
 import { normalizeMenuTheme } from "./menuTheme.js";
 
 export function enrichMenuBranch(branchRow, firmRow) {
@@ -96,7 +97,7 @@ export function rowToFirmMenu(row, firmName = "") {
     closeTime: row.menu_close_time || "23:00",
     isOpen: isMenuOpen(row.menu_open_time || "09:00", row.menu_close_time || "23:00"),
     hasLogo: !!row.menu_logo_path,
-    logoUrl: row.menu_logo_path ? "/api/public/menu/logo" : null,
+    logoUrl: row.menu_logo_path ? menuLogoPublicUrl(row.firm_id, row.menu_logo_path) : null,
     theme: normalizeMenuTheme(row.menu_theme),
   };
 }

@@ -102,8 +102,9 @@ export default function PublicMenuLanding() {
         </div>
       )}
 
-      <p className="public-menu-branch-tag">{t("qr.selectBranch")}</p>
+      <p className="public-web-section__lead">{t("qr.selectBranch")}</p>
 
+      <div className="public-web-section">
       <div className="public-branch-picker">
         {branches.length === 0 ? (
           <div className="card public-menu-empty-card">
@@ -117,6 +118,7 @@ export default function PublicMenuLanding() {
               className="public-branch-picker__item"
               onClick={() => navigate(`/m/branch/${branch.id}`)}
             >
+              <div className="public-branch-picker__content">
               <div className="public-branch-picker__head">
                 <strong>
                   #{branch.branchNo} {branch.name}
@@ -130,9 +132,14 @@ export default function PublicMenuLanding() {
                 {branch.openTime} – {branch.closeTime}
               </span>
               {!branch.menuAcceptOrders && <em>{t("qr.viewOnly")}</em>}
+              </div>
+              <span className="public-branch-picker__arrow" aria-hidden="true">
+                <i className="fa fa-chevron-right" />
+              </span>
             </button>
           ))
         )}
+      </div>
       </div>
 
       <PublicQrBottomNav />

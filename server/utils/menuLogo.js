@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { legacyUploadsRoot, resolveLegacyDataDir, resolveUploadsRoot } from "./uploadsDir.js";
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -11,8 +12,8 @@ const MIME_EXT = {
   "image/gif": ".gif",
 };
 
-export function getMenuLogoDir(dataDir, firmId) {
-  const dir = path.join(dataDir, "uploads", "menu-logos", firmId);
+export function getMenuLogoDir(firmId) {
+  const dir = path.join(resolveUploadsRoot(), "menu-logos", firmId);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -24,7 +25,7 @@ function removeExistingLogos(dir) {
   }
 }
 
-export function saveMenuLogo(dataDir, firmId, base64Data, mime) {
+export function saveMenuLogo(firmId, base64Data, mime) {
   if (!base64Data || !mime) throw new Error("Logo verisi gerekli");
   if (!ALLOWED_MIME.has(mime)) throw new Error("Desteklenen formatlar: JPG, PNG, WEBP, GIF");
 
@@ -34,21 +35,26 @@ export function saveMenuLogo(dataDir, firmId, base64Data, mime) {
 
   const ext = MIME_EXT[mime] || ".jpg";
   const filename = `logo${ext}`;
-  const dir = getMenuLogoDir(dataDir, firmId);
+  const dir = getMenuLogoDir(firmId);
   removeExistingLogos(dir);
   fs.writeFileSync(path.join(dir, filename), buffer);
   return filename;
 }
 
-export function deleteMenuLogo(dataDir, firmId) {
-  removeExistingLogos(getMenuLogoDir(dataDir, firmId));
+export function deleteMenuLogo(firmId) {
+  removeExistingLogos(getMenuLogoDir(firmId));
 }
 
-export function resolveMenuLogoFile(dataDir, firmId, logoPath) {
+export function resolveMenuLogoFile(firmId, logoPath) {
   if (!logoPath) return null;
-  const filePath = path.join(getMenuLogoDir(dataDir, firmId), logoPath);
-  if (!fs.existsSync(filePath)) return null;
-  return filePath;
+
+  const primary = path.join(getMenuLogoDir(firmId), logoPath);
+  if (fs.existsSync(primary)) return primary;
+
+  const legacy = path.join(legacyUploadsRoot(resolveLegacyDataDir()), "menu-logos", firmId, logoPath);
+  if (fs.existsSync(legacy)) return legacy;
+
+  return null;
 }
 
 export { contentTypeForImagePath } from "./productImage.js";
