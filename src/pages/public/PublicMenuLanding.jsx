@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
 import PublicQrBottomNav from "../../components/public/PublicQrBottomNav";
@@ -20,6 +20,7 @@ export default function PublicMenuLanding() {
   const [locating, setLocating] = useState(false);
   const [nearest, setNearest] = useState(null);
   const [locError, setLocError] = useState("");
+  const geoAttemptRef = useRef(false);
 
   useEffect(() => {
     setLoading(true);
@@ -35,10 +36,14 @@ export default function PublicMenuLanding() {
   }, [setLang]);
 
   useEffect(() => {
-    if (!data?.branches?.length) return;
+    if (!data?.branches?.length || geoAttemptRef.current) return;
+    geoAttemptRef.current = true;
+
+    let cancelled = false;
     setLocating(true);
     requestUserLocation()
       .then(({ lat, lng }) => {
+        if (cancelled) return;
         const match = findNearestBranch(data.branches, lat, lng);
         if (match && match.distanceKm <= AUTO_RADIUS_KM) {
           setNearest(match);
@@ -47,9 +52,17 @@ export default function PublicMenuLanding() {
           setNearest(match);
         }
       })
-      .catch(() => setLocError(t("qr.locationDenied")))
-      .finally(() => setLocating(false));
-  }, [data, navigate, t]);
+      .catch(() => {
+        if (!cancelled) setLocError("denied");
+      })
+      .finally(() => {
+        if (!cancelled) setLocating(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data, navigate]);
 
   if (loading) {
     return (
@@ -74,7 +87,9 @@ export default function PublicMenuLanding() {
       <QrMenuHeader firm={firm} />
 
       {locating && <div className="public-menu-locate-banner">{t("qr.locating")}</div>}
-      {locError && <div className="public-menu-locate-banner public-menu-locate-banner--muted">{locError}</div>}
+      {locError && (
+        <div className="public-menu-locate-banner public-menu-locate-banner--muted">{t("qr.locationDenied")}</div>
+      )}
       {nearest && !locating && (
         <div className="public-menu-locate-banner">
           {t("qr.nearestBranch", {

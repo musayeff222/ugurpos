@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
 import PublicQrBottomNav from "../../components/public/PublicQrBottomNav";
@@ -36,7 +36,7 @@ export default function PublicBranchMenu() {
   }, [branchId, cart]);
 
   const products = useMemo(() => {
-    if (!menu) return [];
+    if (!menu?.products) return [];
     if (activeGroup === "all") return menu.products;
     return menu.products.filter((p) => p.groupId === activeGroup);
   }, [menu, activeGroup]);
@@ -78,6 +78,17 @@ export default function PublicBranchMenu() {
     );
   }
 
+  if (!menu?.branch) {
+    return (
+      <PublicQrShell firm={menu?.firm}>
+        <div className="public-menu-error card">{error || t("qr.menuNotFound")}</div>
+        <Link to="/m" className="btn btn-default">
+          {t("qr.backToBranches")}
+        </Link>
+      </PublicQrShell>
+    );
+  }
+
   const branch = menu.branch;
   const canOrder = branch.menuAcceptOrders && branch.isOpen !== false;
 
@@ -91,7 +102,7 @@ export default function PublicBranchMenu() {
         <button type="button" className={activeGroup === "all" ? "active" : ""} onClick={() => setActiveGroup("all")}>
           {t("common.all")}
         </button>
-        {menu.groups.map((group) => (
+        {(menu.groups || []).map((group) => (
           <button
             key={group.id}
             type="button"
