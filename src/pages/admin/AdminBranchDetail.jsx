@@ -22,7 +22,15 @@ export default function AdminBranchDetail() {
   const [tab, setTab] = useState("edit");
   const [branch, setBranch] = useState(null);
   const [activity, setActivity] = useState(null);
-  const [form, setForm] = useState({ name: "", email: "", password: "", address: "" });
+  const [form, setForm] = useState({
+    name: "",
+    branchNo: "",
+    email: "",
+    password: "",
+    address: "",
+    lat: "",
+    lng: "",
+  });
   const [message, setMessage] = useState(location.state?.message || "");
   const [error, setError] = useState("");
   const [entering, setEntering] = useState(false);
@@ -32,9 +40,12 @@ export default function AdminBranchDetail() {
     setBranch(data);
     setForm({
       name: data.name,
+      branchNo: data.branchNo || "",
       email: data.email || "",
       password: "",
       address: data.address || "",
+      lat: data.lat != null ? String(data.lat) : "",
+      lng: data.lng != null ? String(data.lng) : "",
     });
   };
 
@@ -136,6 +147,16 @@ export default function AdminBranchDetail() {
             <span>
               <strong>E-posta:</strong> {branch.email || "—"}
             </span>
+            {branch.address && (
+              <span>
+                <strong>Adres:</strong> {branch.address}
+              </span>
+            )}
+            {branch.lat != null && branch.lng != null && (
+              <span>
+                <strong>Konum:</strong> {branch.lat}, {branch.lng}
+              </span>
+            )}
           </div>
 
           <ul className="admin-tabs">
@@ -153,11 +174,19 @@ export default function AdminBranchDetail() {
 
           {tab === "edit" && (
             <form className="card form-grid admin-branch-form" onSubmit={handleSave}>
-              <label>Şube Adı *</label>
+              <label>Ünvan (şube adı) *</label>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
 
-              <label>Şube No</label>
-              <input value={`#${branch.branchNo || "—"}`} disabled readOnly />
+              <label>Şube No *</label>
+              <input
+                type="number"
+                min={1}
+                max={99999}
+                value={form.branchNo}
+                onChange={(e) => setForm({ ...form, branchNo: e.target.value })}
+                required
+              />
+              <p className="hint-text">Web sipariş, siparişler ve şube listesinde görünen numara.</p>
 
               <label>Giriş E-postası *</label>
               <input
@@ -175,7 +204,43 @@ export default function AdminBranchDetail() {
               />
 
               <label>Adres</label>
-              <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              <textarea
+                rows={3}
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                placeholder="Küçə, bina, mərtəbə..."
+              />
+
+              <label>Konum (harita / yakın şube için)</label>
+              <div className="admin-qr-hours-row">
+                <input
+                  placeholder="Lat"
+                  value={form.lat}
+                  onChange={(e) => setForm({ ...form, lat: e.target.value })}
+                />
+                <input
+                  placeholder="Lng"
+                  value={form.lng}
+                  onChange={(e) => setForm({ ...form, lng: e.target.value })}
+                />
+                <button
+                  type="button"
+                  className="btn btn-default btn-sm"
+                  onClick={() => {
+                    if (!navigator.geolocation) return;
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        lat: String(pos.coords.latitude),
+                        lng: String(pos.coords.longitude),
+                      }));
+                    });
+                  }}
+                >
+                  Konumumu al
+                </button>
+              </div>
+              <p className="hint-text">Web siparişte en yakın şube seçimi için kullanılır.</p>
 
               <div className="form-actions">
                 <button type="button" className="btn btn-warning" onClick={toggleActive}>

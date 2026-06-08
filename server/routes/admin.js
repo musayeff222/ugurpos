@@ -3,7 +3,7 @@ import { getDb, getDataDir, uid, getSaleWithItems } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
 import { adminMiddleware } from "../middleware/admin.js";
 import { seedBranchDefaults } from "../utils/branchDefaults.js";
-import { hashBranchPassword, getNextBranchNumber, isValidBranchEmail, normalizeBranchEmail } from "../utils/branchAuth.js";
+import { hashBranchPassword, getNextBranchNumber, isValidBranchEmail, normalizeBranchEmail, validateBranchNo } from "../utils/branchAuth.js";
 import { signAdminToken } from "../middleware/auth.js";
 import { ensureFirmSettings, enrichMenuBranch, rowToFirmMenu } from "../utils/qrMenu.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
@@ -216,7 +216,7 @@ router.patch("/branches/:id", (req, res) => {
   const existing = getBranchOr404(db, req.params.id, req.user.firmId);
   if (!existing) return res.status(404).json({ error: "Şube bulunamadı" });
 
-  const { name, email, address, active, password } = req.body;
+  const { name, email, address, active, password, branchNo, menuLat, menuLng, lat, lng } = req.body;
   const nextEmail = email?.trim() ? normalizeBranchEmail(email) : existing.email;
   if (email?.trim() && !isValidBranchEmail(nextEmail)) {
     return res.status(400).json({ error: "Geçerli bir e-posta girin" });
@@ -228,13 +228,44 @@ router.patch("/branches/:id", (req, res) => {
 
   const nextPasswordHash = password?.trim() ? hashBranchPassword(password) : existing.password_hash;
 
+  let nextCode = existing.code;
+  if (branchNo !== undefined && branchNo !== null && String(branchNo).trim() !== "") {
+    const check = validateBranchNo(db, req.user.firmId, branchNo, req.params.id);
+    if (check.error) return res.status(400).json({ error: check.error });
+    nextCode = check.value;
+  }
+
+  const parseCoordInput = (value) => {
+    if (value === undefined) return undefined;
+    if (value === "" || value === null) return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return NaN;
+    return n;
+  };
+
+  let nextLat = existing.menu_lat;
+  let nextLng = existing.menu_lng;
+  if (menuLat !== undefined || lat !== undefined) {
+    const parsed = parseCoordInput(menuLat ?? lat);
+    if (Number.isNaN(parsed)) return res.status(400).json({ error: "Geçersiz enlem (lat)" });
+    if (parsed !== undefined) nextLat = parsed;
+  }
+  if (menuLng !== undefined || lng !== undefined) {
+    const parsed = parseCoordInput(menuLng ?? lng);
+    if (Number.isNaN(parsed)) return res.status(400).json({ error: "Geçersiz boylam (lng)" });
+    if (parsed !== undefined) nextLng = parsed;
+  }
+
   db.prepare(
-    "UPDATE branches SET name=?, email=?, password_hash=?, address=?, active=? WHERE id=?"
+    "UPDATE branches SET name=?, code=?, email=?, password_hash=?, address=?, menu_lat=?, menu_lng=?, active=? WHERE id=?"
   ).run(
     name ?? existing.name,
+    nextCode,
     nextEmail,
     nextPasswordHash,
     address ?? existing.address,
+    nextLat,
+    nextLng,
     active === false ? 0 : active === true ? 1 : existing.active,
     req.params.id
   );

@@ -40,8 +40,8 @@ export default function AdminDashboard() {
               <span>Şubeler</span>
             </Link>
             <Link to="/admin/qr-menu" className="admin-quick-action">
-              <i className="fa fa-qrcode" />
-              <span>QR menü</span>
+              <i className="fa fa-shopping-bag" />
+              <span>Web sipariş</span>
             </Link>
           </div>
 

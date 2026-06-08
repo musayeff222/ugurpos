@@ -128,8 +128,12 @@ export default function WebOrders() {
               <p>
                 {order.customerName}
                 {order.customerPhone ? ` · ${order.customerPhone}` : ""}
-                {order.tableNo ? ` · Masa ${order.tableNo}` : ""}
               </p>
+              {(order.deliveryAddress || order.tableNo) && (
+                <p className="hint-text">
+                  {t("webOrders.address")}: {order.deliveryAddress || order.tableNo}
+                </p>
+              )}
               {order.note && <p className="hint-text">Not: {order.note}</p>}
               <ul className="qr-order-items">
                 {order.items.map((item) => (

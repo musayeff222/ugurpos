@@ -8,7 +8,8 @@ export default function PublicQrBottomNav({ branchId, cartCount = 0, active = "m
   const onLanding = location.pathname === "/m";
 
   return (
-    <nav className="public-qr-bottom-nav" aria-label="QR menu navigation">
+    <nav className="public-qr-bottom-nav" aria-label="Online order navigation">
+      <div className="public-qr-bottom-nav__brand">{t("qr.badge")}</div>
       <Link to="/m" className={onLanding ? "active" : ""}>
         <i className="fa fa-home" />
         <span>{t("qr.nav.home")}</span>

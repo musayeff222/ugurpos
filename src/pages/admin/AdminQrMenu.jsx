@@ -194,7 +194,7 @@ export default function AdminQrMenu() {
                 {!firm?.menuEnabled && (
                   <div className="alert alert-danger">{t("admin.qr.menuClosed")}</div>
                 )}
-                <img src={getQrCodeUrl(menuUrl)} alt="QR Menü" className="admin-qr-code" />
+                <img src={getQrCodeUrl(menuUrl)} alt="Online sipariş" className="admin-qr-code" />
                 <code className="admin-qr-url">{menuUrl}</code>
                 <div className="admin-qr-firm-actions">
                   <button type="button" className="btn btn-primary btn-sm" onClick={copyLink}>
@@ -517,8 +517,12 @@ export default function AdminQrMenu() {
                   <p>
                     {order.customerName}
                     {order.customerPhone ? ` · ${order.customerPhone}` : ""}
-                    {order.tableNo ? ` · Masa ${order.tableNo}` : ""}
                   </p>
+                  {(order.deliveryAddress || order.tableNo) && (
+                    <p className="hint-text">
+                      {t("admin.order.address")}: {order.deliveryAddress || order.tableNo}
+                    </p>
+                  )}
                   {order.note && <p className="hint-text">Not: {order.note}</p>}
                   <ul className="admin-qr-order-items">
                     {order.items.map((item) => (

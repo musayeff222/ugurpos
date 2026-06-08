@@ -28,9 +28,33 @@ export function getNextBranchNumber(db, firmId) {
 }
 
 export function normalizeBranchNo(code) {
-  if (!code) return "";
-  const n = parseInt(code, 10);
-  return Number.isNaN(n) ? String(code) : String(n);
+  if (code === null || code === undefined) return "";
+  const raw = String(code).trim().replace(/^#+/, "");
+  if (!raw) return "";
+  const n = parseInt(raw, 10);
+  return Number.isNaN(n) ? raw : String(n);
+}
+
+export function validateBranchNo(db, firmId, branchNo, excludeBranchId = null) {
+  const normalized = normalizeBranchNo(branchNo);
+  if (!normalized) {
+    return { error: "Şube numarası zorunludur" };
+  }
+
+  const asNumber = parseInt(normalized, 10);
+  if (Number.isNaN(asNumber) || asNumber < 1 || asNumber > 99999) {
+    return { error: "Şube numarası 1–99999 arasında olmalıdır" };
+  }
+
+  const rows = db.prepare("SELECT id, code FROM branches WHERE firm_id = ?").all(firmId);
+  for (const row of rows) {
+    if (excludeBranchId && row.id === excludeBranchId) continue;
+    if (normalizeBranchNo(row.code) === normalized) {
+      return { error: "Bu şube numarası başka bir şubede kullanılıyor" };
+    }
+  }
+
+  return { value: normalized };
 }
 
 export function generateBranchLoginCode(db, firmId, branchName, branchCode) {

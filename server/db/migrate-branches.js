@@ -169,6 +169,8 @@ export function rowToBranch(row) {
     loginCode: row.login_code || "",
     address: row.address || "",
     phone: row.phone || "",
+    lat: row.menu_lat != null && row.menu_lat !== "" ? Number(row.menu_lat) : null,
+    lng: row.menu_lng != null && row.menu_lng !== "" ? Number(row.menu_lng) : null,
     active: !!row.active,
     createdAt: row.created_at,
   };

@@ -6,7 +6,7 @@ import "../styles/admin.css";
 const adminNav = [
   { to: "/admin", label: "Özet", icon: "fa-home", end: true },
   { to: "/admin/branches", label: "Şubeler", icon: "fa-building" },
-  { to: "/admin/qr-menu", label: "QR Menü", icon: "fa-qrcode" },
+  { to: "/admin/qr-menu", label: "Web Sipariş", icon: "fa-shopping-bag" },
 ];
 
 export default function AdminLayout() {

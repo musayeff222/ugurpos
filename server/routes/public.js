@@ -17,6 +17,7 @@ import {
   resolveMenuLogoFile,
 } from "../utils/menuLogo.js";
 import { isMenuOpen, resolveMenuHours } from "../utils/menuHours.js";
+import { buildDeliveryOrderNote } from "../utils/orderAddress.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -109,13 +110,23 @@ function createOrder(db, res, firmRow, branchId, body) {
     return res.status(400).json({ error: "Şube şu an kapalı. Çalışma saatleri dışında sipariş verilemez." });
   }
 
-  const { customerName, customerPhone, tableNo, note, items } = body;
+  const { customerName, customerPhone, tableNo, deliveryAddress, note, deliveryLat, deliveryLng, items } = body;
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "Sepet boş" });
   }
   if (!customerName?.trim()) {
     return res.status(400).json({ error: "Ad soyad gerekli" });
   }
+  if (!customerPhone?.trim()) {
+    return res.status(400).json({ error: "Teslimat için telefon gerekli" });
+  }
+
+  const address = (deliveryAddress ?? tableNo)?.trim() || "";
+  if (!address) {
+    return res.status(400).json({ error: "Teslimat adresi gerekli" });
+  }
+
+  const orderNote = buildDeliveryOrderNote(note, deliveryLat, deliveryLng);
 
   const productLookup = db.prepare(
     "SELECT * FROM products WHERE id = ? AND branch_id = ? AND active = 1 AND on_sale_page = 1"
@@ -151,8 +162,8 @@ function createOrder(db, res, firmRow, branchId, body) {
       orderCode,
       customerName.trim(),
       customerPhone?.trim() || "",
-      tableNo?.trim() || "",
-      note?.trim() || "",
+      address,
+      orderNote,
       total
     );
 

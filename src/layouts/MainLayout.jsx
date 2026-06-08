@@ -70,7 +70,9 @@ export default function MainLayout() {
           {latestOrder && location.pathname !== "/web-orders" && (
             <Link to="/web-orders" className="web-order-toast" onClick={clearLatest}>
               <strong>Yeni web siparişi:</strong> {latestOrder.code} — {latestOrder.customerName} (
-              {latestOrder.tableNo ? `Masa ${latestOrder.tableNo}` : "masa yok"})
+              {latestOrder.deliveryAddress || latestOrder.tableNo
+                ? `Ünvan: ${latestOrder.deliveryAddress || latestOrder.tableNo}`
+                : "ünvan yok"})
               <span className="web-order-toast-link">Görüntüle →</span>
             </Link>
           )}

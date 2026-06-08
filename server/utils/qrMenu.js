@@ -132,6 +132,7 @@ export function rowToQrOrder(row, items = []) {
     customerName: row.customer_name || "",
     customerPhone: row.customer_phone || "",
     tableNo: row.table_no || "",
+    deliveryAddress: row.table_no || "",
     note: row.note || "",
     total: row.total,
     createdAt: row.created_at,

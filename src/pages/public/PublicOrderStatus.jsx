@@ -66,6 +66,16 @@ export default function PublicOrderStatus() {
         <p className="public-menu-branch-tag">
           {t("qr.branch")}: <strong>#{order.branchNo} {order.branchName}</strong>
         </p>
+        {(order.deliveryAddress || order.tableNo) && (
+          <p className="public-menu-branch-tag">
+            {t("qr.orderDeliveryAddress")}: <strong>{order.deliveryAddress || order.tableNo}</strong>
+          </p>
+        )}
+        {order.customerPhone && (
+          <p className="public-menu-branch-tag">
+            {t("qr.phone")}: <strong>{order.customerPhone}</strong>
+          </p>
+        )}
         <ul className="public-order-status__items">
           {order.items.map((item) => (
             <li key={item.id}>
