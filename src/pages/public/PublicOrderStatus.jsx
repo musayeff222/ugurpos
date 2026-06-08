@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
+import QrMenuHeader from "../../components/public/QrMenuHeader";
 import { useLocale } from "../../context/LocaleContext";
 import { formatMoney } from "../../utils/format";
 import { fetchPublicOrder } from "../../utils/qrMenuPublic";
+import { rememberOrder } from "../../utils/qrMenuStorage";
 import "../../styles/public-qr-menu.css";
 
 export default function PublicOrderStatus() {
@@ -14,7 +16,10 @@ export default function PublicOrderStatus() {
 
   const load = () => {
     fetchPublicOrder(orderId)
-      .then(setOrder)
+      .then((data) => {
+        setOrder(data);
+        rememberOrder(data);
+      })
       .catch((e) => setError(e.message));
   };
 
@@ -45,6 +50,7 @@ export default function PublicOrderStatus() {
 
   return (
     <PublicQrShell>
+      <QrMenuHeader firm={{ menuTitle: t("qr.orderReceived") }} />
       <div className="card public-order-status">
         <div className="public-order-status__icon">
           <i className="fa fa-check-circle" />

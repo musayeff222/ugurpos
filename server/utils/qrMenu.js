@@ -1,3 +1,19 @@
+import { isMenuOpen, resolveMenuHours } from "./menuHours.js";
+
+export function enrichMenuBranch(branchRow, firmRow) {
+  const menu = rowToMenuBranch(branchRow);
+  if (!menu) return null;
+  const hours = resolveMenuHours(branchRow, firmRow);
+  return {
+    ...menu,
+    lat: branchRow.menu_lat != null ? Number(branchRow.menu_lat) : null,
+    lng: branchRow.menu_lng != null ? Number(branchRow.menu_lng) : null,
+    openTime: hours.openTime,
+    closeTime: hours.closeTime,
+    isOpen: isMenuOpen(hours.openTime, hours.closeTime),
+  };
+}
+
 export function generateFirmMenuSlug(db, firmId) {
   const firmPart = String(firmId).replace(/\W/g, "").toLowerCase() || "firma";
   const slug = `menu-${firmPart}`;
@@ -75,6 +91,11 @@ export function rowToFirmMenu(row, firmName = "") {
       whatsapp: row.menu_social_whatsapp || "",
       tiktok: row.menu_social_tiktok || "",
     },
+    openTime: row.menu_open_time || "09:00",
+    closeTime: row.menu_close_time || "23:00",
+    isOpen: isMenuOpen(row.menu_open_time || "09:00", row.menu_close_time || "23:00"),
+    hasLogo: !!row.menu_logo_path,
+    logoUrl: row.menu_logo_path ? "/api/public/menu/logo" : null,
   };
 }
 

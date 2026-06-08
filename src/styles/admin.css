@@ -941,6 +941,26 @@
   color: #303667;
 }
 
+.admin-qr-hours-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-qr-hours-row input[type="time"],
+.admin-qr-hours-row input[placeholder] {
+  flex: 1 1 100px;
+  min-width: 90px;
+}
+
+.admin-qr-logo-preview {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
 .admin-qr-section-title {
   margin: 0 0 12px;
   font-size: 16px;

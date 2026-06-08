@@ -1,12 +1,13 @@
 import { Router } from "express";
-import { getDb, uid, getSaleWithItems } from "../db/index.js";
+import { getDb, getDataDir, uid, getSaleWithItems } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
 import { adminMiddleware } from "../middleware/admin.js";
 import { seedBranchDefaults } from "../utils/branchDefaults.js";
 import { hashBranchPassword, getNextBranchNumber, isValidBranchEmail, normalizeBranchEmail } from "../utils/branchAuth.js";
 import { signAdminToken } from "../middleware/auth.js";
-import { ensureFirmSettings, rowToMenuBranch, rowToFirmMenu } from "../utils/qrMenu.js";
+import { ensureFirmSettings, enrichMenuBranch, rowToFirmMenu } from "../utils/qrMenu.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
+import { saveMenuLogo, deleteMenuLogo } from "../utils/menuLogo.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -264,7 +265,7 @@ router.get("/qr-menu", (req, res) => {
     .all(req.user.firmId);
 
   const branches = rows.map((row) => {
-    const menu = rowToMenuBranch(row);
+    const menu = enrichMenuBranch(row, firmRow);
     const pending = db
       .prepare("SELECT COUNT(*) as c FROM qr_orders WHERE branch_id = ? AND status = 'pending'")
       .get(row.id).c;
@@ -288,9 +289,22 @@ router.patch("/qr-menu", (req, res) => {
     socialWhatsapp,
     socialTiktok,
     menuDefaultLang,
+    menuOpenTime,
+    menuCloseTime,
+    logoData,
+    logoMime,
+    removeLogo,
   } = req.body;
 
   const lang = menuDefaultLang === "tr" ? "tr" : menuDefaultLang === "az" ? "az" : firmRow.menu_default_lang || "az";
+
+  let logoPath = firmRow.menu_logo_path;
+  if (removeLogo) {
+    deleteMenuLogo(getDataDir(), req.user.firmId);
+    logoPath = null;
+  } else if (logoData && logoMime) {
+    logoPath = saveMenuLogo(getDataDir(), req.user.firmId, logoData, logoMime);
+  }
 
   db.prepare(
     `UPDATE firm_settings SET
@@ -300,7 +314,10 @@ router.patch("/qr-menu", (req, res) => {
       menu_social_instagram = ?,
       menu_social_whatsapp = ?,
       menu_social_tiktok = ?,
-      menu_default_lang = ?
+      menu_default_lang = ?,
+      menu_open_time = ?,
+      menu_close_time = ?,
+      menu_logo_path = ?
      WHERE firm_id = ?`
   ).run(
     menuEnabled === false ? 0 : 1,
@@ -310,6 +327,9 @@ router.patch("/qr-menu", (req, res) => {
     socialWhatsapp ?? firmRow.menu_social_whatsapp ?? "",
     socialTiktok ?? firmRow.menu_social_tiktok ?? "",
     lang,
+    menuOpenTime ?? firmRow.menu_open_time ?? "09:00",
+    menuCloseTime ?? firmRow.menu_close_time ?? "23:00",
+    logoPath,
     req.user.firmId
   );
 
@@ -329,19 +349,28 @@ router.patch("/qr-menu/branches/:id", (req, res) => {
 
   const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.params.id);
 
-  const { menuEnabled, menuAcceptOrders } = req.body;
+  const { menuEnabled, menuAcceptOrders, menuLat, menuLng, menuOpenTime, menuCloseTime } = req.body;
   db.prepare(
     `UPDATE branches SET
       menu_enabled = ?,
-      menu_accept_orders = ?
+      menu_accept_orders = ?,
+      menu_lat = ?,
+      menu_lng = ?,
+      menu_open_time = ?,
+      menu_close_time = ?
      WHERE id = ?`
   ).run(
     menuEnabled === true ? 1 : menuEnabled === false ? 0 : branch.menu_enabled,
     menuAcceptOrders === false ? 0 : menuAcceptOrders === true ? 1 : branch.menu_accept_orders,
+    menuLat === null || menuLat === "" ? null : Number(menuLat),
+    menuLng === null || menuLng === "" ? null : Number(menuLng),
+    menuOpenTime?.trim() || null,
+    menuCloseTime?.trim() || null,
     req.params.id
   );
 
-  res.json(rowToMenuBranch(db.prepare("SELECT * FROM branches WHERE id = ?").get(req.params.id)));
+  const firmRow = ensureFirmSettings(db, req.user.firmId, req.user.firmName);
+  res.json(enrichMenuBranch(db.prepare("SELECT * FROM branches WHERE id = ?").get(req.params.id), firmRow));
 });
 
 router.get("/qr-orders", (req, res) => {

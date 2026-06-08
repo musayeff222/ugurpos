@@ -57,4 +57,11 @@ export function migrateQrMenu(db) {
   addColumnIfMissing(db, "firm_settings", "menu_social_whatsapp", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
   addColumnIfMissing(db, "firm_settings", "menu_social_tiktok", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
   addColumnIfMissing(db, "firm_settings", "menu_default_lang", db.dialect === "mysql" ? "VARCHAR(8) DEFAULT 'az'" : "TEXT DEFAULT 'az'");
+  addColumnIfMissing(db, "firm_settings", "menu_logo_path", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
+  addColumnIfMissing(db, "firm_settings", "menu_open_time", db.dialect === "mysql" ? "VARCHAR(8) DEFAULT '09:00'" : "TEXT DEFAULT '09:00'");
+  addColumnIfMissing(db, "firm_settings", "menu_close_time", db.dialect === "mysql" ? "VARCHAR(8) DEFAULT '23:00'" : "TEXT DEFAULT '23:00'");
+  addColumnIfMissing(db, "branches", "menu_lat", db.dialect === "mysql" ? "DOUBLE" : "REAL");
+  addColumnIfMissing(db, "branches", "menu_lng", db.dialect === "mysql" ? "DOUBLE" : "REAL");
+  addColumnIfMissing(db, "branches", "menu_open_time", db.dialect === "mysql" ? "VARCHAR(8)" : "TEXT");
+  addColumnIfMissing(db, "branches", "menu_close_time", db.dialect === "mysql" ? "VARCHAR(8)" : "TEXT");
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import { useLocale } from "../../context/LocaleContext";
 import PageHeader from "../../components/ui/PageHeader";
+import ProductImageField from "../../components/ProductImageField";
 import { formatMoney } from "../../utils/format";
 import { getMenuPublicUrl, getQrCodeUrl } from "../../utils/qrMenuPublic";
 
@@ -27,6 +28,7 @@ export default function AdminQrMenu() {
   const [orders, setOrders] = useState([]);
   const [orderFilter, setOrderFilter] = useState({ branchId: "", status: "pending" });
   const [firmDraft, setFirmDraft] = useState({});
+  const [logoValue, setLogoValue] = useState(undefined);
   const [branchDrafts, setBranchDrafts] = useState({});
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -44,7 +46,10 @@ export default function AdminQrMenu() {
       socialWhatsapp: data.firm.social?.whatsapp || "",
       socialTiktok: data.firm.social?.tiktok || "",
       menuDefaultLang: data.firm.defaultLang || "az",
+      menuOpenTime: data.firm.openTime || "09:00",
+      menuCloseTime: data.firm.closeTime || "23:00",
     });
+    setLogoValue(undefined);
     setBranchDrafts(
       Object.fromEntries(
         data.branches.map((b) => [
@@ -52,6 +57,10 @@ export default function AdminQrMenu() {
           {
             menuEnabled: b.menuEnabled,
             menuAcceptOrders: b.menuAcceptOrders,
+            menuLat: b.lat ?? "",
+            menuLng: b.lng ?? "",
+            menuOpenTime: b.openTime || "",
+            menuCloseTime: b.closeTime || "",
           },
         ])
       )
@@ -86,7 +95,13 @@ export default function AdminQrMenu() {
     setMessage("");
     setError("");
     try {
-      await api.updateAdminQrMenu(firmDraft);
+      const payload = { ...firmDraft };
+      if (logoValue === null) payload.removeLogo = true;
+      else if (logoValue?.data) {
+        payload.logoData = logoValue.data;
+        payload.logoMime = logoValue.mime;
+      }
+      await api.updateAdminQrMenu(payload);
       await loadSettings();
       setMessage(t("admin.qr.firmSaved"));
     } catch (err) {
@@ -189,6 +204,29 @@ export default function AdminQrMenu() {
                 value={firmDraft.menuWelcome || ""}
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuWelcome: e.target.value }))}
               />
+              <label>{t("admin.qr.menuLogo")}</label>
+              <ProductImageField
+                product={firm?.hasLogo ? { hasImage: true, id: "logo" } : null}
+                value={logoValue}
+                onChange={setLogoValue}
+              />
+              {firm?.logoUrl && logoValue === undefined && (
+                <img src={firm.logoUrl} alt="" className="admin-qr-logo-preview" />
+              )}
+              <label>{t("admin.qr.menuHours")}</label>
+              <div className="admin-qr-hours-row">
+                <input
+                  type="time"
+                  value={firmDraft.menuOpenTime || "09:00"}
+                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuOpenTime: e.target.value }))}
+                />
+                <span>–</span>
+                <input
+                  type="time"
+                  value={firmDraft.menuCloseTime || "23:00"}
+                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuCloseTime: e.target.value }))}
+                />
+              </div>
               <label>{t("admin.qr.defaultLang")}</label>
               <select
                 value={firmDraft.menuDefaultLang || "az"}
@@ -268,6 +306,72 @@ export default function AdminQrMenu() {
                       />
                       {t("admin.qr.acceptOrders")}
                     </label>
+                    <label>{t("admin.qr.branchLocation")}</label>
+                    <div className="admin-qr-hours-row">
+                      <input
+                        placeholder="Lat"
+                        value={draft.menuLat ?? ""}
+                        onChange={(e) =>
+                          setBranchDrafts((prev) => ({
+                            ...prev,
+                            [branch.id]: { ...draft, menuLat: e.target.value },
+                          }))
+                        }
+                      />
+                      <input
+                        placeholder="Lng"
+                        value={draft.menuLng ?? ""}
+                        onChange={(e) =>
+                          setBranchDrafts((prev) => ({
+                            ...prev,
+                            [branch.id]: { ...draft, menuLng: e.target.value },
+                          }))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-default btn-sm"
+                        onClick={() => {
+                          if (!navigator.geolocation) return;
+                          navigator.geolocation.getCurrentPosition((pos) => {
+                            setBranchDrafts((prev) => ({
+                              ...prev,
+                              [branch.id]: {
+                                ...draft,
+                                menuLat: String(pos.coords.latitude),
+                                menuLng: String(pos.coords.longitude),
+                              },
+                            }));
+                          });
+                        }}
+                      >
+                        {t("admin.qr.useMyLocation")}
+                      </button>
+                    </div>
+                    <label>{t("admin.qr.branchHours")}</label>
+                    <div className="admin-qr-hours-row">
+                      <input
+                        type="time"
+                        value={draft.menuOpenTime || ""}
+                        onChange={(e) =>
+                          setBranchDrafts((prev) => ({
+                            ...prev,
+                            [branch.id]: { ...draft, menuOpenTime: e.target.value },
+                          }))
+                        }
+                      />
+                      <span>–</span>
+                      <input
+                        type="time"
+                        value={draft.menuCloseTime || ""}
+                        onChange={(e) =>
+                          setBranchDrafts((prev) => ({
+                            ...prev,
+                            [branch.id]: { ...draft, menuCloseTime: e.target.value },
+                          }))
+                        }
+                      />
+                    </div>
                     <button type="button" className="btn btn-success btn-sm" onClick={() => saveBranchSettings(branch.id)}>
                       {t("common.save")}
                     </button>

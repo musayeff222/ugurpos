@@ -1,9 +1,10 @@
 .public-menu-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #fff8f5 0%, #f4f6fb 220px);
-  padding: 12px 16px 120px;
+  padding: 12px 16px 88px;
   max-width: 720px;
   margin: 0 auto;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
 }
 
 .public-menu-toolbar {
@@ -445,4 +446,202 @@
   .public-menu-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+.public-menu-header__top {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.public-menu-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.public-menu-logo--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.public-menu-header__info h1 {
+  margin: 0 0 6px;
+}
+
+.public-menu-hours {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+}
+
+.public-menu-hours.is-open strong {
+  color: #b8f5c3;
+}
+
+.public-menu-hours.is-closed strong {
+  color: #ffd2d2;
+}
+
+.public-menu-back {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.public-qr-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 200;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.public-qr-bottom-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 4px;
+  text-decoration: none;
+  color: #6b7280;
+  font-size: 11px;
+  position: relative;
+}
+
+.public-qr-bottom-nav a.active {
+  color: #c0392b;
+}
+
+.public-qr-bottom-nav a i {
+  font-size: 18px;
+}
+
+.public-qr-bottom-nav__badge {
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 22px);
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.public-menu-grid--with-nav {
+  padding-bottom: 12px;
+}
+
+.public-cart-page,
+.public-cart-checkout {
+  margin-bottom: 12px;
+}
+
+.public-cart-back-link {
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.public-my-orders {
+  display: grid;
+  gap: 10px;
+}
+
+.public-my-order-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  padding: 14px;
+}
+
+.public-my-order-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.public-menu-locate-banner {
+  background: #fff3cd;
+  border: 1px solid #ffeeba;
+  color: #856404;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.public-menu-locate-banner--muted {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  color: #c0392b;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.public-branch-picker__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.public-branch-hours-pill {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.public-branch-hours-pill.open {
+  background: #d4edda;
+  color: #155724;
+}
+
+.public-branch-hours-pill.closed {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.public-branch-picker__hours {
+  font-size: 12px;
+  color: #9ca3af;
 }

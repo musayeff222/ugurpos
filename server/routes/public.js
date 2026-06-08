@@ -5,7 +5,7 @@ import {
   ensureFirmSettings,
   resolveFirmByMenuSlug,
   rowToFirmMenu,
-  rowToMenuBranch,
+  enrichMenuBranch,
   getBranchForFirmMenu,
 } from "../utils/qrMenu.js";
 import { loadQrOrder } from "../utils/qrOrderService.js";
@@ -13,6 +13,10 @@ import {
   resolveProductImageFile,
   contentTypeForImagePath,
 } from "../utils/productImage.js";
+import {
+  resolveMenuLogoFile,
+} from "../utils/menuLogo.js";
+import { isMenuOpen, resolveMenuHours } from "../utils/menuHours.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -54,7 +58,7 @@ function sendFirmMenu(db, res, firmRow) {
        ORDER BY ${SQL.branchOrder()}, name`
     )
     .all(firmRow.firm_id)
-    .map(rowToMenuBranch);
+    .map((row) => enrichMenuBranch(row, firmRow));
 
   res.json({
     firm: rowToFirmMenu(firmRow, firmName),
@@ -78,7 +82,7 @@ function sendBranchMenu(db, res, firmRow, branchId) {
 
   res.json({
     firm: rowToFirmMenu(firmRow, getFirmName(db, firmRow.firm_id)),
-    branch: rowToMenuBranch(branch),
+    branch: enrichMenuBranch(branch, firmRow),
     groups,
     products,
   });
@@ -98,6 +102,11 @@ function createOrder(db, res, firmRow, branchId, body) {
   }
   if (!branch.menu_accept_orders) {
     return res.status(400).json({ error: "Bu şube şu an sipariş kabul etmiyor" });
+  }
+
+  const hours = resolveMenuHours(branch, firmRow);
+  if (!isMenuOpen(hours.openTime, hours.closeTime)) {
+    return res.status(400).json({ error: "Şube şu an kapalı. Çalışma saatleri dışında sipariş verilemez." });
   }
 
   const { customerName, customerPhone, tableNo, note, items } = body;
@@ -165,6 +174,20 @@ router.get("/menu", (req, res) => {
   const firmRow = requirePublicMenu(db, null, res);
   if (!firmRow) return;
   sendFirmMenu(db, res, firmRow);
+});
+
+router.get("/menu/logo", (req, res) => {
+  const db = getDb();
+  const firmRow = requirePublicMenu(db, null, res);
+  if (!firmRow) return;
+  if (!firmRow.menu_logo_path) return res.status(404).end();
+
+  const filePath = resolveMenuLogoFile(getDataDir(), firmRow.firm_id, firmRow.menu_logo_path);
+  if (!filePath) return res.status(404).end();
+
+  res.setHeader("Content-Type", contentTypeForImagePath(firmRow.menu_logo_path));
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.sendFile(filePath);
 });
 
 router.get("/menu/branches/:branchId", (req, res) => {

@@ -250,7 +250,10 @@ export function initMysqlSchema(db) {
       menu_social_instagram VARCHAR(512),
       menu_social_whatsapp VARCHAR(512),
       menu_social_tiktok VARCHAR(512),
-      menu_default_lang VARCHAR(8) DEFAULT 'az'
+      menu_default_lang VARCHAR(8) DEFAULT 'az',
+      menu_logo_path VARCHAR(512),
+      menu_open_time VARCHAR(8) DEFAULT '09:00',
+      menu_close_time VARCHAR(8) DEFAULT '23:00'
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
     CREATE TABLE IF NOT EXISTS qr_orders (
