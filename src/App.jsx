@@ -47,7 +47,6 @@ import AdminQrMenu from "./pages/admin/AdminQrMenu";
 import PublicMenuLanding from "./pages/public/PublicMenuLanding";
 import PublicBranchMenu from "./pages/public/PublicBranchMenu";
 import PublicBranchCart from "./pages/public/PublicBranchCart";
-import PublicMyOrders from "./pages/public/PublicMyOrders";
 import PublicOrderStatus from "./pages/public/PublicOrderStatus";
 
 function LegacyMenuRedirect() {
@@ -70,7 +69,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/login/admin" element={<AdminLogin />} />
       <Route path="/m/order/:orderId" element={<PublicOrderStatus />} />
-      <Route path="/m/orders" element={<PublicMyOrders />} />
+      <Route path="/m/orders" element={<Navigate to="/m" replace />} />
       <Route path="/m/branch/:branchId/cart" element={<PublicBranchCart />} />
       <Route path="/m/branch/:branchId" element={<PublicBranchMenu />} />
       <Route path="/m" element={<PublicMenuLanding />} />

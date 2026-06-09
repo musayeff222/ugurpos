@@ -15,8 +15,8 @@ export async function fetchPublicBranchMenu(branchId) {
 }
 
 export function getPublicProductImageSrc(branchId, product) {
-  if (!product?.hasImage) return null;
-  if (product.imageUrl) return product.imageUrl;
+  if (product?.imageUrl) return product.imageUrl;
+  if (!product?.id) return null;
   return `/api/public/menu/branches/${encodeURIComponent(branchId)}/products/${product.id}/image`;
 }
 

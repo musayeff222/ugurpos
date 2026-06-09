@@ -118,14 +118,22 @@ function attachProductImage(db, branchId, productId, imageFile) {
 
 /** Mevcut urunlerde eksik/bozuk resimleri seed dosyalarindan yeniden yukler. */
 export function repairCigkofteProductImages(db) {
-  const findByCode = db.prepare("SELECT id, branch_id, image_path FROM products WHERE stock_code = ? AND branch_id = ?");
+  const findByCode = db.prepare("SELECT id, branch_id FROM products WHERE stock_code = ? AND branch_id = ?");
+  const findByBarcode = db.prepare("SELECT id, branch_id FROM products WHERE barcode = ? AND branch_id = ?");
+  const syncProduct = db.prepare(`
+    UPDATE products SET name = ?, price1 = ?, price2 = ?, on_sale_page = 1, active = 1
+    WHERE id = ? AND branch_id = ?
+  `);
   let repaired = 0;
 
   const branches = db.prepare("SELECT id FROM branches").all();
   for (const branch of branches) {
     for (const product of CIGKOFTA_PRODUCTS) {
-      const row = findByCode.get(product.stockCode, branch.id);
+      let row = findByCode.get(product.stockCode, branch.id);
+      if (!row) row = findByBarcode.get(product.barcode, branch.id);
       if (!row) continue;
+
+      syncProduct.run(product.name, product.price1, product.price2, row.id, branch.id);
       if (attachProductImage(db, branch.id, row.id, product.image)) {
         repaired += 1;
       }

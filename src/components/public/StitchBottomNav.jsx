@@ -11,8 +11,6 @@ export default function StitchBottomNav({ branchId, cartCount = 0, active = "hom
   const onLanding = location.pathname === "/m";
   const onMenu = activeBranchId && location.pathname === `/m/branch/${activeBranchId}`;
   const onCart = location.pathname.includes("/cart");
-  const onOrders =
-    location.pathname === "/m/orders" || location.pathname.startsWith("/m/order/");
 
   const storedCartCount =
     cartCount ||
@@ -22,14 +20,14 @@ export default function StitchBottomNav({ branchId, cartCount = 0, active = "hom
 
   return (
     <nav className="sf-bottom-nav" aria-label="Mobile navigation">
-      <div className="sf-bottom-nav__inner">
+      <div className="sf-bottom-nav__inner sf-bottom-nav__inner--3">
         <Link to="/m" className={linkClass(onLanding || active === "home")}>
           <StitchIcon name="home" filled={onLanding || active === "home"} />
           <span>{t("qr.nav.home")}</span>
         </Link>
 
         {activeBranchId ? (
-          <Link to={`/m/branch/${activeBranchId}`} className={linkClass((active === "menu" || onMenu) && !onOrders && !onCart)}>
+          <Link to={`/m/branch/${activeBranchId}`} className={linkClass((active === "menu" || onMenu) && !onCart)}>
             <StitchIcon name="menu_book" filled={active === "menu" || onMenu} />
             <span>{t("qr.nav.menu")}</span>
           </Link>
@@ -54,11 +52,6 @@ export default function StitchBottomNav({ branchId, cartCount = 0, active = "hom
             <span>{t("qr.myCart")}</span>
           </span>
         )}
-
-        <Link to="/m/orders" className={linkClass(onOrders || active === "orders")}>
-          <StitchIcon name="person" filled={onOrders || active === "orders"} />
-          <span>{t("qr.nav.orders")}</span>
-        </Link>
       </div>
     </nav>
   );

@@ -21,8 +21,6 @@ export default function StitchAppBar({ firm, branchId, cartCount = 0 }) {
   const isHome = location.pathname === "/m";
   const isMenu = activeBranchId && location.pathname === `/m/branch/${activeBranchId}`;
   const isCart = location.pathname.includes("/cart");
-  const isOrders =
-    location.pathname === "/m/orders" || location.pathname.startsWith("/m/order/");
 
   return (
     <header className="sf-appbar">
@@ -43,8 +41,8 @@ export default function StitchAppBar({ firm, branchId, cartCount = 0 }) {
           <Link to={menuPath} className={isMenu ? "is-active" : ""}>
             {t("qr.nav.menu")}
           </Link>
-          <Link to="/m/orders" className={isOrders ? "is-active" : ""}>
-            {t("qr.nav.orders")}
+          <Link to={cartPath} className={isCart ? "is-active" : ""}>
+            {t("qr.myCart")}
           </Link>
         </nav>
 

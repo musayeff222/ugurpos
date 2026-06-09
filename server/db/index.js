@@ -8,8 +8,10 @@ import { ensureDefaultBranch, rowToBranch } from "./migrate-branches.js";
 import { useMysql } from "./dialect.js";
 import { createMysqlDb, getMysqlConfigFromEnv } from "./mysql-driver.js";
 import { seedCigkofteProducts, seedCigkofteForAllBranches, repairCigkofteProductImages } from "../seed/cigkofte/seedProducts.js";
+import { publishCigkofteSeedImages } from "../utils/cigkofteImages.js";
 import { migrateUploadsFromDataDir } from "../utils/migrateUploads.js";
 import { productImagePublicUrl } from "../utils/uploadsDir.js";
+import { seedImagePublicUrl } from "../utils/cigkofteImages.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -96,6 +98,10 @@ function ensureCigkofteCatalog(database) {
     const repaired = repairCigkofteProductImages(database);
     if (repaired > 0) {
       console.log(`[DB] Cigkofte urun resimleri guncellendi: ${repaired} kayit`);
+    }
+    const published = publishCigkofteSeedImages();
+    if (published > 0) {
+      console.log(`[DB] Cigkofte seed resimleri yayinlandi: ${published} dosya`);
     }
   } catch (err) {
     console.warn("[DB] Cigkofte urun seed atlandi:", err.message);
@@ -191,6 +197,8 @@ function seedIfEmpty(database) {
 
 export function rowToProduct(row) {
   if (!row) return null;
+  const uploadUrl = row.image_path ? productImagePublicUrl(row.branch_id, row.image_path) : null;
+  const seedUrl = seedImagePublicUrl(row.stock_code);
   return {
     id: row.id,
     barcode: row.barcode,
@@ -206,8 +214,8 @@ export function rowToProduct(row) {
     unit: row.unit || "Adet",
     onSalePage: !!row.on_sale_page,
     active: !!row.active,
-    hasImage: !!row.image_path,
-    imageUrl: row.image_path ? productImagePublicUrl(row.branch_id, row.image_path) : null,
+    hasImage: !!(uploadUrl || seedUrl),
+    imageUrl: uploadUrl || seedUrl,
   };
 }
 

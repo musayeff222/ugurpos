@@ -42,7 +42,6 @@ export default function StitchFooter({ firm }) {
             <li>{t("qr.nav.home")}</li>
             <li>{t("qr.nav.menu")}</li>
             <li>{t("qr.myCart")}</li>
-            <li>{t("qr.nav.orders")}</li>
           </ul>
         </div>
         <div className="sf-footer__col">

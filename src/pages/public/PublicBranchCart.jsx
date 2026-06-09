@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
 import PublicBranchBar from "../../components/public/PublicBranchBar";
 import StitchIcon from "../../components/public/StitchIcon";
 import { useLocale } from "../../context/LocaleContext";
-import { formatMoney } from "../../utils/format";
+import { formatPublicMoney } from "../../utils/publicMoney";
 import { requestUserLocation } from "../../utils/geo";
-import { fetchPublicBranchMenu, submitPublicOrder } from "../../utils/qrMenuPublic";
+import { fetchPublicBranchMenu, getPublicProductImageSrc, submitPublicOrder } from "../../utils/qrMenuPublic";
 import { loadBranchCart, saveBranchCart, rememberOrder, saveLastBranchId } from "../../utils/qrMenuStorage";
 import "../../styles/public-qr-menu.css";
 
 export default function PublicBranchCart() {
   const { branchId } = useParams();
   const navigate = useNavigate();
-  const { t, lang } = useLocale();
+  const { t } = useLocale();
   const [menu, setMenu] = useState(null);
   const [cart, setCart] = useState(() => loadBranchCart(branchId));
   const [form, setForm] = useState({
@@ -39,7 +39,7 @@ export default function PublicBranchCart() {
 
   const cartTotal = cart.reduce((sum, line) => sum + line.qty * line.price, 0);
   const cartCount = cart.reduce((sum, line) => sum + line.qty, 0);
-  const money = (value) => formatMoney(value, lang);
+  const money = (value) => formatPublicMoney(value);
 
   const updateQty = (productId, qty) => {
     setCart((prev) => {
@@ -99,7 +99,7 @@ export default function PublicBranchCart() {
 
         <div className="sf-page-head">
           <h2>{t("qr.completeOrder")}</h2>
-          <p>{t("qr.checkoutSubtitle")}</p>
+          <p>{t("qr.payOnDelivery")}</p>
         </div>
 
         <div className="sf-checkout-grid">
@@ -109,7 +109,12 @@ export default function PublicBranchCart() {
                 <StitchIcon name="shopping_cart" /> {t("qr.myCart")} ({cartCount})
               </h3>
               {cart.length === 0 ? (
-                <p className="sf-empty">{t("qr.cartEmpty")}</p>
+                <p className="sf-empty">
+                  {t("qr.cartEmpty")}{" "}
+                  <Link to={`/m/branch/${branchId}`} className="sf-link">
+                    {t("qr.nav.menu")}
+                  </Link>
+                </p>
               ) : (
                 <div className="sf-cart-lines">
                   {cart.map((line) => (
@@ -143,14 +148,6 @@ export default function PublicBranchCart() {
                 </div>
               )}
             </section>
-
-            <div className="sf-trust-badge">
-              <StitchIcon name="verified_user" />
-              <div>
-                <strong>{t("qr.trustTitle")}</strong>
-                <p>{t("qr.trustDesc")}</p>
-              </div>
-            </div>
           </div>
 
           {cart.length > 0 && canOrder && (
@@ -208,11 +205,11 @@ export default function PublicBranchCart() {
                   <span>{t("common.total")}</span>
                   <strong className="sf-order-summary__total">{money(cartTotal)}</strong>
                 </div>
+                <p className="sf-order-summary__note">{t("qr.payOnDelivery")}</p>
                 <button type="submit" className="sf-btn-checkout" disabled={submitting}>
-                  {submitting ? t("qr.sending") : t("qr.confirmOrder")}
-                  <StitchIcon name="arrow_forward" />
+                  {submitting ? t("qr.sending") : t("qr.sendOrder", { total: money(cartTotal) })}
+                  <StitchIcon name="send" />
                 </button>
-                <p className="sf-order-summary__legal">{t("qr.checkoutLegal")}</p>
               </section>
             </form>
           )}

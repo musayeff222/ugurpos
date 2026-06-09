@@ -10,7 +10,7 @@ import {
   fetchPublicFirmMenu,
   getPublicProductImageSrc,
 } from "../../utils/qrMenuPublic";
-import { formatMoney } from "../../utils/format";
+import { formatPublicMoney } from "../../utils/publicMoney";
 import "../../styles/public-qr-menu.css";
 
 const LANG_KEY = "ugurpos_lang";
@@ -99,7 +99,7 @@ export default function PublicMenuLanding() {
   }, [preview]);
 
   const previewBranchId = preview?.branch?.id;
-  const money = (v) => formatMoney(v, lang);
+  const money = (v) => formatPublicMoney(v);
   const firm = data?.firm;
   const welcome = firm?.menuWelcome || t("qr.heroSubtitle");
 

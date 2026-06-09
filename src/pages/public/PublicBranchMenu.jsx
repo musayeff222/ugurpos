@@ -4,7 +4,7 @@ import PublicQrShell from "../../components/public/PublicQrShell";
 import PublicBranchBar from "../../components/public/PublicBranchBar";
 import StitchProductCard from "../../components/public/StitchProductCard";
 import { useLocale } from "../../context/LocaleContext";
-import { formatMoney } from "../../utils/format";
+import { formatPublicMoney } from "../../utils/publicMoney";
 import {
   fetchPublicBranchMenu,
   getPublicProductImageSrc,
@@ -15,7 +15,7 @@ import "../../styles/public-qr-menu.css";
 export default function PublicBranchMenu() {
   const { branchId } = useParams();
   const navigate = useNavigate();
-  const { t, lang } = useLocale();
+  const { t } = useLocale();
   const [menu, setMenu] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -48,10 +48,10 @@ export default function PublicBranchMenu() {
 
   const cartCount = cart.reduce((sum, line) => sum + line.qty, 0);
   const cartTotal = cart.reduce((sum, line) => sum + line.qty * line.price, 0);
-  const money = (value) => formatMoney(value, lang);
+  const money = (value) => formatPublicMoney(value);
 
   const addToCart = (product) => {
-    const imageUrl = product.hasImage ? getPublicProductImageSrc(branchId, product) : null;
+    const imageUrl = getPublicProductImageSrc(branchId, product);
     setCart((prev) => {
       const existing = prev.find((line) => line.productId === product.id);
       if (existing) {
@@ -157,7 +157,7 @@ export default function PublicBranchMenu() {
               <StitchProductCard
                 key={product.id}
                 product={product}
-                imageSrc={product.hasImage ? getPublicProductImageSrc(branchId, product) : null}
+                imageSrc={getPublicProductImageSrc(branchId, product)}
                 priceLabel={money(product.price1)}
                 description={product.unit ? `${product.unit}` : undefined}
                 canOrder={canOrder}
