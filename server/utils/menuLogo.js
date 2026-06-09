@@ -18,10 +18,10 @@ export function getMenuLogoDir(firmId) {
   return dir;
 }
 
-function removeExistingLogos(dir) {
+function clearLogoDir(dir) {
   if (!fs.existsSync(dir)) return;
   for (const file of fs.readdirSync(dir)) {
-    if (file.startsWith("logo.")) fs.unlinkSync(path.join(dir, file));
+    fs.unlinkSync(path.join(dir, file));
   }
 }
 
@@ -34,15 +34,15 @@ export function saveMenuLogo(firmId, base64Data, mime) {
   if (buffer.length > MAX_BYTES) throw new Error("Logo 2MB'dan küçük olmalı");
 
   const ext = MIME_EXT[mime] || ".jpg";
-  const filename = `logo${ext}`;
+  const filename = `logo-${Date.now()}${ext}`;
   const dir = getMenuLogoDir(firmId);
-  removeExistingLogos(dir);
+  clearLogoDir(dir);
   fs.writeFileSync(path.join(dir, filename), buffer);
   return filename;
 }
 
 export function deleteMenuLogo(firmId) {
-  removeExistingLogos(getMenuLogoDir(firmId));
+  clearLogoDir(getMenuLogoDir(firmId));
 }
 
 export function resolveMenuLogoFile(firmId, logoPath) {
@@ -55,6 +55,19 @@ export function resolveMenuLogoFile(firmId, logoPath) {
   if (fs.existsSync(legacy)) return legacy;
 
   return null;
+}
+
+/** Tarayici onbellegini kirmak icin dosya degisim zamanini ekler. */
+export function menuLogoPublicUrlWithVersion(firmId, logoPath) {
+  if (!firmId || !logoPath) return null;
+  const base = `/uploads/menu-logos/${encodeURIComponent(firmId)}/${encodeURIComponent(logoPath)}`;
+  const filePath = resolveMenuLogoFile(firmId, logoPath);
+  if (!filePath) return base;
+  try {
+    return `${base}?v=${fs.statSync(filePath).mtimeMs}`;
+  } catch {
+    return base;
+  }
 }
 
 export { contentTypeForImagePath } from "./productImage.js";

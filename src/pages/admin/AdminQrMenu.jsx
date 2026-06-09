@@ -126,8 +126,9 @@ export default function AdminQrMenu() {
         payload.logoData = logoValue.data;
         payload.logoMime = logoValue.mime;
       }
-      await api.updateAdminQrMenu(payload);
-      await loadSettings();
+      const data = await api.updateAdminQrMenu(payload);
+      setFirm(data.firm);
+      setLogoValue(undefined);
       setMessage(t("admin.qr.firmSaved"));
     } catch (err) {
       setError(err.message);
@@ -262,7 +263,11 @@ export default function AdminQrMenu() {
               <div className="admin-qr-logo-upload">
                 <label>{t("admin.qr.menuLogo")}</label>
                 <ProductImageField
-                  product={firm?.hasLogo && logoValue !== null ? { hasImage: true, id: "logo" } : null}
+                  product={
+                    firm?.hasLogo && logoValue !== null
+                      ? { hasImage: true, id: "logo", imageUrl: firm.logoUrl }
+                      : null
+                  }
                   value={logoValue}
                   onChange={setLogoValue}
                 />
@@ -272,7 +277,7 @@ export default function AdminQrMenu() {
                 style={selectedTheme ? { background: selectedTheme.preview } : undefined}
               >
                 {logoPreviewSrc ? (
-                  <img src={logoPreviewSrc} alt="" className="admin-qr-design-preview__logo" />
+                  <img src={logoPreviewSrc} alt="" className="admin-qr-design-preview__logo" key={logoPreviewSrc} />
                 ) : (
                   <div className="admin-qr-design-preview__logo admin-qr-design-preview__logo--empty">
                     <i className="fa fa-cutlery" />

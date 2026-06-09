@@ -16,6 +16,10 @@ export default function ProductImageField({ product, value, onChange }) {
       setPreview(value.previewUrl);
       return;
     }
+    if (product?.imageUrl) {
+      setPreview(product.imageUrl);
+      return;
+    }
     if (product?.hasImage && value !== null) {
       setPreview(getProductImageSrc(product));
     }

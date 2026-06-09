@@ -232,7 +232,7 @@ router.get("/menu/logo", (req, res) => {
   if (!filePath) return res.status(404).end();
 
   res.setHeader("Content-Type", contentTypeForImagePath(firmRow.menu_logo_path));
-  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.setHeader("Cache-Control", "no-cache");
   res.sendFile(filePath);
 });
 

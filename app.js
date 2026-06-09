@@ -21,6 +21,15 @@ if (!process.env.VERCEL) {
   }
 
   app.use(
+    "/uploads/menu-logos",
+    express.static(path.join(uploadsDir, "menu-logos"), {
+      maxAge: 0,
+      etag: true,
+      fallthrough: true,
+    })
+  );
+
+  app.use(
     "/uploads",
     express.static(uploadsDir, {
       maxAge: process.env.NODE_ENV === "production" ? "7d" : 0,

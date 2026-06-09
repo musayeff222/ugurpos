@@ -27,7 +27,7 @@ export default function StitchAppBar({ firm, branchId, cartCount = 0 }) {
       <div className="sf-appbar__inner">
         <Link to="/m" className="sf-appbar__brand">
           {logoUrl ? (
-            <img src={logoUrl} alt="" className="sf-appbar__logo" />
+            <img src={logoUrl} alt="" className="sf-appbar__logo" key={logoUrl} />
           ) : (
             <StitchIcon name="restaurant" className="sf-appbar__brand-icon" />
           )}

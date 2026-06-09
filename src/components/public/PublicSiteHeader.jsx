@@ -11,7 +11,7 @@ export default function PublicSiteHeader({ firm }) {
     <header className="stitch-site-header">
       <div className="stitch-site-header__logo-wrap">
         {logoUrl ? (
-          <img src={logoUrl} alt={title} className="stitch-site-header__logo" />
+          <img src={logoUrl} alt={title} className="stitch-site-header__logo" key={logoUrl} />
         ) : (
           <div className="stitch-site-header__logo-fallback" aria-hidden="true">
             <i className="fa fa-cutlery" />
