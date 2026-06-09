@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
+import StitchIcon from "../../components/public/StitchIcon";
 import { useLocale } from "../../context/LocaleContext";
 import { formatMoney } from "../../utils/format";
 import { fetchMyPublicOrders, fetchPublicFirmMenu, fetchPublicOrder } from "../../utils/qrMenuPublic";
@@ -12,10 +13,10 @@ import {
 import "../../styles/public-qr-menu.css";
 
 const STATUS_ICON = {
-  pending: "fa-clock-o",
-  accepted: "fa-check",
-  rejected: "fa-times",
-  completed: "fa-check-circle",
+  pending: "schedule",
+  accepted: "check_circle",
+  rejected: "cancel",
+  completed: "task_alt",
 };
 
 export default function PublicMyOrders() {
@@ -65,17 +66,17 @@ export default function PublicMyOrders() {
 
   return (
     <PublicQrShell firm={firm} navActive="orders">
-      <div className="stitch-container">
-        <div className="stitch-page-head">
+      <div className="sf-container">
+        <div className="sf-page-head">
           <h2>{t("qr.nav.orders")}</h2>
           <p>{t("qr.ordersPageHint")}</p>
         </div>
 
-        <div className="stitch-order-grid">
+        <div className="sf-order-grid">
           {orders.length === 0 ? (
-            <div className="stitch-panel stitch-empty">
+            <div className="sf-panel sf-empty">
               <p>{t("qr.myOrdersEmpty")}</p>
-              <Link to="/m" className="stitch-btn-secondary">
+              <Link to="/m" className="sf-btn-outline">
                 {t("qr.nav.home")}
               </Link>
             </div>
@@ -84,17 +85,18 @@ export default function PublicMyOrders() {
               const full = details[item.id] || item;
               const status = full.status || "pending";
               return (
-                <Link key={item.id} to={`/m/order/${item.id}`} className={`stitch-order-card status-${status}`}>
-                  <div className="stitch-order-card__head">
+                <Link key={item.id} to={`/m/order/${item.id}`} className={`sf-order-card status-${status}`}>
+                  <div className="sf-order-card__head">
                     <strong>{full.code || item.code}</strong>
-                    <span className={`qr-order-badge ${status}`}>
-                      <i className={`fa ${STATUS_ICON[status] || "fa-info"}`} /> {statusLabel(status)}
+                    <span className={`sf-order-badge ${status}`}>
+                      <StitchIcon name={STATUS_ICON[status] || "info"} />
+                      {statusLabel(status)}
                     </span>
                   </div>
                   <p>
                     #{full.branchNo || ""} {full.branchName || ""}
                   </p>
-                  <strong className="stitch-order-card__total">{money(full.total)}</strong>
+                  <strong className="sf-order-card__total">{money(full.total)}</strong>
                   <small>{new Date(full.createdAt).toLocaleString(lang === "az" ? "az-AZ" : "tr-TR")}</small>
                 </Link>
               );

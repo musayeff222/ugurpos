@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
 import PublicBranchBar from "../../components/public/PublicBranchBar";
+import StitchIcon from "../../components/public/StitchIcon";
 import { useLocale } from "../../context/LocaleContext";
 import { formatMoney } from "../../utils/format";
 import { requestUserLocation } from "../../utils/geo";
@@ -93,107 +94,131 @@ export default function PublicBranchCart() {
 
   return (
     <PublicQrShell firm={menu?.firm} branchId={branchId} cartCount={cartCount} navActive="cart">
-      <div className="stitch-container">
+      <div className="sf-container sf-checkout-page">
         <PublicBranchBar branch={branch} onBack={() => navigate(`/m/branch/${branchId}`)} />
 
-        <div className="stitch-page-head">
+        <div className="sf-page-head">
           <h2>{t("qr.completeOrder")}</h2>
-          <p>{t("qr.checkoutBranch", { branch: branchLabel })}</p>
+          <p>{t("qr.checkoutSubtitle")}</p>
         </div>
 
-        <div className="stitch-checkout-layout">
-          <section className="stitch-panel">
-            <h3>
-              <i className="fa fa-shopping-cart" /> {t("qr.myCart")} ({cartCount})
-            </h3>
-            {cart.length === 0 ? (
-              <p className="stitch-empty">{t("qr.cartEmpty")}</p>
-            ) : (
-              <ul className="stitch-cart-list">
-                {cart.map((line) => (
-                  <li key={line.productId} className="stitch-cart-item">
-                    <div className="stitch-cart-item__media">
-                      {line.imageUrl ? (
-                        <img src={line.imageUrl} alt={line.name} />
-                      ) : (
-                        <div className="stitch-cart-item__placeholder">
-                          <i className="fa fa-cutlery" />
+        <div className="sf-checkout-grid">
+          <div className="sf-checkout-main">
+            <section className="sf-panel">
+              <h3>
+                <StitchIcon name="shopping_cart" /> {t("qr.myCart")} ({cartCount})
+              </h3>
+              {cart.length === 0 ? (
+                <p className="sf-empty">{t("qr.cartEmpty")}</p>
+              ) : (
+                <div className="sf-cart-lines">
+                  {cart.map((line) => (
+                    <article key={line.productId} className="sf-cart-line">
+                      <div className="sf-cart-line__media">
+                        {line.imageUrl ? (
+                          <img src={line.imageUrl} alt={line.name} />
+                        ) : (
+                          <div className="sf-cart-line__placeholder">
+                            <StitchIcon name="restaurant" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="sf-cart-line__body">
+                        <div className="sf-cart-line__head">
+                          <h4>{line.name}</h4>
+                          <span>{money(line.price * line.qty)}</span>
                         </div>
-                      )}
-                    </div>
-                    <div className="stitch-cart-item__body">
-                      <div className="stitch-cart-item__head">
-                        <strong>{line.name}</strong>
-                        <span>{money(line.price * line.qty)}</span>
+                        <div className="sf-qty-pill">
+                          <button type="button" onClick={() => updateQty(line.productId, line.qty - 1)} aria-label="-">
+                            <StitchIcon name="remove" />
+                          </button>
+                          <span>{line.qty}</span>
+                          <button type="button" onClick={() => updateQty(line.productId, line.qty + 1)} aria-label="+">
+                            <StitchIcon name="add" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="stitch-qty-pill">
-                        <button type="button" onClick={() => updateQty(line.productId, line.qty - 1)} aria-label="-">
-                          <i className="fa fa-minus" />
-                        </button>
-                        <span>{line.qty}</span>
-                        <button type="button" onClick={() => updateQty(line.productId, line.qty + 1)} aria-label="+">
-                          <i className="fa fa-plus" />
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="stitch-cart-total">
-              <span>{t("common.total")}</span>
-              <strong>{money(cartTotal)}</strong>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <div className="sf-trust-badge">
+              <StitchIcon name="verified_user" />
+              <div>
+                <strong>{t("qr.trustTitle")}</strong>
+                <p>{t("qr.trustDesc")}</p>
+              </div>
             </div>
-          </section>
+          </div>
 
           {cart.length > 0 && canOrder && (
-            <form className="stitch-panel stitch-checkout-form" onSubmit={handleSubmit}>
-              <h3>{t("qr.checkoutTitle")}</h3>
-              {error && <div className="stitch-alert stitch-alert--error">{error}</div>}
-              <label>{t("qr.fullName")} *</label>
-              <input
-                className="stitch-input"
-                value={form.customerName}
-                onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                required
-              />
-              <label>{t("qr.phone")} *</label>
-              <input
-                className="stitch-input"
-                value={form.customerPhone}
-                onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
-                required
-              />
-              <label>{t("qr.deliveryAddress")} *</label>
-              <textarea
-                className="stitch-input"
-                rows={2}
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-                placeholder={t("qr.deliveryAddressPlaceholder")}
-                required
-              />
-              <div className="stitch-checkout-location">
-                <button type="button" className="stitch-btn-secondary" onClick={useMyLocation} disabled={locating}>
-                  {locating ? t("qr.locating") : t("qr.useMyDeliveryLocation")}
+            <form className="sf-checkout-side" onSubmit={handleSubmit}>
+              <section className="sf-panel">
+                <h3>
+                  <StitchIcon name="location_on" /> {t("qr.deliveryAddress")}
+                </h3>
+                {error && <div className="sf-alert">{error}</div>}
+                <label>{t("qr.fullName")} *</label>
+                <input
+                  className="sf-input"
+                  value={form.customerName}
+                  onChange={(e) => setForm({ ...form, customerName: e.target.value })}
+                  required
+                />
+                <label>{t("qr.phone")} *</label>
+                <input
+                  className="sf-input"
+                  value={form.customerPhone}
+                  onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
+                  required
+                />
+                <label>{t("qr.deliveryAddress")} *</label>
+                <textarea
+                  className="sf-input"
+                  rows={3}
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  placeholder={t("qr.deliveryAddressPlaceholder")}
+                  required
+                />
+                <div className="sf-checkout-location">
+                  <button type="button" className="sf-btn-outline" onClick={useMyLocation} disabled={locating}>
+                    <StitchIcon name="my_location" />
+                    {locating ? t("qr.locating") : t("qr.useMyDeliveryLocation")}
+                  </button>
+                  {hasDeliveryLocation && <span className="sf-success">{t("qr.deliveryLocationSet")}</span>}
+                </div>
+                <label>{t("qr.orderNote")}</label>
+                <textarea
+                  className="sf-input"
+                  rows={2}
+                  value={form.note}
+                  onChange={(e) => setForm({ ...form, note: e.target.value })}
+                />
+              </section>
+
+              <section className="sf-panel sf-order-summary">
+                <h3>{t("qr.orderSummary")}</h3>
+                <div className="sf-order-summary__row">
+                  <span>{t("qr.orderBranch", { branch: branchLabel })}</span>
+                </div>
+                <div className="sf-order-summary__row">
+                  <span>{t("common.total")}</span>
+                  <strong className="sf-order-summary__total">{money(cartTotal)}</strong>
+                </div>
+                <button type="submit" className="sf-btn-checkout" disabled={submitting}>
+                  {submitting ? t("qr.sending") : t("qr.confirmOrder")}
+                  <StitchIcon name="arrow_forward" />
                 </button>
-                {hasDeliveryLocation && <span className="stitch-success-text">{t("qr.deliveryLocationSet")}</span>}
-              </div>
-              <label>{t("qr.orderNote")}</label>
-              <textarea
-                className="stitch-input"
-                rows={2}
-                value={form.note}
-                onChange={(e) => setForm({ ...form, note: e.target.value })}
-              />
-              <button type="submit" className="stitch-btn-checkout" disabled={submitting}>
-                {submitting ? t("qr.sending") : t("qr.sendOrder", { total: money(cartTotal) })}
-              </button>
+                <p className="sf-order-summary__legal">{t("qr.checkoutLegal")}</p>
+              </section>
             </form>
           )}
 
           {cart.length > 0 && !canOrder && (
-            <div className="stitch-panel stitch-alert">
+            <div className="sf-panel sf-alert">
               {branch?.isOpen === false ? t("qr.closedNotice") : t("qr.viewOnlyNotice")}
             </div>
           )}

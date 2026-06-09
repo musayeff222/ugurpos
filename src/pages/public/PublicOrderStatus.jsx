@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
+import StitchIcon from "../../components/public/StitchIcon";
 import { useLocale } from "../../context/LocaleContext";
 import { formatMoney } from "../../utils/format";
 import { fetchPublicFirmMenu, fetchPublicOrder } from "../../utils/qrMenuPublic";
@@ -8,10 +9,10 @@ import { rememberOrder } from "../../utils/qrMenuStorage";
 import "../../styles/public-qr-menu.css";
 
 const STATUS_META = {
-  pending: { icon: "fa-clock-o", className: "pending" },
-  accepted: { icon: "fa-check", className: "accepted" },
-  rejected: { icon: "fa-times", className: "rejected" },
-  completed: { icon: "fa-check-circle", className: "completed" },
+  pending: { icon: "schedule", className: "pending" },
+  accepted: { icon: "check_circle", className: "accepted" },
+  rejected: { icon: "cancel", className: "rejected" },
+  completed: { icon: "task_alt", className: "completed" },
 };
 
 export default function PublicOrderStatus() {
@@ -48,8 +49,8 @@ export default function PublicOrderStatus() {
   if (error && !order) {
     return (
       <PublicQrShell firm={firm} navActive="orders">
-        <div className="stitch-container">
-          <div className="stitch-alert stitch-alert--error">{error}</div>
+        <div className="sf-container">
+          <div className="sf-alert">{error}</div>
         </div>
       </PublicQrShell>
     );
@@ -58,8 +59,8 @@ export default function PublicOrderStatus() {
   if (!order) {
     return (
       <PublicQrShell firm={firm} navActive="orders">
-        <div className="stitch-container">
-          <div className="stitch-loading">{t("qr.loadingOrder")}</div>
+        <div className="sf-container">
+          <div className="sf-loading">{t("qr.loadingOrder")}</div>
         </div>
       </PublicQrShell>
     );
@@ -69,42 +70,42 @@ export default function PublicOrderStatus() {
 
   return (
     <PublicQrShell firm={shellFirm} branchId={order.branchId} navActive="orders">
-      <div className="stitch-container">
-        <div className="stitch-panel stitch-order-status">
-          <div className={`qr-order-badge stitch-order-status__badge ${meta.className}`}>
-            <i className={`fa ${meta.icon}`} />
+      <div className="sf-container">
+        <div className="sf-panel sf-order-status">
+          <div className={`sf-order-badge sf-order-status__badge ${meta.className}`}>
+            <StitchIcon name={meta.icon} />
             {statusText}
           </div>
           <h1>{t("qr.orderReceived")}</h1>
-          <p className="stitch-order-status__code">{order.code}</p>
+          <p className="sf-order-status__code">{order.code}</p>
           {order.firmName && (
-            <p className="stitch-meta-row">
+            <p className="sf-meta-row">
               {t("qr.firm")}: <strong>{order.firmName}</strong>
             </p>
           )}
-          <p className="stitch-meta-row">
+          <p className="sf-meta-row">
             {t("qr.branch")}: <strong>#{order.branchNo} {order.branchName}</strong>
           </p>
           {(order.deliveryAddress || order.tableNo) && (
-            <p className="stitch-meta-row">
+            <p className="sf-meta-row">
               {t("qr.orderDeliveryAddress")}: <strong>{order.deliveryAddress || order.tableNo}</strong>
             </p>
           )}
           {order.customerPhone && (
-            <p className="stitch-meta-row">
+            <p className="sf-meta-row">
               {t("qr.phone")}: <strong>{order.customerPhone}</strong>
             </p>
           )}
-          <ul className="stitch-order-status__items">
+          <ul className="sf-order-status__items">
             {order.items.map((item) => (
               <li key={item.id}>
                 {item.qty}x {item.name} — {money(item.qty * item.price)}
               </li>
             ))}
           </ul>
-          <div className="stitch-cart-total">
+          <div className="sf-order-summary__row">
             <span>{t("common.total")}</span>
-            <strong>{money(order.total)}</strong>
+            <strong className="sf-order-summary__total">{money(order.total)}</strong>
           </div>
         </div>
       </div>

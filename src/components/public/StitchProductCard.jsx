@@ -1,13 +1,16 @@
 import { useState } from "react";
+import StitchIcon from "./StitchIcon";
 import { useLocale } from "../../context/LocaleContext";
 
 export default function StitchProductCard({
   product,
   imageSrc,
   priceLabel,
+  description,
   canOrder,
   onAdd,
   layout = "grid",
+  badge,
 }) {
   const { t } = useLocale();
   const [added, setAdded] = useState(false);
@@ -16,34 +19,35 @@ export default function StitchProductCard({
     if (!canOrder) return;
     onAdd?.();
     setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+    setTimeout(() => setAdded(false), 1800);
   };
 
   if (layout === "row") {
     return (
-      <article className="stitch-product-row">
-        <div className="stitch-product-row__media">
+      <article className="sf-product-row">
+        <div className="sf-product-row__media">
           {imageSrc ? (
             <img src={imageSrc} alt={product.name} loading="lazy" />
           ) : (
-            <div className="stitch-product-row__placeholder">
-              <i className="fa fa-cutlery" />
+            <div className="sf-product-row__placeholder">
+              <StitchIcon name="restaurant" />
             </div>
           )}
         </div>
-        <div className="stitch-product-row__body">
-          <div>
+        <div className="sf-product-row__body">
+          <div className="sf-product-row__info">
             <h4>{product.name}</h4>
-            <p className="stitch-product-row__price">{priceLabel}</p>
+            {description && <p>{description}</p>}
+            <span className="sf-product-row__price">{priceLabel}</span>
           </div>
           {canOrder && (
             <button
               type="button"
-              className={`stitch-icon-add ${added ? "is-added" : ""}`}
+              className={`sf-product-row__add ${added ? "is-added" : ""}`}
               onClick={handleAdd}
               aria-label={t("qr.addToCart")}
             >
-              <i className={`fa ${added ? "fa-check" : "fa-plus"}`} />
+              <StitchIcon name={added ? "check" : "add"} />
             </button>
           )}
         </div>
@@ -52,28 +56,26 @@ export default function StitchProductCard({
   }
 
   return (
-    <article className="stitch-product-card">
-      <div className="stitch-product-card__media">
+    <article className="sf-product-card">
+      <div className="sf-product-card__media">
         {imageSrc ? (
           <img src={imageSrc} alt={product.name} loading="lazy" />
         ) : (
-          <div className="stitch-product-card__placeholder">
-            <i className="fa fa-cutlery" />
+          <div className="sf-product-card__placeholder">
+            <StitchIcon name="restaurant" />
           </div>
         )}
+        {badge && <span className={`sf-product-card__badge ${badge.tone || ""}`}>{badge.text}</span>}
       </div>
-      <div className="stitch-product-card__body">
-        <div className="stitch-product-card__head">
+      <div className="sf-product-card__body">
+        <div className="sf-product-card__head">
           <h3>{product.name}</h3>
-          <span className="stitch-product-card__price">{priceLabel}</span>
+          <span className="sf-product-card__price">{priceLabel}</span>
         </div>
+        {description && <p className="sf-product-card__desc">{description}</p>}
         {canOrder && (
-          <button
-            type="button"
-            className={`stitch-btn-add ${added ? "is-added" : ""}`}
-            onClick={handleAdd}
-          >
-            <i className={`fa ${added ? "fa-check" : "fa-shopping-cart"}`} />
+          <button type="button" className={`sf-btn-add ${added ? "is-added" : ""}`} onClick={handleAdd}>
+            <StitchIcon name={added ? "check_circle" : "add_shopping_cart"} />
             {added ? t("qr.addedToCart") : t("qr.addToCart")}
           </button>
         )}

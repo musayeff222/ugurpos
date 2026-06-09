@@ -20,6 +20,7 @@ export default function PublicBranchMenu() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeGroup, setActiveGroup] = useState("all");
+  const [search, setSearch] = useState("");
   const [cart, setCart] = useState(() => loadBranchCart(branchId));
 
   useEffect(() => {
@@ -38,9 +39,12 @@ export default function PublicBranchMenu() {
 
   const products = useMemo(() => {
     if (!menu?.products) return [];
-    if (activeGroup === "all") return menu.products;
-    return menu.products.filter((p) => p.groupId === activeGroup);
-  }, [menu, activeGroup]);
+    let list = menu.products;
+    if (activeGroup !== "all") list = list.filter((p) => p.groupId === activeGroup);
+    const q = search.trim().toLowerCase();
+    if (q) list = list.filter((p) => p.name?.toLowerCase().includes(q));
+    return list;
+  }, [menu, activeGroup, search]);
 
   const cartCount = cart.reduce((sum, line) => sum + line.qty, 0);
   const cartTotal = cart.reduce((sum, line) => sum + line.qty * line.price, 0);
@@ -65,8 +69,8 @@ export default function PublicBranchMenu() {
   if (loading) {
     return (
       <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="stitch-container">
-          <div className="stitch-loading">{t("qr.loadingMenu")}</div>
+        <div className="sf-container">
+          <div className="sf-loading">{t("qr.loadingMenu")}</div>
         </div>
       </PublicQrShell>
     );
@@ -75,8 +79,8 @@ export default function PublicBranchMenu() {
   if (error && !menu) {
     return (
       <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="stitch-container">
-          <div className="stitch-alert stitch-alert--error">{error}</div>
+        <div className="sf-container">
+          <div className="sf-alert">{error}</div>
         </div>
       </PublicQrShell>
     );
@@ -85,8 +89,8 @@ export default function PublicBranchMenu() {
   if (!menu?.branch) {
     return (
       <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="stitch-container">
-          <div className="stitch-alert stitch-alert--error">{error || t("qr.menuNotFound")}</div>
+        <div className="sf-container">
+          <div className="sf-alert">{error || t("qr.menuNotFound")}</div>
         </div>
       </PublicQrShell>
     );
@@ -97,54 +101,72 @@ export default function PublicBranchMenu() {
 
   return (
     <PublicQrShell firm={menu.firm} branchId={branchId} cartCount={cartCount} navActive="menu">
-      <div className="stitch-container">
-        <PublicBranchBar branch={branch} onBack={() => navigate("/m")} />
+      <div className="sf-menu-page">
+        <div className="sf-container">
+          <PublicBranchBar branch={branch} onBack={() => navigate("/m")} />
 
-        {error && <div className="stitch-alert">{error}</div>}
-        {!canOrder && branch.menuAcceptOrders === false && (
-          <div className="stitch-alert">{t("qr.viewOnlyNotice")}</div>
-        )}
-        {branch.menuAcceptOrders && !branch.isOpen && (
-          <div className="stitch-alert">{t("qr.closedNotice")}</div>
-        )}
-
-        <div className="stitch-category-bar">
-          <button type="button" className={activeGroup === "all" ? "is-active" : ""} onClick={() => setActiveGroup("all")}>
-            {t("common.all")}
-          </button>
-          {(menu.groups || []).map((group) => (
-            <button
-              key={group.id}
-              type="button"
-              className={activeGroup === group.id ? "is-active" : ""}
-              onClick={() => setActiveGroup(group.id)}
-            >
-              {group.name}
-            </button>
-          ))}
-        </div>
-
-        <div className="stitch-section-head">
-          <h2>{t("qr.nav.menu")}</h2>
-          {cartCount > 0 && (
-            <Link to={`/m/branch/${branchId}/cart`} className="stitch-link">
-              {t("qr.myCart")} · {money(cartTotal)}
-            </Link>
+          {error && <div className="sf-alert">{error}</div>}
+          {!canOrder && branch.menuAcceptOrders === false && (
+            <div className="sf-alert">{t("qr.viewOnlyNotice")}</div>
           )}
+          {branch.menuAcceptOrders && !branch.isOpen && (
+            <div className="sf-alert">{t("qr.closedNotice")}</div>
+          )}
+
+          <div className="sf-search sf-search--menu">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("qr.searchProduct")}
+            />
+            <span className="material-symbols-outlined">search</span>
+          </div>
         </div>
 
-        <div className="stitch-product-grid">
-          {products.map((product) => (
-            <StitchProductCard
-              key={product.id}
-              product={product}
-              imageSrc={product.hasImage ? getPublicProductImageSrc(branchId, product) : null}
-              priceLabel={money(product.price1)}
-              canOrder={canOrder}
-              onAdd={() => addToCart(product)}
-            />
-          ))}
-          {products.length === 0 && <p className="stitch-empty">{t("qr.noProducts")}</p>}
+        <div className="sf-category-sticky">
+          <div className="sf-category-bar">
+            <button type="button" className={activeGroup === "all" ? "is-active" : ""} onClick={() => setActiveGroup("all")}>
+              {t("common.all")}
+            </button>
+            {(menu.groups || []).map((group) => (
+              <button
+                key={group.id}
+                type="button"
+                className={activeGroup === group.id ? "is-active" : ""}
+                onClick={() => setActiveGroup(group.id)}
+              >
+                {group.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="sf-container">
+          <div className="sf-section-head">
+            <h2>{t("qr.popularFlavors")}</h2>
+            {cartCount > 0 && (
+              <Link to={`/m/branch/${branchId}/cart`} className="sf-link">
+                {t("qr.myCart")} · {money(cartTotal)}
+              </Link>
+            )}
+          </div>
+
+          <div className="sf-product-grid">
+            {products.map((product, index) => (
+              <StitchProductCard
+                key={product.id}
+                product={product}
+                imageSrc={product.hasImage ? getPublicProductImageSrc(branchId, product) : null}
+                priceLabel={money(product.price1)}
+                description={product.unit ? `${product.unit}` : undefined}
+                canOrder={canOrder}
+                onAdd={() => addToCart(product)}
+                badge={index === 0 ? { text: t("qr.popularBadge"), tone: "green" } : index === 1 ? { text: t("qr.popularBadgeAlt"), tone: "brown" } : null}
+              />
+            ))}
+            {products.length === 0 && <p className="sf-empty">{t("qr.noProducts")}</p>}
+          </div>
         </div>
       </div>
     </PublicQrShell>
