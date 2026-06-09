@@ -1,6 +1,7 @@
 import StitchAppBar from "./StitchAppBar";
 import StitchBottomNav from "./StitchBottomNav";
 import StitchFooter from "./StitchFooter";
+import StitchSocialBar from "./StitchSocialBar";
 import { getLastBranchId } from "../../utils/qrMenuStorage";
 
 export default function PublicQrShell({ firm, branchId, cartCount = 0, navActive = "home", children }) {
@@ -10,6 +11,7 @@ export default function PublicQrShell({ firm, branchId, cartCount = 0, navActive
     <div className="sf-app">
       <StitchAppBar firm={firm} branchId={activeBranchId} cartCount={cartCount} />
       <main className="sf-main">{children}</main>
+      <StitchSocialBar firm={firm} />
       <StitchFooter firm={firm} />
       <StitchBottomNav branchId={activeBranchId} cartCount={cartCount} active={navActive} />
     </div>

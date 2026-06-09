@@ -8,7 +8,7 @@ export default function StitchAppBar({ firm, branchId, cartCount = 0 }) {
   const { t } = useLocale();
   const location = useLocation();
   const activeBranchId = branchId || getLastBranchId();
-  const title = firm?.menuTitle || t("qr.badge");
+  const title = firm?.menuTitle || "Cigkofte";
   const logoUrl = firm?.logoUrl;
 
   const storedCartCount =

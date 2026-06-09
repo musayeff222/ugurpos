@@ -7,7 +7,7 @@ import { initSchema } from "./schema.js";
 import { ensureDefaultBranch, rowToBranch } from "./migrate-branches.js";
 import { useMysql } from "./dialect.js";
 import { createMysqlDb, getMysqlConfigFromEnv } from "./mysql-driver.js";
-import { seedCigkofteProducts, seedCigkofteForAllBranches } from "../seed/cigkofte/seedProducts.js";
+import { seedCigkofteProducts, seedCigkofteForAllBranches, repairCigkofteProductImages } from "../seed/cigkofte/seedProducts.js";
 import { migrateUploadsFromDataDir } from "../utils/migrateUploads.js";
 import { productImagePublicUrl } from "../utils/uploadsDir.js";
 
@@ -45,9 +45,43 @@ export function getDb() {
     initSchema(db);
     migrateUploadsFromDataDir(DATA_DIR);
     seedIfEmpty(db);
+    normalizeFirmBranding(db);
     ensureCigkofteCatalog(db);
   }
   return db;
+}
+
+function normalizeFirmBranding(database) {
+  try {
+    database
+      .prepare(
+        `UPDATE users SET firm_name = 'Cigkofte'
+         WHERE firm_name IS NULL OR TRIM(firm_name) = ''
+            OR UPPER(firm_name) LIKE '%SMART%ADMIN%'
+            OR UPPER(firm_name) LIKE '%SMARTADM%'`
+      )
+      .run();
+
+    database
+      .prepare(
+        `UPDATE firm_settings SET menu_title = 'Cigkofte'
+         WHERE menu_title IS NULL OR TRIM(menu_title) = ''
+            OR UPPER(menu_title) LIKE '%SMART%ADMIN%'
+            OR UPPER(menu_title) LIKE '%SMARTADM%'`
+      )
+      .run();
+
+    database
+      .prepare(
+        `UPDATE firm_settings SET
+          menu_social_instagram = CASE WHEN menu_social_instagram IS NULL OR TRIM(menu_social_instagram) = '' THEN 'cigkofte' ELSE menu_social_instagram END,
+          menu_social_tiktok = CASE WHEN menu_social_tiktok IS NULL OR TRIM(menu_social_tiktok) = '' THEN 'cigkofte' ELSE menu_social_tiktok END,
+          menu_social_facebook = CASE WHEN menu_social_facebook IS NULL OR TRIM(menu_social_facebook) = '' THEN 'cigkofte' ELSE menu_social_facebook END`
+      )
+      .run();
+  } catch (err) {
+    console.warn("[DB] Firma marka guncellemesi atlandi:", err.message);
+  }
 }
 
 function ensureCigkofteCatalog(database) {
@@ -58,6 +92,10 @@ function ensureCigkofteCatalog(database) {
       console.log(
         `[DB] Cigkofte urunleri eklendi: ${touched.map((r) => `${r.branchName} (${r.added})`).join(", ")}`
       );
+    }
+    const repaired = repairCigkofteProductImages(database);
+    if (repaired > 0) {
+      console.log(`[DB] Cigkofte urun resimleri guncellendi: ${repaired} kayit`);
     }
   } catch (err) {
     console.warn("[DB] Cigkofte urun seed atlandi:", err.message);
@@ -89,7 +127,7 @@ function seedIfEmpty(database) {
   const hash = bcrypt.hashSync("admin123", 10);
   database.prepare(
     "INSERT INTO users (id, email, password_hash, firm_id, firm_name, branch, role, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-  ).run("u1", "admin@benimpos.com", hash, firmId, "SMARTADMİN", "ANA HESAP", "admin", branchId);
+  ).run("u1", "admin@benimpos.com", hash, firmId, "Cigkofte", "ANA HESAP", "admin", branchId);
 
   const groups = [["g_cigkofte", "Çiğköfte"]];
   const insGroup = database.prepare("INSERT INTO `groups` (id, name, branch_id) VALUES (?, ?, ?)");

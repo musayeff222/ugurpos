@@ -104,9 +104,8 @@ function attachProductImage(db, branchId, productId, imageFile) {
     .prepare("SELECT image_path FROM products WHERE id = ? AND branch_id = ?")
     .get(productId, branchId);
 
-  if (row?.image_path === filename && fs.existsSync(dest)) {
-    return true;
-  }
+  const fileOk = row?.image_path && fs.existsSync(path.join(dir, row.image_path));
+  if (fileOk) return true;
 
   fs.copyFileSync(src, dest);
   db.prepare("UPDATE products SET image_path = ? WHERE id = ? AND branch_id = ?").run(
@@ -115,6 +114,25 @@ function attachProductImage(db, branchId, productId, imageFile) {
     branchId
   );
   return true;
+}
+
+/** Mevcut urunlerde eksik/bozuk resimleri seed dosyalarindan yeniden yukler. */
+export function repairCigkofteProductImages(db) {
+  const findByCode = db.prepare("SELECT id, branch_id, image_path FROM products WHERE stock_code = ? AND branch_id = ?");
+  let repaired = 0;
+
+  const branches = db.prepare("SELECT id FROM branches").all();
+  for (const branch of branches) {
+    for (const product of CIGKOFTA_PRODUCTS) {
+      const row = findByCode.get(product.stockCode, branch.id);
+      if (!row) continue;
+      if (attachProductImage(db, branch.id, row.id, product.image)) {
+        repaired += 1;
+      }
+    }
+  }
+
+  return repaired;
 }
 
 export function seedCigkofteProducts(db, branchId, dataDir, { uid } = {}) {

@@ -95,7 +95,7 @@ export default function PublicMenuLanding() {
 
   const popularProducts = useMemo(() => {
     if (!preview?.products?.length) return [];
-    return preview.products.filter((p) => p.hasImage).slice(0, 6);
+    return preview.products.slice(0, 6);
   }, [preview]);
 
   const previewBranchId = preview?.branch?.id;

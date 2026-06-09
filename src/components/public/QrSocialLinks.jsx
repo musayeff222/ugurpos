@@ -130,7 +130,7 @@ const ICONS = {
   tiktok: { Icon: IconTiktok, label: "TikTok" },
 };
 
-const ORDER = ["instagram", "facebook", "tiktok", "whatsapp"];
+const ORDER = ["instagram", "tiktok", "whatsapp", "facebook"];
 
 export default function QrSocialLinks({ social = {}, className = "", variant = "compact" }) {
   const brand = variant === "brand";

@@ -30,13 +30,15 @@ export function generateFirmMenuSlug(db, firmId) {
   return slug;
 }
 
-export function ensureFirmSettings(db, firmId, firmName = "Firma") {
+export function ensureFirmSettings(db, firmId, firmName = "Cigkofte") {
+  const displayName =
+    !firmName || /smart\s*admin/i.test(firmName) || /smartadm/i.test(firmName) ? "Cigkofte" : firmName;
   let row = db.prepare("SELECT * FROM firm_settings WHERE firm_id = ?").get(firmId);
   if (!row) {
     const slug = generateFirmMenuSlug(db, firmId);
     db.prepare(
       "INSERT INTO firm_settings (firm_id, menu_slug, menu_title, menu_welcome, menu_enabled) VALUES (?, ?, ?, '', 1)"
-    ).run(firmId, slug, firmName);
+    ).run(firmId, slug, displayName);
     row = db.prepare("SELECT * FROM firm_settings WHERE firm_id = ?").get(firmId);
   } else {
     if (!row.menu_slug) {
@@ -84,7 +86,7 @@ export function rowToFirmMenu(row, firmName = "") {
   return {
     firmId: row.firm_id,
     menuSlug: row.menu_slug,
-    menuTitle: row.menu_title || firmName || "Menü",
+    menuTitle: row.menu_title || (firmName && !/smart\s*admin/i.test(firmName) ? firmName : "Cigkofte"),
     menuWelcome: row.menu_welcome || "",
     menuEnabled: !!row.menu_enabled,
     defaultLang,
