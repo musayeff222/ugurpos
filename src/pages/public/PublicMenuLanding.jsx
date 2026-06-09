@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
-import PublicQrBottomNav from "../../components/public/PublicQrBottomNav";
-import QrMenuHeader from "../../components/public/QrMenuHeader";
 import { useLocale } from "../../context/LocaleContext";
 import { findNearestBranch, requestUserLocation } from "../../utils/geo";
 import { fetchPublicFirmMenu } from "../../utils/qrMenuPublic";
@@ -66,16 +64,20 @@ export default function PublicMenuLanding() {
 
   if (loading) {
     return (
-      <PublicQrShell firm={data?.firm}>
-        <div className="public-menu-loading">{t("qr.loadingMenu")}</div>
+      <PublicQrShell firm={data?.firm} navActive="home">
+        <div className="public-web-container">
+          <div className="public-menu-loading">{t("qr.loadingMenu")}</div>
+        </div>
       </PublicQrShell>
     );
   }
 
   if (error || !data) {
     return (
-      <PublicQrShell firm={data?.firm}>
-        <div className="public-menu-error card">{error || t("qr.menuNotFound")}</div>
+      <PublicQrShell firm={data?.firm} navActive="home">
+        <div className="public-web-container">
+          <div className="public-menu-error card">{error || t("qr.menuNotFound")}</div>
+        </div>
       </PublicQrShell>
     );
   }
@@ -83,66 +85,88 @@ export default function PublicMenuLanding() {
   const { firm, branches } = data;
 
   return (
-    <PublicQrShell firm={firm}>
-      <QrMenuHeader firm={firm} />
-
-      {locating && <div className="public-menu-locate-banner">{t("qr.locating")}</div>}
-      {locError && (
-        <div className="public-menu-locate-banner public-menu-locate-banner--muted">{t("qr.locationDenied")}</div>
-      )}
-      {nearest && !locating && (
-        <div className="public-menu-locate-banner">
-          {t("qr.nearestBranch", {
-            name: `#${nearest.branch.branchNo} ${nearest.branch.name}`,
-            km: nearest.distanceKm.toFixed(1),
-          })}{" "}
-          <button type="button" className="link-btn" onClick={() => navigate(`/m/branch/${nearest.branch.id}`)}>
-            {t("qr.goToBranch")}
-          </button>
-        </div>
-      )}
-
-      <p className="public-web-section__lead">{t("qr.selectBranch")}</p>
-
-      <div className="public-web-section">
-      <div className="public-branch-picker">
-        {branches.length === 0 ? (
-          <div className="card public-menu-empty-card">
-            <p>{t("qr.noBranches")}</p>
-          </div>
-        ) : (
-          branches.map((branch) => (
-            <button
-              key={branch.id}
-              type="button"
-              className="public-branch-picker__item"
-              onClick={() => navigate(`/m/branch/${branch.id}`)}
-            >
-              <div className="public-branch-picker__content">
-              <div className="public-branch-picker__head">
-                <strong>
-                  #{branch.branchNo} {branch.name}
-                </strong>
-                <span className={`public-branch-hours-pill ${branch.isOpen ? "open" : "closed"}`}>
-                  {branch.isOpen ? t("qr.openNow") : t("qr.closedNow")}
-                </span>
-              </div>
-              {branch.address && <span>{branch.address}</span>}
-              <span className="public-branch-picker__hours">
-                {branch.openTime} – {branch.closeTime}
-              </span>
-              {!branch.menuAcceptOrders && <em>{t("qr.viewOnly")}</em>}
-              </div>
-              <span className="public-branch-picker__arrow" aria-hidden="true">
-                <i className="fa fa-chevron-right" />
-              </span>
-            </button>
-          ))
+    <PublicQrShell firm={firm} navActive="home">
+      <div className="public-web-container">
+        {locating && <div className="public-menu-locate-banner">{t("qr.locating")}</div>}
+        {locError && (
+          <div className="public-menu-locate-banner public-menu-locate-banner--muted">{t("qr.locationDenied")}</div>
         )}
-      </div>
-      </div>
+        {nearest && !locating && (
+          <div className="public-menu-locate-banner">
+            {t("qr.nearestBranch", {
+              name: `#${nearest.branch.branchNo} ${nearest.branch.name}`,
+              km: nearest.distanceKm.toFixed(1),
+            })}{" "}
+            <button type="button" className="link-btn" onClick={() => navigate(`/m/branch/${nearest.branch.id}`)}>
+              {t("qr.goToBranch")}
+            </button>
+          </div>
+        )}
 
-      <PublicQrBottomNav />
+        <section className="public-landing-features">
+          <h2>{t("qr.landingFeaturesTitle")}</h2>
+          <div className="public-landing-features__grid">
+            <article className="public-landing-feature card">
+              <span className="public-landing-feature__icon"><i className="fa fa-truck" /></span>
+              <h3>{t("qr.featureDelivery")}</h3>
+              <p>{t("qr.featureDeliveryDesc")}</p>
+            </article>
+            <article className="public-landing-feature card">
+              <span className="public-landing-feature__icon"><i className="fa fa-leaf" /></span>
+              <h3>{t("qr.featureFresh")}</h3>
+              <p>{t("qr.featureFreshDesc")}</p>
+            </article>
+            <article className="public-landing-feature card">
+              <span className="public-landing-feature__icon"><i className="fa fa-clock-o" /></span>
+              <h3>{t("qr.featureTrack")}</h3>
+              <p>{t("qr.featureTrackDesc")}</p>
+            </article>
+          </div>
+        </section>
+
+        <section className="public-web-section">
+          <div className="public-web-section__head">
+            <h2>{t("qr.selectBranch")}</h2>
+            <p>{t("qr.footerTagline")}</p>
+          </div>
+
+          <div className="public-branch-picker">
+            {branches.length === 0 ? (
+              <div className="card public-menu-empty-card">
+                <p>{t("qr.noBranches")}</p>
+              </div>
+            ) : (
+              branches.map((branch) => (
+                <button
+                  key={branch.id}
+                  type="button"
+                  className="public-branch-picker__item"
+                  onClick={() => navigate(`/m/branch/${branch.id}`)}
+                >
+                  <div className="public-branch-picker__content">
+                    <div className="public-branch-picker__head">
+                      <strong>
+                        #{branch.branchNo} {branch.name}
+                      </strong>
+                      <span className={`public-branch-hours-pill ${branch.isOpen ? "open" : "closed"}`}>
+                        {branch.isOpen ? t("qr.openNow") : t("qr.closedNow")}
+                      </span>
+                    </div>
+                    {branch.address && <span>{branch.address}</span>}
+                    <span className="public-branch-picker__hours">
+                      {branch.openTime} – {branch.closeTime}
+                    </span>
+                    {!branch.menuAcceptOrders && <em>{t("qr.viewOnly")}</em>}
+                  </div>
+                  <span className="public-branch-picker__arrow" aria-hidden="true">
+                    <i className="fa fa-chevron-right" />
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
     </PublicQrShell>
   );
 }

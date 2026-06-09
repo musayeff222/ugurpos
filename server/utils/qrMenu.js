@@ -92,6 +92,7 @@ export function rowToFirmMenu(row, firmName = "") {
       instagram: row.menu_social_instagram || "",
       whatsapp: row.menu_social_whatsapp || "",
       tiktok: row.menu_social_tiktok || "",
+      facebook: row.menu_social_facebook || "",
     },
     openTime: row.menu_open_time || "09:00",
     closeTime: row.menu_close_time || "23:00",

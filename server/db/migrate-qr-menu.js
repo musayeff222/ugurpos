@@ -56,6 +56,7 @@ export function migrateQrMenu(db) {
   addColumnIfMissing(db, "firm_settings", "menu_social_instagram", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
   addColumnIfMissing(db, "firm_settings", "menu_social_whatsapp", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
   addColumnIfMissing(db, "firm_settings", "menu_social_tiktok", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
+  addColumnIfMissing(db, "firm_settings", "menu_social_facebook", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
   addColumnIfMissing(db, "firm_settings", "menu_default_lang", db.dialect === "mysql" ? "VARCHAR(8) DEFAULT 'az'" : "TEXT DEFAULT 'az'");
   addColumnIfMissing(db, "firm_settings", "menu_logo_path", db.dialect === "mysql" ? "VARCHAR(512)" : "TEXT");
   addColumnIfMissing(db, "firm_settings", "menu_open_time", db.dialect === "mysql" ? "VARCHAR(8) DEFAULT '09:00'" : "TEXT DEFAULT '09:00'");
@@ -70,4 +71,9 @@ export function migrateQrMenu(db) {
     "menu_theme",
     db.dialect === "mysql" ? "VARCHAR(32) DEFAULT 'classic'" : "TEXT DEFAULT 'classic'"
   );
+  addColumnIfMissing(db, "qr_orders", "device_id", db.dialect === "mysql" ? "VARCHAR(64)" : "TEXT");
+
+  if (db.dialect !== "mysql") {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_qr_orders_device ON qr_orders(device_id)");
+  }
 }

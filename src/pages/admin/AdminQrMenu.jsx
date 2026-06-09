@@ -54,6 +54,7 @@ export default function AdminQrMenu() {
       socialInstagram: data.firm.social?.instagram || "",
       socialWhatsapp: data.firm.social?.whatsapp || "",
       socialTiktok: data.firm.social?.tiktok || "",
+      socialFacebook: data.firm.social?.facebook || "",
       menuDefaultLang: data.firm.defaultLang || "az",
       menuOpenTime: data.firm.openTime || "09:00",
       menuCloseTime: data.firm.closeTime || "23:00",
@@ -110,6 +111,7 @@ export default function AdminQrMenu() {
     instagram: firmDraft.socialInstagram || "",
     whatsapp: firmDraft.socialWhatsapp || "",
     tiktok: firmDraft.socialTiktok || "",
+    facebook: firmDraft.socialFacebook || "",
   };
 
   const selectedTheme = QR_MENU_THEMES.find((item) => item.id === (firmDraft.menuTheme || "classic"));
@@ -324,6 +326,15 @@ export default function AdminQrMenu() {
                 placeholder="+994501234567"
                 value={firmDraft.socialWhatsapp || ""}
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialWhatsapp: e.target.value }))}
+              />
+              <label>
+                <i className="fa fa-facebook admin-qr-social-icon admin-qr-social-icon--fb" />
+                {t("admin.qr.socialFacebook")}
+              </label>
+              <input
+                placeholder="cigkofte veya https://facebook.com/..."
+                value={firmDraft.socialFacebook || ""}
+                onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialFacebook: e.target.value }))}
               />
               <label>
                 <i className="fa fa-music admin-qr-social-icon admin-qr-social-icon--tt" />

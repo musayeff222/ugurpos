@@ -8,7 +8,8 @@ import {
   enrichMenuBranch,
   getBranchForFirmMenu,
 } from "../utils/qrMenu.js";
-import { loadQrOrder } from "../utils/qrOrderService.js";
+import { loadQrOrder, listQrOrdersByDevice } from "../utils/qrOrderService.js";
+import { sanitizeDeviceId } from "../utils/deviceId.js";
 import {
   resolveProductImageFile,
   contentTypeForImagePath,
@@ -110,7 +111,8 @@ function createOrder(db, res, firmRow, branchId, body) {
     return res.status(400).json({ error: "Şube şu an kapalı. Çalışma saatleri dışında sipariş verilemez." });
   }
 
-  const { customerName, customerPhone, tableNo, deliveryAddress, note, deliveryLat, deliveryLng, items } = body;
+  const { customerName, customerPhone, tableNo, deliveryAddress, note, deliveryLat, deliveryLng, items, deviceId } =
+    body;
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "Sepet boş" });
   }
@@ -127,6 +129,7 @@ function createOrder(db, res, firmRow, branchId, body) {
   }
 
   const orderNote = buildDeliveryOrderNote(note, deliveryLat, deliveryLng);
+  const safeDeviceId = sanitizeDeviceId(deviceId);
 
   const productLookup = db.prepare(
     "SELECT * FROM products WHERE id = ? AND branch_id = ? AND active = 1 AND on_sale_page = 1"
@@ -154,8 +157,8 @@ function createOrder(db, res, firmRow, branchId, body) {
 
   const tx = db.transaction(() => {
     db.prepare(
-      `INSERT INTO qr_orders (id, branch_id, code, status, customer_name, customer_phone, table_no, note, total)
-       VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?)`
+      `INSERT INTO qr_orders (id, branch_id, code, status, customer_name, customer_phone, table_no, note, total, device_id)
+       VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`
     ).run(
       orderId,
       branch.id,
@@ -164,7 +167,8 @@ function createOrder(db, res, firmRow, branchId, body) {
       customerPhone?.trim() || "",
       address,
       orderNote,
-      total
+      total,
+      safeDeviceId
     );
 
     const insItem = db.prepare(
@@ -289,6 +293,14 @@ router.get("/orders/:orderId", (req, res) => {
   const order = loadQrOrder(db, req.params.orderId);
   if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
   res.json(order);
+});
+
+router.get("/my-orders", (req, res) => {
+  const db = getDb();
+  const deviceId = sanitizeDeviceId(req.query.deviceId);
+  if (!deviceId) return res.status(400).json({ error: "Cihaz kimliği gerekli" });
+  const orders = listQrOrdersByDevice(db, deviceId, 30);
+  res.json({ orders });
 });
 
 export default router;

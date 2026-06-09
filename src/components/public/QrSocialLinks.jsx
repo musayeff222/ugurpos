@@ -11,6 +11,10 @@ function normalizeSocialUrl(type, value) {
     const user = raw.replace(/^@/, "").replace(/^tiktok\.com\//i, "");
     return `https://www.tiktok.com/@${user}`;
   }
+  if (type === "facebook") {
+    const user = raw.replace(/^@/, "").replace(/^facebook\.com\//i, "").replace(/^fb\.com\//i, "");
+    return `https://www.facebook.com/${user}`;
+  }
   if (type === "whatsapp") {
     const digits = raw.replace(/\D/g, "");
     if (!digits) return null;
@@ -19,7 +23,25 @@ function normalizeSocialUrl(type, value) {
   return raw;
 }
 
-function IconInstagram() {
+function IconInstagram({ brand }) {
+  if (brand) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <defs>
+          <linearGradient id="igGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#FD5949" />
+            <stop offset="50%" stopColor="#D6249F" />
+            <stop offset="100%" stopColor="#285AEB" />
+          </linearGradient>
+        </defs>
+        <rect width="24" height="24" rx="6" fill="url(#igGrad)" />
+        <path
+          fill="#fff"
+          d="M12 7.2a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6m0 7.9a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2M16.8 6.6a1.1 1.1 0 1 1-2.2 0 1.1 1.1 0 0 1 2.2 0M17.8 2H6.2A4.2 4.2 0 0 0 2 6.2v11.6A4.2 4.2 0 0 0 6.2 22h11.6a4.2 4.2 0 0 0 4.2-4.2V6.2A4.2 4.2 0 0 0 17.8 2m2.5 15.8a2.5 2.5 0 0 1-2.5 2.5H6.2a2.5 2.5 0 0 1-2.5-2.5V6.2a2.5 2.5 0 0 1 2.5-2.5h11.6a2.5 2.5 0 0 1 2.5 2.5z"
+        />
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -30,7 +52,37 @@ function IconInstagram() {
   );
 }
 
-function IconWhatsapp() {
+function IconFacebook({ brand }) {
+  if (brand) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect width="24" height="24" rx="6" fill="#1877F2" />
+        <path
+          fill="#fff"
+          d="M14.5 8.5h2V5.9h-2c-2.3 0-3.7 1.4-3.7 3.8v1.8H9v2.7h1.8V19h2.8v-5.8h2.4l.3-2.7h-2.7V9.6c0-.8.2-1.1 1.3-1.1z"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="currentColor" d="M14 13.5h2.5L17 9h-2.5V7.5c0-.8.2-1.3 1.4-1.3H17V3.1C16.7 3 15.6 3 14.4 3 11.9 3 10.2 4.5 10.2 7v2H8v4.5h2.2V21h3.3v-7.5z" />
+    </svg>
+  );
+}
+
+function IconWhatsapp({ brand }) {
+  if (brand) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect width="24" height="24" rx="6" fill="#25D366" />
+        <path
+          fill="#fff"
+          d="M12 5.5c-3.6 0-6.5 2.9-6.5 6.5 0 1.1.3 2.2.8 3.1L5.5 18l3.1-.8c.9.5 1.9.8 3 .8 3.6 0 6.5-2.9 6.5-6.5S15.6 5.5 12 5.5m3.8 9.2c-.2.5-1 1-1.4 1.1-.4.1-.9.2-2.9-.6-2.4-1-4-3.5-4.1-3.7-.1-.2-1-1.3-1-2.5s.6-1.8.9-2c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4.2.4.7 1.7.8 1.8.1.1.1.3 0 .4-.1.2-.2.3-.3.5-.1.1-.2.2-.3.3-.1.1-.2.2-.1.4.1.2.5 1 1.1 1.6.8.7 1.4.9 1.6 1 .2.1.3.1.4-.1.1-.2.6-.7.7-.9.1-.2.3-.2.5-.1.2.1 1.3.6 1.5.7.2.1.4.2.4.3 0 .2 0 .5-.2 1z"
+        />
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -41,7 +93,26 @@ function IconWhatsapp() {
   );
 }
 
-function IconTiktok() {
+function IconTiktok({ brand }) {
+  if (brand) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect width="24" height="24" rx="6" fill="#010101" />
+        <path
+          fill="#25F4EE"
+          d="M10.5 10.2v5.1a2.4 2.4 0 1 1-2.4-2.4h.4v-2.7h-.4a5.1 5.1 0 1 0 5.1 5.1v-2.4c.9.6 2 1 3.2 1.1V12a4.8 4.8 0 0 1-3.2-1.1V8.5h2.4V6.2h-2.4V4.8c-1.2.1-2.3.5-3.2 1.1z"
+        />
+        <path
+          fill="#FE2C55"
+          d="M11.7 9.1V12a4.8 4.8 0 0 0 3.2 1.1v-2.4c-.9-.6-2-1-3.2-1.1V9.1z"
+        />
+        <path
+          fill="#fff"
+          d="M10.5 10.2a5.1 5.1 0 0 0 5.1 5.1v-2.7a2.4 2.4 0 1 1-2.4-2.4h-.4V10.2z"
+        />
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -54,21 +125,24 @@ function IconTiktok() {
 
 const ICONS = {
   instagram: { Icon: IconInstagram, label: "Instagram" },
+  facebook: { Icon: IconFacebook, label: "Facebook" },
   whatsapp: { Icon: IconWhatsapp, label: "WhatsApp" },
   tiktok: { Icon: IconTiktok, label: "TikTok" },
 };
 
-export default function QrSocialLinks({ social = {}, className = "" }) {
-  const links = [
-    { type: "instagram", url: normalizeSocialUrl("instagram", social.instagram) },
-    { type: "whatsapp", url: normalizeSocialUrl("whatsapp", social.whatsapp) },
-    { type: "tiktok", url: normalizeSocialUrl("tiktok", social.tiktok) },
-  ].filter((item) => item.url);
+const ORDER = ["instagram", "facebook", "tiktok", "whatsapp"];
+
+export default function QrSocialLinks({ social = {}, className = "", variant = "compact" }) {
+  const brand = variant === "brand";
+  const links = ORDER.map((type) => ({
+    type,
+    url: normalizeSocialUrl(type, social[type]),
+  })).filter((item) => item.url);
 
   if (links.length === 0) return null;
 
   return (
-    <div className={`qr-social-links ${className}`.trim()}>
+    <div className={`qr-social-links ${brand ? "qr-social-links--brand" : ""} ${className}`.trim()}>
       {links.map(({ type, url }) => {
         const { Icon, label } = ICONS[type];
         return (
@@ -77,11 +151,11 @@ export default function QrSocialLinks({ social = {}, className = "" }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`qr-social-links__btn qr-social-links__btn--${type}`}
+            className={`qr-social-links__btn qr-social-links__btn--${type}${brand ? " qr-social-links__btn--brand" : ""}`}
             aria-label={label}
             title={label}
           >
-            <Icon />
+            <Icon brand={brand} />
           </a>
         );
       })}

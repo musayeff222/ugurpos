@@ -1090,6 +1090,10 @@
   background: #010101;
 }
 
+.admin-qr-social-icon--fb {
+  background: #1877f2;
+}
+
 .admin-qr-social-preview {
   display: flex;
   align-items: center;

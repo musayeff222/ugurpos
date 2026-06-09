@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
-import PublicQrBottomNav from "../../components/public/PublicQrBottomNav";
-import QrMenuHeader from "../../components/public/QrMenuHeader";
+import PublicBranchBar from "../../components/public/PublicBranchBar";
 import { useLocale } from "../../context/LocaleContext";
 import { formatMoney } from "../../utils/format";
 import { requestUserLocation } from "../../utils/geo";
 import { fetchPublicBranchMenu, submitPublicOrder } from "../../utils/qrMenuPublic";
-import { loadBranchCart, saveBranchCart, rememberOrder } from "../../utils/qrMenuStorage";
+import { loadBranchCart, saveBranchCart, rememberOrder, saveLastBranchId } from "../../utils/qrMenuStorage";
 import "../../styles/public-qr-menu.css";
 
 export default function PublicBranchCart() {
@@ -29,6 +28,7 @@ export default function PublicBranchCart() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    saveLastBranchId(branchId);
     fetchPublicBranchMenu(branchId).then(setMenu).catch((e) => setError(e.message));
   }, [branchId]);
 
@@ -92,8 +92,12 @@ export default function PublicBranchCart() {
   const hasDeliveryLocation = form.lat && form.lng;
 
   return (
-    <PublicQrShell firm={menu?.firm}>
-      <QrMenuHeader firm={menu?.firm} branch={branch} showBack onBack={() => navigate(`/m/branch/${branchId}`)} />
+    <PublicQrShell firm={menu?.firm} branchId={branchId} cartCount={cartCount} navActive="cart">
+      <div className="public-web-container">
+        <PublicBranchBar branch={branch} onBack={() => navigate(`/m/branch/${branchId}`)} />
+        <div className="public-page-head">
+          <h2>{t("qr.myCart")}</h2>
+        </div>
 
       <div className="public-qr-cart-layout">
         <div className="public-qr-cart-layout__main">
@@ -182,8 +186,7 @@ export default function PublicBranchCart() {
           </div>
         )}
       </div>
-
-      <PublicQrBottomNav branchId={branchId} cartCount={cartCount} active="cart" />
+      </div>
     </PublicQrShell>
   );
 }

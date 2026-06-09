@@ -63,6 +63,28 @@ export function listQrOrders(db, { firmId, branchId, status, limit = 50 }) {
   });
 }
 
+export function listQrOrdersByDevice(db, deviceId, limit = 30) {
+  if (!deviceId) return [];
+  const orders = db
+    .prepare(
+      `
+    SELECT o.*, b.name as branch_name, b.code as branch_code, b.firm_id,
+      (SELECT firm_name FROM users WHERE firm_id = b.firm_id LIMIT 1) as firm_name
+    FROM qr_orders o
+    JOIN branches b ON b.id = o.branch_id
+    WHERE o.device_id = ?
+    ORDER BY o.created_at DESC
+    LIMIT ?
+  `
+    )
+    .all(deviceId, limit);
+
+  return orders.map((order) => {
+    const branchNo = order.branch_code ? String(parseInt(order.branch_code, 10) || order.branch_code) : "";
+    return rowToQrOrder({ ...order, branch_no: branchNo }, loadQrOrderItems(db, order.id));
+  });
+}
+
 const ALLOWED_STATUS = new Set(["pending", "accepted", "rejected", "completed"]);
 
 export function updateQrOrderStatus(db, orderId, status, branchId = null) {

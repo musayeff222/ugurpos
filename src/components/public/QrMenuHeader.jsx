@@ -10,7 +10,7 @@ export default function QrMenuHeader({ firm, branch, showBack, onBack }) {
   const logoUrl = firm?.logoUrl;
 
   return (
-    <section className="public-hero">
+    <section className="public-hero public-hero--full">
       <div className="public-hero__glow" aria-hidden="true" />
       <div className="public-hero__inner">
         {showBack && (
