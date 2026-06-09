@@ -65,8 +65,8 @@ export default function PublicMenuLanding() {
   if (loading) {
     return (
       <PublicQrShell firm={data?.firm} navActive="home">
-        <div className="public-web-container">
-          <div className="public-menu-loading">{t("qr.loadingMenu")}</div>
+        <div className="stitch-container">
+          <div className="stitch-loading">{t("qr.loadingMenu")}</div>
         </div>
       </PublicQrShell>
     );
@@ -75,8 +75,8 @@ export default function PublicMenuLanding() {
   if (error || !data) {
     return (
       <PublicQrShell firm={data?.firm} navActive="home">
-        <div className="public-web-container">
-          <div className="public-menu-error card">{error || t("qr.menuNotFound")}</div>
+        <div className="stitch-container">
+          <div className="stitch-alert stitch-alert--error">{error || t("qr.menuNotFound")}</div>
         </div>
       </PublicQrShell>
     );
@@ -86,81 +86,75 @@ export default function PublicMenuLanding() {
 
   return (
     <PublicQrShell firm={firm} navActive="home">
-      <div className="public-web-container">
-        {locating && <div className="public-menu-locate-banner">{t("qr.locating")}</div>}
-        {locError && (
-          <div className="public-menu-locate-banner public-menu-locate-banner--muted">{t("qr.locationDenied")}</div>
-        )}
+      <div className="stitch-container">
+        {locating && <div className="stitch-banner">{t("qr.locating")}</div>}
+        {locError && <div className="stitch-banner stitch-banner--muted">{t("qr.locationDenied")}</div>}
         {nearest && !locating && (
-          <div className="public-menu-locate-banner">
+          <div className="stitch-banner">
             {t("qr.nearestBranch", {
               name: `#${nearest.branch.branchNo} ${nearest.branch.name}`,
               km: nearest.distanceKm.toFixed(1),
             })}{" "}
-            <button type="button" className="link-btn" onClick={() => navigate(`/m/branch/${nearest.branch.id}`)}>
+            <button type="button" className="stitch-link-btn" onClick={() => navigate(`/m/branch/${nearest.branch.id}`)}>
               {t("qr.goToBranch")}
             </button>
           </div>
         )}
 
-        <section className="public-landing-features">
+        <section className="stitch-features">
           <h2>{t("qr.landingFeaturesTitle")}</h2>
-          <div className="public-landing-features__grid">
-            <article className="public-landing-feature card">
-              <span className="public-landing-feature__icon"><i className="fa fa-truck" /></span>
+          <div className="stitch-features__grid">
+            <article className="stitch-feature-card">
+              <span className="stitch-feature-card__icon"><i className="fa fa-truck" /></span>
               <h3>{t("qr.featureDelivery")}</h3>
               <p>{t("qr.featureDeliveryDesc")}</p>
             </article>
-            <article className="public-landing-feature card">
-              <span className="public-landing-feature__icon"><i className="fa fa-leaf" /></span>
+            <article className="stitch-feature-card">
+              <span className="stitch-feature-card__icon"><i className="fa fa-leaf" /></span>
               <h3>{t("qr.featureFresh")}</h3>
               <p>{t("qr.featureFreshDesc")}</p>
             </article>
-            <article className="public-landing-feature card">
-              <span className="public-landing-feature__icon"><i className="fa fa-clock-o" /></span>
+            <article className="stitch-feature-card">
+              <span className="stitch-feature-card__icon"><i className="fa fa-clock-o" /></span>
               <h3>{t("qr.featureTrack")}</h3>
               <p>{t("qr.featureTrackDesc")}</p>
             </article>
           </div>
         </section>
 
-        <section className="public-web-section">
-          <div className="public-web-section__head">
+        <section className="stitch-section">
+          <div className="stitch-section-head">
             <h2>{t("qr.selectBranch")}</h2>
             <p>{t("qr.footerTagline")}</p>
           </div>
 
-          <div className="public-branch-picker">
+          <div className="stitch-branch-grid">
             {branches.length === 0 ? (
-              <div className="card public-menu-empty-card">
-                <p>{t("qr.noBranches")}</p>
-              </div>
+              <div className="stitch-panel stitch-empty">{t("qr.noBranches")}</div>
             ) : (
               branches.map((branch) => (
                 <button
                   key={branch.id}
                   type="button"
-                  className="public-branch-picker__item"
+                  className="stitch-branch-card"
                   onClick={() => navigate(`/m/branch/${branch.id}`)}
                 >
-                  <div className="public-branch-picker__content">
-                    <div className="public-branch-picker__head">
+                  <div className="stitch-branch-card__body">
+                    <div className="stitch-branch-card__head">
                       <strong>
                         #{branch.branchNo} {branch.name}
                       </strong>
-                      <span className={`public-branch-hours-pill ${branch.isOpen ? "open" : "closed"}`}>
+                      <span className={`stitch-pill ${branch.isOpen ? "is-open" : "is-closed"}`}>
                         {branch.isOpen ? t("qr.openNow") : t("qr.closedNow")}
                       </span>
                     </div>
                     {branch.address && <span>{branch.address}</span>}
-                    <span className="public-branch-picker__hours">
+                    <small>
                       {branch.openTime} – {branch.closeTime}
-                    </span>
+                    </small>
                     {!branch.menuAcceptOrders && <em>{t("qr.viewOnly")}</em>}
                   </div>
-                  <span className="public-branch-picker__arrow" aria-hidden="true">
-                    <i className="fa fa-chevron-right" />
-                  </span>
+                  <i className="fa fa-chevron-right stitch-branch-card__arrow" />
                 </button>
               ))
             )}

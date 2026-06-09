@@ -48,8 +48,8 @@ export default function PublicOrderStatus() {
   if (error && !order) {
     return (
       <PublicQrShell firm={firm} navActive="orders">
-        <div className="public-web-container">
-          <div className="public-menu-error card">{error}</div>
+        <div className="stitch-container">
+          <div className="stitch-alert stitch-alert--error">{error}</div>
         </div>
       </PublicQrShell>
     );
@@ -58,8 +58,8 @@ export default function PublicOrderStatus() {
   if (!order) {
     return (
       <PublicQrShell firm={firm} navActive="orders">
-        <div className="public-web-container">
-          <div className="public-menu-loading">{t("qr.loadingOrder")}</div>
+        <div className="stitch-container">
+          <div className="stitch-loading">{t("qr.loadingOrder")}</div>
         </div>
       </PublicQrShell>
     );
@@ -69,40 +69,40 @@ export default function PublicOrderStatus() {
 
   return (
     <PublicQrShell firm={shellFirm} branchId={order.branchId} navActive="orders">
-      <div className="public-web-container">
-        <div className="card public-order-status">
-          <div className={`public-order-status__badge qr-order-badge ${meta.className}`}>
+      <div className="stitch-container">
+        <div className="stitch-panel stitch-order-status">
+          <div className={`qr-order-badge stitch-order-status__badge ${meta.className}`}>
             <i className={`fa ${meta.icon}`} />
             {statusText}
           </div>
           <h1>{t("qr.orderReceived")}</h1>
-          <p className="public-order-status__code">{order.code}</p>
+          <p className="stitch-order-status__code">{order.code}</p>
           {order.firmName && (
-            <p className="public-menu-branch-tag">
+            <p className="stitch-meta-row">
               {t("qr.firm")}: <strong>{order.firmName}</strong>
             </p>
           )}
-          <p className="public-menu-branch-tag">
+          <p className="stitch-meta-row">
             {t("qr.branch")}: <strong>#{order.branchNo} {order.branchName}</strong>
           </p>
           {(order.deliveryAddress || order.tableNo) && (
-            <p className="public-menu-branch-tag">
+            <p className="stitch-meta-row">
               {t("qr.orderDeliveryAddress")}: <strong>{order.deliveryAddress || order.tableNo}</strong>
             </p>
           )}
           {order.customerPhone && (
-            <p className="public-menu-branch-tag">
+            <p className="stitch-meta-row">
               {t("qr.phone")}: <strong>{order.customerPhone}</strong>
             </p>
           )}
-          <ul className="public-order-status__items">
+          <ul className="stitch-order-status__items">
             {order.items.map((item) => (
               <li key={item.id}>
                 {item.qty}x {item.name} — {money(item.qty * item.price)}
               </li>
             ))}
           </ul>
-          <div className="public-order-status__total">
+          <div className="stitch-cart-total">
             <span>{t("common.total")}</span>
             <strong>{money(order.total)}</strong>
           </div>

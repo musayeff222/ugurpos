@@ -22,7 +22,6 @@ export default function PublicMyOrders() {
   const { t, lang } = useLocale();
   const [orders, setOrders] = useState([]);
   const [details, setDetails] = useState({});
-  const [error, setError] = useState("");
   const [firm, setFirm] = useState(null);
 
   useEffect(() => {
@@ -30,7 +29,6 @@ export default function PublicMyOrders() {
   }, []);
 
   const refresh = async () => {
-    setError("");
     try {
       const serverOrders = await fetchMyPublicOrders();
       const merged = syncOrdersFromServer(serverOrders);
@@ -67,19 +65,17 @@ export default function PublicMyOrders() {
 
   return (
     <PublicQrShell firm={firm} navActive="orders">
-      <div className="public-web-container">
-        <div className="public-page-head">
+      <div className="stitch-container">
+        <div className="stitch-page-head">
           <h2>{t("qr.nav.orders")}</h2>
           <p>{t("qr.ordersPageHint")}</p>
         </div>
 
-        {error && <div className="public-menu-alert">{error}</div>}
-
-        <div className="public-web-section public-my-orders">
+        <div className="stitch-order-grid">
           {orders.length === 0 ? (
-            <div className="card public-menu-empty-card">
+            <div className="stitch-panel stitch-empty">
               <p>{t("qr.myOrdersEmpty")}</p>
-              <Link to="/m" className="btn btn-default">
+              <Link to="/m" className="stitch-btn-secondary">
                 {t("qr.nav.home")}
               </Link>
             </div>
@@ -88,8 +84,8 @@ export default function PublicMyOrders() {
               const full = details[item.id] || item;
               const status = full.status || "pending";
               return (
-                <Link key={item.id} to={`/m/order/${item.id}`} className={`public-my-order-card card status-${status}`}>
-                  <div className="public-my-order-card__head">
+                <Link key={item.id} to={`/m/order/${item.id}`} className={`stitch-order-card status-${status}`}>
+                  <div className="stitch-order-card__head">
                     <strong>{full.code || item.code}</strong>
                     <span className={`qr-order-badge ${status}`}>
                       <i className={`fa ${STATUS_ICON[status] || "fa-info"}`} /> {statusLabel(status)}
@@ -98,7 +94,7 @@ export default function PublicMyOrders() {
                   <p>
                     #{full.branchNo || ""} {full.branchName || ""}
                   </p>
-                  <strong>{money(full.total)}</strong>
+                  <strong className="stitch-order-card__total">{money(full.total)}</strong>
                   <small>{new Date(full.createdAt).toLocaleString(lang === "az" ? "az-AZ" : "tr-TR")}</small>
                 </Link>
               );

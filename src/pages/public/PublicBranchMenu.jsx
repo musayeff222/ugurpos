@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
 import PublicBranchBar from "../../components/public/PublicBranchBar";
+import StitchProductCard from "../../components/public/StitchProductCard";
 import { useLocale } from "../../context/LocaleContext";
 import { formatMoney } from "../../utils/format";
 import {
@@ -46,6 +47,7 @@ export default function PublicBranchMenu() {
   const money = (value) => formatMoney(value, lang);
 
   const addToCart = (product) => {
+    const imageUrl = product.hasImage ? getPublicProductImageSrc(branchId, product) : null;
     setCart((prev) => {
       const existing = prev.find((line) => line.productId === product.id);
       if (existing) {
@@ -55,7 +57,7 @@ export default function PublicBranchMenu() {
       }
       return [
         ...prev,
-        { productId: product.id, name: product.name, price: product.price1, qty: 1 },
+        { productId: product.id, name: product.name, price: product.price1, qty: 1, imageUrl },
       ];
     });
   };
@@ -63,8 +65,8 @@ export default function PublicBranchMenu() {
   if (loading) {
     return (
       <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="public-web-container">
-          <div className="public-menu-loading">{t("qr.loadingMenu")}</div>
+        <div className="stitch-container">
+          <div className="stitch-loading">{t("qr.loadingMenu")}</div>
         </div>
       </PublicQrShell>
     );
@@ -73,11 +75,8 @@ export default function PublicBranchMenu() {
   if (error && !menu) {
     return (
       <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="public-web-container">
-          <div className="public-menu-error card">{error}</div>
-          <Link to="/m" className="btn btn-default">
-            {t("qr.backToBranches")}
-          </Link>
+        <div className="stitch-container">
+          <div className="stitch-alert stitch-alert--error">{error}</div>
         </div>
       </PublicQrShell>
     );
@@ -86,8 +85,8 @@ export default function PublicBranchMenu() {
   if (!menu?.branch) {
     return (
       <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="public-web-container">
-          <div className="public-menu-error card">{error || t("qr.menuNotFound")}</div>
+        <div className="stitch-container">
+          <div className="stitch-alert stitch-alert--error">{error || t("qr.menuNotFound")}</div>
         </div>
       </PublicQrShell>
     );
@@ -98,102 +97,54 @@ export default function PublicBranchMenu() {
 
   return (
     <PublicQrShell firm={menu.firm} branchId={branchId} cartCount={cartCount} navActive="menu">
-      <div className="public-web-container">
+      <div className="stitch-container">
         <PublicBranchBar branch={branch} onBack={() => navigate("/m")} />
 
-        {error && <div className="public-menu-alert">{error}</div>}
+        {error && <div className="stitch-alert">{error}</div>}
         {!canOrder && branch.menuAcceptOrders === false && (
-          <div className="public-menu-alert">{t("qr.viewOnlyNotice")}</div>
+          <div className="stitch-alert">{t("qr.viewOnlyNotice")}</div>
         )}
         {branch.menuAcceptOrders && !branch.isOpen && (
-          <div className="public-menu-alert">{t("qr.closedNotice")}</div>
+          <div className="stitch-alert">{t("qr.closedNotice")}</div>
         )}
 
-        <div className="public-menu-layout">
-          <aside className="public-menu-sidebar">
-            <h2 className="public-menu-sidebar__title">{t("qr.nav.menu")}</h2>
-            <div className="public-menu-groups public-menu-groups--sidebar">
-              <button type="button" className={activeGroup === "all" ? "active" : ""} onClick={() => setActiveGroup("all")}>
-                {t("common.all")}
-              </button>
-              {(menu.groups || []).map((group) => (
-                <button
-                  key={group.id}
-                  type="button"
-                  className={activeGroup === group.id ? "active" : ""}
-                  onClick={() => setActiveGroup(group.id)}
-                >
-                  {group.name}
-                </button>
-              ))}
-            </div>
+        <div className="stitch-category-bar">
+          <button type="button" className={activeGroup === "all" ? "is-active" : ""} onClick={() => setActiveGroup("all")}>
+            {t("common.all")}
+          </button>
+          {(menu.groups || []).map((group) => (
+            <button
+              key={group.id}
+              type="button"
+              className={activeGroup === group.id ? "is-active" : ""}
+              onClick={() => setActiveGroup(group.id)}
+            >
+              {group.name}
+            </button>
+          ))}
+        </div>
 
-            {cartCount > 0 && (
-              <div className="public-menu-sidebar__cart card">
-                <h3>{t("qr.myCart")}</h3>
-                <p>
-                  {cartCount} · <strong>{money(cartTotal)}</strong>
-                </p>
-                <Link to={`/m/branch/${branchId}/cart`} className="btn btn-success btn-block">
-                  {t("qr.completeOrder")}
-                </Link>
-              </div>
-            )}
-          </aside>
+        <div className="stitch-section-head">
+          <h2>{t("qr.nav.menu")}</h2>
+          {cartCount > 0 && (
+            <Link to={`/m/branch/${branchId}/cart`} className="stitch-link">
+              {t("qr.myCart")} · {money(cartTotal)}
+            </Link>
+          )}
+        </div>
 
-          <div className="public-menu-layout__main">
-            <div className="public-menu-groups public-menu-groups--mobile">
-              <button type="button" className={activeGroup === "all" ? "active" : ""} onClick={() => setActiveGroup("all")}>
-                {t("common.all")}
-              </button>
-              {(menu.groups || []).map((group) => (
-                <button
-                  key={group.id}
-                  type="button"
-                  className={activeGroup === group.id ? "active" : ""}
-                  onClick={() => setActiveGroup(group.id)}
-                >
-                  {group.name}
-                </button>
-              ))}
-            </div>
-
-            <div className="public-menu-grid">
-              {products.map((product) => (
-                <article key={product.id} className="public-menu-product">
-                  {product.hasImage ? (
-                    <img
-                      src={getPublicProductImageSrc(branchId, product)}
-                      alt={product.name}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="public-menu-product__placeholder">
-                      <i className="fa fa-cutlery" />
-                    </div>
-                  )}
-                  <div className="public-menu-product__body">
-                    <h3>{product.name}</h3>
-                    <div className="public-menu-product__foot">
-                      <strong>{money(product.price1)}</strong>
-                      {canOrder && (
-                        <button
-                          type="button"
-                          className="public-btn-add"
-                          onClick={() => addToCart(product)}
-                          aria-label={t("qr.addToCart")}
-                        >
-                          <i className="fa fa-plus" />
-                          <span>{t("qr.addToCart")}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              ))}
-              {products.length === 0 && <p className="public-menu-empty">{t("qr.noProducts")}</p>}
-            </div>
-          </div>
+        <div className="stitch-product-grid">
+          {products.map((product) => (
+            <StitchProductCard
+              key={product.id}
+              product={product}
+              imageSrc={product.hasImage ? getPublicProductImageSrc(branchId, product) : null}
+              priceLabel={money(product.price1)}
+              canOrder={canOrder}
+              onAdd={() => addToCart(product)}
+            />
+          ))}
+          {products.length === 0 && <p className="stitch-empty">{t("qr.noProducts")}</p>}
         </div>
       </div>
     </PublicQrShell>

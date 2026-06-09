@@ -7,19 +7,20 @@ export default function PublicBranchBar({ branch, onBack }) {
   const isOpen = branch.isOpen !== false;
 
   return (
-    <div className="public-branch-bar">
-      <button type="button" className="public-branch-bar__back" onClick={onBack}>
+    <div className="stitch-branch-bar">
+      <button type="button" className="stitch-branch-bar__back" onClick={onBack} aria-label={t("qr.backToBranches")}>
         <i className="fa fa-arrow-left" />
       </button>
-      <div className="public-branch-bar__info">
-        <strong>
+      <div className="stitch-branch-bar__info">
+        <span className="stitch-branch-bar__location">
+          <i className="fa fa-map-marker" />
           #{branch.branchNo} {branch.name}
-        </strong>
-        <span className={`public-branch-hours-pill ${isOpen ? "open" : "closed"}`}>
-          {isOpen ? t("qr.openNow") : t("qr.closedNow")}
         </span>
         {branch.address && <small>{branch.address}</small>}
       </div>
+      <span className={`stitch-pill ${isOpen ? "is-open" : "is-closed"}`}>
+        {isOpen ? t("qr.openNow") : t("qr.closedNow")}
+      </span>
     </div>
   );
 }
