@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
-import PublicBranchBar from "../../components/public/PublicBranchBar";
-import StitchIcon from "../../components/public/StitchIcon";
+import OsesBranchBar from "../../components/public/OsesBranchBar";
 import { useLocale } from "../../context/LocaleContext";
 import { formatPublicMoney } from "../../utils/publicMoney";
 import { requestUserLocation } from "../../utils/geo";
-import { fetchPublicBranchMenu, getPublicProductImageSrc, submitPublicOrder } from "../../utils/qrMenuPublic";
+import { fetchPublicBranchMenu, submitPublicOrder } from "../../utils/qrMenuPublic";
 import { loadBranchCart, saveBranchCart, rememberOrder, saveLastBranchId } from "../../utils/qrMenuStorage";
-import "../../styles/public-qr-menu.css";
 
 export default function PublicBranchCart() {
   const { branchId } = useParams();
@@ -94,52 +92,52 @@ export default function PublicBranchCart() {
 
   return (
     <PublicQrShell firm={menu?.firm} branchId={branchId} cartCount={cartCount} navActive="cart">
-      <div className="sf-container sf-checkout-page">
-        <PublicBranchBar branch={branch} onBack={() => navigate(`/m/branch/${branchId}`)} />
+      <section className="oses-section">
+        <div className="oses-container oses-checkout">
+          <OsesBranchBar branch={branch} onBack={() => navigate(`/m/branch/${branchId}`)} />
 
-        <div className="sf-page-head">
-          <h2>{t("qr.completeOrder")}</h2>
-          <p>{t("qr.payOnDelivery")}</p>
-        </div>
+          <div className="oses-page-head">
+            <h1>{t("qr.completeOrder")}</h1>
+            <p>{t("qr.payOnDelivery")}</p>
+          </div>
 
-        <div className="sf-checkout-grid">
-          <div className="sf-checkout-main">
-            <section className="sf-panel">
+          <div className="oses-checkout-grid">
+            <div className="oses-panel">
               <h3>
-                <StitchIcon name="shopping_cart" /> {t("qr.myCart")} ({cartCount})
+                <i className="fa fa-shopping-cart" /> {t("qr.myCart")} ({cartCount})
               </h3>
               {cart.length === 0 ? (
-                <p className="sf-empty">
+                <p className="oses-empty">
                   {t("qr.cartEmpty")}{" "}
-                  <Link to={`/m/branch/${branchId}`} className="sf-link">
+                  <Link to={`/m/branch/${branchId}`} className="oses-text-link">
                     {t("qr.nav.menu")}
                   </Link>
                 </p>
               ) : (
-                <div className="sf-cart-lines">
+                <div className="oses-cart-lines">
                   {cart.map((line) => (
-                    <article key={line.productId} className="sf-cart-line">
-                      <div className="sf-cart-line__media">
+                    <article key={line.productId} className="oses-cart-line">
+                      <div className="oses-cart-line__media">
                         {line.imageUrl ? (
                           <img src={line.imageUrl} alt={line.name} />
                         ) : (
-                          <div className="sf-cart-line__placeholder">
-                            <StitchIcon name="restaurant" />
+                          <div className="oses-cart-line__placeholder">
+                            <i className="fa fa-cutlery" />
                           </div>
                         )}
                       </div>
-                      <div className="sf-cart-line__body">
-                        <div className="sf-cart-line__head">
+                      <div className="oses-cart-line__body">
+                        <div className="oses-cart-line__head">
                           <h4>{line.name}</h4>
-                          <span>{money(line.price * line.qty)}</span>
+                          <span className="oses-cart-line__price">{money(line.price * line.qty)}</span>
                         </div>
-                        <div className="sf-qty-pill">
+                        <div className="oses-qty">
                           <button type="button" onClick={() => updateQty(line.productId, line.qty - 1)} aria-label="-">
-                            <StitchIcon name="remove" />
+                            <i className="fa fa-minus" />
                           </button>
                           <span>{line.qty}</span>
                           <button type="button" onClick={() => updateQty(line.productId, line.qty + 1)} aria-label="+">
-                            <StitchIcon name="add" />
+                            <i className="fa fa-plus" />
                           </button>
                         </div>
                       </div>
@@ -147,80 +145,79 @@ export default function PublicBranchCart() {
                   ))}
                 </div>
               )}
-            </section>
-          </div>
-
-          {cart.length > 0 && canOrder && (
-            <form className="sf-checkout-side" onSubmit={handleSubmit}>
-              <section className="sf-panel">
-                <h3>
-                  <StitchIcon name="location_on" /> {t("qr.deliveryAddress")}
-                </h3>
-                {error && <div className="sf-alert">{error}</div>}
-                <label>{t("qr.fullName")} *</label>
-                <input
-                  className="sf-input"
-                  value={form.customerName}
-                  onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                  required
-                />
-                <label>{t("qr.phone")} *</label>
-                <input
-                  className="sf-input"
-                  value={form.customerPhone}
-                  onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
-                  required
-                />
-                <label>{t("qr.deliveryAddress")} *</label>
-                <textarea
-                  className="sf-input"
-                  rows={3}
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  placeholder={t("qr.deliveryAddressPlaceholder")}
-                  required
-                />
-                <div className="sf-checkout-location">
-                  <button type="button" className="sf-btn-outline" onClick={useMyLocation} disabled={locating}>
-                    <StitchIcon name="my_location" />
-                    {locating ? t("qr.locating") : t("qr.useMyDeliveryLocation")}
-                  </button>
-                  {hasDeliveryLocation && <span className="sf-success">{t("qr.deliveryLocationSet")}</span>}
-                </div>
-                <label>{t("qr.orderNote")}</label>
-                <textarea
-                  className="sf-input"
-                  rows={2}
-                  value={form.note}
-                  onChange={(e) => setForm({ ...form, note: e.target.value })}
-                />
-              </section>
-
-              <section className="sf-panel sf-order-summary">
-                <h3>{t("qr.orderSummary")}</h3>
-                <div className="sf-order-summary__row">
-                  <span>{t("qr.orderBranch", { branch: branchLabel })}</span>
-                </div>
-                <div className="sf-order-summary__row">
-                  <span>{t("common.total")}</span>
-                  <strong className="sf-order-summary__total">{money(cartTotal)}</strong>
-                </div>
-                <p className="sf-order-summary__note">{t("qr.payOnDelivery")}</p>
-                <button type="submit" className="sf-btn-checkout" disabled={submitting}>
-                  {submitting ? t("qr.sending") : t("qr.sendOrder", { total: money(cartTotal) })}
-                  <StitchIcon name="send" />
-                </button>
-              </section>
-            </form>
-          )}
-
-          {cart.length > 0 && !canOrder && (
-            <div className="sf-panel sf-alert">
-              {branch?.isOpen === false ? t("qr.closedNotice") : t("qr.viewOnlyNotice")}
             </div>
-          )}
+
+            {cart.length > 0 && canOrder && (
+              <form className="oses-checkout-form" onSubmit={handleSubmit}>
+                <div className="oses-panel">
+                  <h3>
+                    <i className="fa fa-map-marker" /> {t("qr.deliveryAddress")}
+                  </h3>
+                  {error && <div className="oses-banner">{error}</div>}
+                  <label>{t("qr.fullName")} *</label>
+                  <input
+                    className="oses-input"
+                    value={form.customerName}
+                    onChange={(e) => setForm({ ...form, customerName: e.target.value })}
+                    required
+                  />
+                  <label>{t("qr.phone")} *</label>
+                  <input
+                    className="oses-input"
+                    value={form.customerPhone}
+                    onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
+                    required
+                  />
+                  <label>{t("qr.deliveryAddress")} *</label>
+                  <textarea
+                    className="oses-input"
+                    rows={3}
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    placeholder={t("qr.deliveryAddressPlaceholder")}
+                    required
+                  />
+                  <div className="oses-checkout-location">
+                    <button type="button" className="oses-btn oses-btn--outline-dark" onClick={useMyLocation} disabled={locating}>
+                      <i className="fa fa-location-arrow" />
+                      {locating ? t("qr.locating") : t("qr.useMyDeliveryLocation")}
+                    </button>
+                    {hasDeliveryLocation && <span className="oses-success">{t("qr.deliveryLocationSet")}</span>}
+                  </div>
+                  <label>{t("qr.orderNote")}</label>
+                  <textarea
+                    className="oses-input"
+                    rows={2}
+                    value={form.note}
+                    onChange={(e) => setForm({ ...form, note: e.target.value })}
+                  />
+                </div>
+
+                <div className="oses-panel oses-summary">
+                  <h3>{t("qr.orderSummary")}</h3>
+                  <div className="oses-summary__row">
+                    <span>{t("qr.orderBranch", { branch: branchLabel })}</span>
+                  </div>
+                  <div className="oses-summary__row">
+                    <span>{t("common.total")}</span>
+                    <strong>{money(cartTotal)}</strong>
+                  </div>
+                  <p className="oses-summary__note">{t("qr.payOnDelivery")}</p>
+                  <button type="submit" className="oses-btn oses-btn--primary oses-btn--block" disabled={submitting}>
+                    {submitting ? t("qr.sending") : t("qr.sendOrder", { total: money(cartTotal) })}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {cart.length > 0 && !canOrder && (
+              <div className="oses-banner">
+                {branch?.isOpen === false ? t("qr.closedNotice") : t("qr.viewOnlyNotice")}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
     </PublicQrShell>
   );
 }

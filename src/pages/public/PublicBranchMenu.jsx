@@ -1,17 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
-import PublicBranchBar from "../../components/public/PublicBranchBar";
-import StitchProductCard from "../../components/public/StitchProductCard";
+import OsesBranchBar from "../../components/public/OsesBranchBar";
+import OsesProductCard from "../../components/public/OsesProductCard";
 import { useLocale } from "../../context/LocaleContext";
 import { formatPublicMoney } from "../../utils/publicMoney";
-import {
-  fetchPublicBranchMenu,
-  getPublicProductImageSrc,
-} from "../../utils/qrMenuPublic";
+import { fetchPublicBranchMenu, getPublicProductImageSrc } from "../../utils/qrMenuPublic";
 import { MENU_BANNER_IMAGE } from "../../utils/cigkofteSiteImages";
 import { loadBranchCart, saveBranchCart, saveLastBranchId } from "../../utils/qrMenuStorage";
-import "../../styles/public-qr-menu.css";
 
 export default function PublicBranchMenu() {
   const { branchId } = useParams();
@@ -70,8 +66,8 @@ export default function PublicBranchMenu() {
   if (loading) {
     return (
       <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="sf-container">
-          <div className="sf-loading">{t("qr.loadingMenu")}</div>
+        <div className="oses-container">
+          <div className="oses-loading">{t("qr.loadingMenu")}</div>
         </div>
       </PublicQrShell>
     );
@@ -80,8 +76,8 @@ export default function PublicBranchMenu() {
   if (error && !menu) {
     return (
       <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="sf-container">
-          <div className="sf-alert">{error}</div>
+        <div className="oses-container">
+          <div className="oses-alert">{error}</div>
         </div>
       </PublicQrShell>
     );
@@ -90,8 +86,8 @@ export default function PublicBranchMenu() {
   if (!menu?.branch) {
     return (
       <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="sf-container">
-          <div className="sf-alert">{error || t("qr.menuNotFound")}</div>
+        <div className="oses-container">
+          <div className="oses-alert">{error || t("qr.menuNotFound")}</div>
         </div>
       </PublicQrShell>
     );
@@ -111,31 +107,30 @@ export default function PublicBranchMenu() {
           </div>
         </div>
       </div>
-      <div className="sf-menu-page">
-        <div className="sf-container">
-          <PublicBranchBar branch={branch} onBack={() => navigate("/m")} />
 
-          {error && <div className="sf-alert">{error}</div>}
+      <section className="oses-section">
+        <div className="oses-container">
+          <OsesBranchBar branch={branch} onBack={() => navigate("/m")} />
+
+          {error && <div className="oses-banner oses-banner--muted">{error}</div>}
           {!canOrder && branch.menuAcceptOrders === false && (
-            <div className="sf-alert">{t("qr.viewOnlyNotice")}</div>
+            <div className="oses-banner oses-banner--muted">{t("qr.viewOnlyNotice")}</div>
           )}
           {branch.menuAcceptOrders && !branch.isOpen && (
-            <div className="sf-alert">{t("qr.closedNotice")}</div>
+            <div className="oses-banner">{t("qr.closedNotice")}</div>
           )}
 
-          <div className="sf-search sf-search--menu">
+          <div className="oses-search">
+            <i className="fa fa-search" />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("qr.searchProduct")}
             />
-            <span className="material-symbols-outlined">search</span>
           </div>
-        </div>
 
-        <div className="sf-category-sticky">
-          <div className="sf-category-bar">
+          <div className="oses-tabs">
             <button type="button" className={activeGroup === "all" ? "is-active" : ""} onClick={() => setActiveGroup("all")}>
               {t("common.all")}
             </button>
@@ -150,35 +145,31 @@ export default function PublicBranchMenu() {
               </button>
             ))}
           </div>
-        </div>
 
-        <div className="sf-container">
-          <div className="sf-section-head">
+          <div className="oses-section__head oses-section__head--left">
             <h2>{t("qr.popularFlavors")}</h2>
             {cartCount > 0 && (
-              <Link to={`/m/branch/${branchId}/cart`} className="sf-link">
+              <Link to={`/m/branch/${branchId}/cart`} className="oses-text-link">
                 {t("qr.myCart")} · {money(cartTotal)}
               </Link>
             )}
           </div>
 
-          <div className="sf-product-grid">
-            {products.map((product, index) => (
-              <StitchProductCard
+          <div className="oses-products__grid">
+            {products.map((product) => (
+              <OsesProductCard
                 key={product.id}
                 product={product}
                 imageSrc={getPublicProductImageSrc(branchId, product)}
                 priceLabel={money(product.price1)}
-                description={product.unit ? `${product.unit}` : undefined}
                 canOrder={canOrder}
                 onAdd={() => addToCart(product)}
-                badge={index === 0 ? { text: t("qr.popularBadge"), tone: "green" } : index === 1 ? { text: t("qr.popularBadgeAlt"), tone: "brown" } : null}
               />
             ))}
-            {products.length === 0 && <p className="sf-empty">{t("qr.noProducts")}</p>}
+            {products.length === 0 && <p className="oses-empty">{t("qr.noProducts")}</p>}
           </div>
         </div>
-      </div>
+      </section>
     </PublicQrShell>
   );
 }

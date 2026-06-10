@@ -1,7 +1,6 @@
 import OsesHeader from "./OsesHeader";
 import OsesFooter from "./OsesFooter";
-import StitchBottomNav from "./StitchBottomNav";
-import StitchSocialBar from "./StitchSocialBar";
+import OsesBottomNav from "./OsesBottomNav";
 import { getLastBranchId } from "../../utils/qrMenuStorage";
 import "../../styles/oses-theme.css";
 
@@ -9,12 +8,11 @@ export default function PublicQrShell({ firm, branchId, cartCount = 0, navActive
   const activeBranchId = branchId || getLastBranchId();
 
   return (
-    <div className="oses-app sf-app">
+    <div className="oses-app">
       <OsesHeader firm={firm} branchId={activeBranchId} cartCount={cartCount} />
-      <main className="oses-main sf-main">{children}</main>
-      <StitchSocialBar firm={firm} />
+      <main className="oses-main">{children}</main>
       <OsesFooter firm={firm} />
-      <StitchBottomNav branchId={activeBranchId} cartCount={cartCount} active={navActive} />
+      <OsesBottomNav branchId={activeBranchId} cartCount={cartCount} active={navActive} />
     </div>
   );
 }

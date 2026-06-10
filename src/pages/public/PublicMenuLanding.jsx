@@ -12,7 +12,6 @@ import {
 } from "../../utils/qrMenuPublic";
 import { ANNIVERSARY_BADGE, CAMPAIGN_BANNERS, FEATURE_BOXES, LEZZETLER_BANNER } from "../../utils/cigkofteSiteImages";
 import { formatPublicMoney } from "../../utils/publicMoney";
-import "../../styles/public-qr-menu.css";
 
 const LANG_KEY = "ugurpos_lang";
 const AUTO_RADIUS_KM = 80;
