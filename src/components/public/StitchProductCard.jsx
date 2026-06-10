@@ -1,6 +1,30 @@
 import { useState } from "react";
 import StitchIcon from "./StitchIcon";
 import { useLocale } from "../../context/LocaleContext";
+import { seedImageForProduct } from "../../utils/cigkofteSiteImages";
+
+function ProductImage({ src, alt, product, className, placeholderClassName }) {
+  const [failed, setFailed] = useState(false);
+  const resolved = !failed && src ? src : seedImageForProduct(product);
+
+  if (!resolved) {
+    return (
+      <div className={placeholderClassName}>
+        <StitchIcon name="restaurant" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={resolved}
+      alt={alt}
+      loading="lazy"
+      className={className}
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export default function StitchProductCard({
   product,
@@ -26,13 +50,12 @@ export default function StitchProductCard({
     return (
       <article className="sf-product-row">
         <div className="sf-product-row__media">
-          {imageSrc ? (
-            <img src={imageSrc} alt={product.name} loading="lazy" />
-          ) : (
-            <div className="sf-product-row__placeholder">
-              <StitchIcon name="restaurant" />
-            </div>
-          )}
+          <ProductImage
+            src={imageSrc}
+            alt={product.name}
+            product={product}
+            placeholderClassName="sf-product-row__placeholder"
+          />
         </div>
         <div className="sf-product-row__body">
           <div className="sf-product-row__info">
@@ -58,13 +81,12 @@ export default function StitchProductCard({
   return (
     <article className="sf-product-card">
       <div className="sf-product-card__media">
-        {imageSrc ? (
-          <img src={imageSrc} alt={product.name} loading="lazy" />
-        ) : (
-          <div className="sf-product-card__placeholder">
-            <StitchIcon name="restaurant" />
-          </div>
-        )}
+        <ProductImage
+          src={imageSrc}
+          alt={product.name}
+          product={product}
+          placeholderClassName="sf-product-card__placeholder"
+        />
         {badge && <span className={`sf-product-card__badge ${badge.tone || ""}`}>{badge.text}</span>}
       </div>
       <div className="sf-product-card__body">

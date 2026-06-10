@@ -1,0 +1,70 @@
+[
+  {
+    "remotePath": "photos/promo/promo-1.jpg",
+    "localPath": "/images/oses/photos__promo__promo-1.jpg"
+  },
+  {
+    "remotePath": "photos/promo/promo-2.jpg",
+    "localPath": "/images/oses/photos__promo__promo-2.jpg"
+  },
+  {
+    "remotePath": "photos/promo/promo-3.jpg",
+    "localPath": "/images/oses/photos__promo__promo-3.jpg"
+  },
+  {
+    "remotePath": "photos/onecikanlar/tatli-severler.jpg",
+    "localPath": "/images/oses/photos__onecikanlar__tatli-severler.jpg"
+  },
+  {
+    "remotePath": "photos/onecikanlar/mutluluga-doyma-zamani.jpg",
+    "localPath": "/images/oses/photos__onecikanlar__mutluluga-doyma-zamani.jpg"
+  },
+  {
+    "remotePath": "assets/images/oses-yemeksepeti.jpg",
+    "localPath": "/images/oses/assets__images__oses-yemeksepeti.jpg"
+  },
+  {
+    "remotePath": "assets/images/oses-getir.jpg",
+    "localPath": "/images/oses/assets__images__oses-getir.jpg"
+  },
+  {
+    "remotePath": "assets/images/hemen_siparis_ver.png",
+    "localPath": "/images/oses/assets__images__hemen_siparis_ver.png"
+  },
+  {
+    "remotePath": "assets/images/en_yakin_oses.png",
+    "localPath": "/images/oses/assets__images__en_yakin_oses.png"
+  },
+  {
+    "remotePath": "assets/images/kampanyalar.png",
+    "localPath": "/images/oses/assets__images__kampanyalar.png"
+  },
+  {
+    "remotePath": "assets/images/ico_bayilik.png",
+    "localPath": "/images/oses/assets__images__ico_bayilik.png"
+  },
+  {
+    "remotePath": "assets/images/ico_kalite.png",
+    "localPath": "/images/oses/assets__images__ico_kalite.png"
+  },
+  {
+    "remotePath": "assets/images/ico_gida-guvenligi.png",
+    "localPath": "/images/oses/assets__images__ico_gida-guvenligi.png"
+  },
+  {
+    "remotePath": "assets/images/ico_tuketici.png",
+    "localPath": "/images/oses/assets__images__ico_tuketici.png"
+  },
+  {
+    "remotePath": "assets/images/oses-lezzetleri.jpg",
+    "localPath": "/images/oses/assets__images__oses-lezzetleri.jpg"
+  },
+  {
+    "remotePath": "assets/images/oses-25yil.png",
+    "localPath": "/images/oses/assets__images__oses-25yil.png"
+  },
+  {
+    "remotePath": "assets/images/oses.png",
+    "localPath": "/images/oses/assets__images__oses.png"
+  }
+]

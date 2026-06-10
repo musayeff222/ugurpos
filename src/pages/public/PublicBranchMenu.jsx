@@ -9,6 +9,7 @@ import {
   fetchPublicBranchMenu,
   getPublicProductImageSrc,
 } from "../../utils/qrMenuPublic";
+import { MENU_BANNER_IMAGE } from "../../utils/cigkofteSiteImages";
 import { loadBranchCart, saveBranchCart, saveLastBranchId } from "../../utils/qrMenuStorage";
 import "../../styles/public-qr-menu.css";
 
@@ -101,6 +102,15 @@ export default function PublicBranchMenu() {
 
   return (
     <PublicQrShell firm={menu.firm} branchId={branchId} cartCount={cartCount} navActive="menu">
+      <div className="oses-menu-banner">
+        <img src={MENU_BANNER_IMAGE} alt={menu.firm?.menuTitle || "Cigkofte"} loading="lazy" />
+        <div className="oses-menu-banner__overlay">
+          <div>
+            <h1>{t("qr.nav.products")}</h1>
+            <p>{branch.name}</p>
+          </div>
+        </div>
+      </div>
       <div className="sf-menu-page">
         <div className="sf-container">
           <PublicBranchBar branch={branch} onBack={() => navigate("/m")} />

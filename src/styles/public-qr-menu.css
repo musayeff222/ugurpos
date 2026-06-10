@@ -235,7 +235,7 @@
     inset: 0;
     background:
       linear-gradient(to right, var(--sf-background) 40%, rgba(253, 249, 244, 0.6) 70%, transparent),
-      url("https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=1600&q=80") center/cover;
+      url("/images/oses/photos__promo__promo-1.jpg") center/cover;
   }
 
   .sf-hero__content {
@@ -439,14 +439,14 @@
   position: relative;
   background:
     linear-gradient(135deg, rgba(139, 0, 5, 0.85), rgba(179, 19, 18, 0.7)),
-    url("https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80") center/cover;
+    url("/images/oses/photos__onecikanlar__tatli-severler.jpg") center/cover;
   box-shadow: var(--sf-shadow-lg);
 }
 
 .sf-campaign-card--green {
   background:
     linear-gradient(135deg, rgba(0, 78, 16, 0.85), rgba(21, 104, 32, 0.7)),
-    url("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80") center/cover;
+    url("/images/oses/photos__onecikanlar__mutluluga-doyma-zamani.jpg") center/cover;
 }
 
 .sf-campaign-card__overlay {
