@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
-import OsesBranchBar from "../../components/public/OsesBranchBar";
 import { useLocale } from "../../context/LocaleContext";
 import { formatPublicMoney } from "../../utils/publicMoney";
 import { requestUserLocation } from "../../utils/geo";
@@ -14,14 +13,7 @@ export default function PublicBranchCart() {
   const { t } = useLocale();
   const [menu, setMenu] = useState(null);
   const [cart, setCart] = useState(() => loadBranchCart(branchId));
-  const [form, setForm] = useState({
-    customerName: "",
-    customerPhone: "",
-    address: "",
-    note: "",
-    lat: "",
-    lng: "",
-  });
+  const [form, setForm] = useState({ customerName: "", customerPhone: "", address: "", note: "", lat: "", lng: "" });
   const [locating, setLocating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -36,8 +28,7 @@ export default function PublicBranchCart() {
   }, [branchId, cart]);
 
   const cartTotal = cart.reduce((sum, line) => sum + line.qty * line.price, 0);
-  const cartCount = cart.reduce((sum, line) => sum + line.qty, 0);
-  const money = (value) => formatPublicMoney(value);
+  const money = (v) => formatPublicMoney(v);
 
   const updateQty = (productId, qty) => {
     setCart((prev) => {
@@ -48,7 +39,6 @@ export default function PublicBranchCart() {
 
   const useMyLocation = async () => {
     setLocating(true);
-    setError("");
     try {
       const { lat, lng } = await requestUserLocation();
       setForm((prev) => ({ ...prev, lat: String(lat), lng: String(lng) }));
@@ -61,7 +51,7 @@ export default function PublicBranchCart() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.customerName.trim() || !form.customerPhone.trim() || !form.address.trim() || cart.length === 0 || !menu) return;
+    if (!form.customerName.trim() || !form.customerPhone.trim() || !form.address.trim() || !cart.length || !menu) return;
     setSubmitting(true);
     setError("");
     try {
@@ -86,138 +76,88 @@ export default function PublicBranchCart() {
   };
 
   const branch = menu?.branch;
-  const branchLabel = branch ? `#${branch.branchNo} ${branch.name}` : "";
   const canOrder = branch?.menuAcceptOrders && branch?.isOpen !== false;
-  const hasDeliveryLocation = form.lat && form.lng;
 
   return (
-    <PublicQrShell firm={menu?.firm} branchId={branchId} cartCount={cartCount} navActive="cart">
-      <section className="oses-section">
-        <div className="oses-container oses-checkout">
-          <OsesBranchBar branch={branch} onBack={() => navigate(`/m/branch/${branchId}`)} />
-
-          <div className="oses-page-head">
-            <h1>{t("qr.completeOrder")}</h1>
+    <PublicQrShell firm={menu?.firm}>
+      <div className="container my-5">
+        <div className="row mb-4">
+          <div className="col-12">
+            <Link to={`/m/branch/${branchId}`} className="btn_box_line">
+              ← {t("qr.nav.menu")}
+            </Link>
+            <h2 className="title32 txt_green mt-4">{t("qr.completeOrder")}</h2>
             <p>{t("qr.payOnDelivery")}</p>
           </div>
+        </div>
 
-          <div className="oses-checkout-grid">
-            <div className="oses-panel">
-              <h3>
-                <i className="fa fa-shopping-cart" /> {t("qr.myCart")} ({cartCount})
-              </h3>
-              {cart.length === 0 ? (
-                <p className="oses-empty">
-                  {t("qr.cartEmpty")}{" "}
-                  <Link to={`/m/branch/${branchId}`} className="oses-text-link">
-                    {t("qr.nav.menu")}
-                  </Link>
-                </p>
-              ) : (
-                <div className="oses-cart-lines">
-                  {cart.map((line) => (
-                    <article key={line.productId} className="oses-cart-line">
-                      <div className="oses-cart-line__media">
-                        {line.imageUrl ? (
-                          <img src={line.imageUrl} alt={line.name} />
-                        ) : (
-                          <div className="oses-cart-line__placeholder">
-                            <i className="fa fa-cutlery" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="oses-cart-line__body">
-                        <div className="oses-cart-line__head">
-                          <h4>{line.name}</h4>
-                          <span className="oses-cart-line__price">{money(line.price * line.qty)}</span>
-                        </div>
-                        <div className="oses-qty">
-                          <button type="button" onClick={() => updateQty(line.productId, line.qty - 1)} aria-label="-">
-                            <i className="fa fa-minus" />
-                          </button>
-                          <span>{line.qty}</span>
-                          <button type="button" onClick={() => updateQty(line.productId, line.qty + 1)} aria-label="+">
-                            <i className="fa fa-plus" />
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {cart.length > 0 && canOrder && (
-              <form className="oses-checkout-form" onSubmit={handleSubmit}>
-                <div className="oses-panel">
-                  <h3>
-                    <i className="fa fa-map-marker" /> {t("qr.deliveryAddress")}
-                  </h3>
-                  {error && <div className="oses-banner">{error}</div>}
-                  <label>{t("qr.fullName")} *</label>
-                  <input
-                    className="oses-input"
-                    value={form.customerName}
-                    onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                    required
-                  />
-                  <label>{t("qr.phone")} *</label>
-                  <input
-                    className="oses-input"
-                    value={form.customerPhone}
-                    onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
-                    required
-                  />
-                  <label>{t("qr.deliveryAddress")} *</label>
-                  <textarea
-                    className="oses-input"
-                    rows={3}
-                    value={form.address}
-                    onChange={(e) => setForm({ ...form, address: e.target.value })}
-                    placeholder={t("qr.deliveryAddressPlaceholder")}
-                    required
-                  />
-                  <div className="oses-checkout-location">
-                    <button type="button" className="oses-btn oses-btn--outline-dark" onClick={useMyLocation} disabled={locating}>
-                      <i className="fa fa-location-arrow" />
-                      {locating ? t("qr.locating") : t("qr.useMyDeliveryLocation")}
-                    </button>
-                    {hasDeliveryLocation && <span className="oses-success">{t("qr.deliveryLocationSet")}</span>}
+        <div className="row">
+          <div className="col-12 col-lg-6 mb-4">
+            <h3 className="title18 txt_green">{t("qr.myCart")}</h3>
+            {cart.length === 0 ? (
+              <p>
+                {t("qr.cartEmpty")}{" "}
+                <Link to={`/m/branch/${branchId}`}>{t("qr.nav.menu")}</Link>
+              </p>
+            ) : (
+              cart.map((line) => (
+                <div key={line.productId} className="d-flex align-items-center mb-3 p-3" style={{ background: "#f8f8f8", borderRadius: 8 }}>
+                  {line.imageUrl && (
+                    <img src={line.imageUrl} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, marginRight: 12 }} />
+                  )}
+                  <div className="flex-grow-1">
+                    <strong>{line.name}</strong>
+                    <div className="price">{money(line.price * line.qty)}</div>
+                    <div className="d-flex align-items-center mt-2">
+                      <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => updateQty(line.productId, line.qty - 1)}>
+                        −
+                      </button>
+                      <span className="mx-2">{line.qty}</span>
+                      <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => updateQty(line.productId, line.qty + 1)}>
+                        +
+                      </button>
+                    </div>
                   </div>
-                  <label>{t("qr.orderNote")}</label>
-                  <textarea
-                    className="oses-input"
-                    rows={2}
-                    value={form.note}
-                    onChange={(e) => setForm({ ...form, note: e.target.value })}
-                  />
                 </div>
-
-                <div className="oses-panel oses-summary">
-                  <h3>{t("qr.orderSummary")}</h3>
-                  <div className="oses-summary__row">
-                    <span>{t("qr.orderBranch", { branch: branchLabel })}</span>
-                  </div>
-                  <div className="oses-summary__row">
-                    <span>{t("common.total")}</span>
-                    <strong>{money(cartTotal)}</strong>
-                  </div>
-                  <p className="oses-summary__note">{t("qr.payOnDelivery")}</p>
-                  <button type="submit" className="oses-btn oses-btn--primary oses-btn--block" disabled={submitting}>
-                    {submitting ? t("qr.sending") : t("qr.sendOrder", { total: money(cartTotal) })}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {cart.length > 0 && !canOrder && (
-              <div className="oses-banner">
-                {branch?.isOpen === false ? t("qr.closedNotice") : t("qr.viewOnlyNotice")}
-              </div>
+              ))
             )}
           </div>
+
+          {cart.length > 0 && canOrder && (
+            <div className="col-12 col-lg-6">
+              <form onSubmit={handleSubmit}>
+                {error && <div className="alert alert-danger">{error}</div>}
+                <div className="form-group">
+                  <label>{t("qr.fullName")} *</label>
+                  <input className="form-control" required value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>{t("qr.phone")} *</label>
+                  <input className="form-control" required value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>{t("qr.deliveryAddress")} *</label>
+                  <textarea className="form-control" rows={3} required value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+                </div>
+                <button type="button" className="btn_box_line mb-3" onClick={useMyLocation} disabled={locating}>
+                  {locating ? t("qr.locating") : t("qr.useMyDeliveryLocation")}
+                </button>
+                <div className="form-group">
+                  <label>{t("qr.orderNote")}</label>
+                  <textarea className="form-control" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+                </div>
+                <div className="d-flex justify-content-between mb-3">
+                  <span>{t("common.total")}</span>
+                  <strong className="price">{money(cartTotal)}</strong>
+                </div>
+                <button type="submit" className="btn_box_green btn_box width-100" disabled={submitting}>
+                  {submitting ? t("qr.sending") : t("qr.sendOrder", { total: money(cartTotal) })}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
-      </section>
+      </div>
     </PublicQrShell>
   );
 }

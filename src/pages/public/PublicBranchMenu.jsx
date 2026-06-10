@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
-import OsesBranchBar from "../../components/public/OsesBranchBar";
-import OsesProductCard from "../../components/public/OsesProductCard";
+import OsesSingleProduct from "../../components/oses-site/OsesSingleProduct";
 import { useLocale } from "../../context/LocaleContext";
 import { formatPublicMoney } from "../../utils/publicMoney";
 import { fetchPublicBranchMenu, getPublicProductImageSrc } from "../../utils/qrMenuPublic";
-import { MENU_BANNER_IMAGE } from "../../utils/cigkofteSiteImages";
 import { loadBranchCart, saveBranchCart, saveLastBranchId } from "../../utils/qrMenuStorage";
 
 export default function PublicBranchMenu() {
@@ -45,7 +43,7 @@ export default function PublicBranchMenu() {
 
   const cartCount = cart.reduce((sum, line) => sum + line.qty, 0);
   const cartTotal = cart.reduce((sum, line) => sum + line.qty * line.price, 0);
-  const money = (value) => formatPublicMoney(value);
+  const money = (v) => formatPublicMoney(v);
 
   const addToCart = (product) => {
     const imageUrl = getPublicProductImageSrc(branchId, product);
@@ -56,120 +54,107 @@ export default function PublicBranchMenu() {
           line.productId === product.id ? { ...line, qty: line.qty + 1 } : line
         );
       }
-      return [
-        ...prev,
-        { productId: product.id, name: product.name, price: product.price1, qty: 1, imageUrl },
-      ];
+      return [...prev, { productId: product.id, name: product.name, price: product.price1, qty: 1, imageUrl }];
     });
   };
 
   if (loading) {
     return (
-      <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="oses-container">
-          <div className="oses-loading">{t("qr.loadingMenu")}</div>
-        </div>
-      </PublicQrShell>
-    );
-  }
-
-  if (error && !menu) {
-    return (
-      <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="oses-container">
-          <div className="oses-alert">{error}</div>
-        </div>
+      <PublicQrShell firm={menu?.firm}>
+        <div className="container py-5 text-center">{t("qr.loadingMenu")}</div>
       </PublicQrShell>
     );
   }
 
   if (!menu?.branch) {
     return (
-      <PublicQrShell firm={menu?.firm} branchId={branchId} navActive="menu">
-        <div className="oses-container">
-          <div className="oses-alert">{error || t("qr.menuNotFound")}</div>
-        </div>
+      <PublicQrShell firm={menu?.firm}>
+        <div className="container py-5 text-center text-danger">{error || t("qr.menuNotFound")}</div>
       </PublicQrShell>
     );
   }
 
   const branch = menu.branch;
   const canOrder = branch.menuAcceptOrders && branch.isOpen !== false;
+  const groups = menu.groups || [];
 
   return (
-    <PublicQrShell firm={menu.firm} branchId={branchId} cartCount={cartCount} navActive="menu">
-      <div className="oses-menu-banner">
-        <img src={MENU_BANNER_IMAGE} alt={menu.firm?.menuTitle || "Cigkofte"} loading="lazy" />
-        <div className="oses-menu-banner__overlay">
-          <div>
-            <h1>{t("qr.nav.products")}</h1>
-            <p>{branch.name}</p>
+    <PublicQrShell firm={menu.firm}>
+      <div className="container productList">
+        <div className="row">
+          <div className="col-12 d-flex justify-content-between align-items-center flex-wrap my-3">
+            <button type="button" className="btn_box_line" onClick={() => navigate("/m")}>
+              ← {t("qr.nav.home")}
+            </button>
+            <p className="mb-0">
+              <strong>#{branch.branchNo} {branch.name}</strong>
+            </p>
+            {cartCount > 0 && (
+              <Link to={`/m/branch/${branchId}/cart`} className="btn_box_green btn_box">
+                {t("qr.myCart")} ({cartCount}) · {money(cartTotal)}
+              </Link>
+            )}
           </div>
         </div>
-      </div>
 
-      <section className="oses-section">
-        <div className="oses-container">
-          <OsesBranchBar branch={branch} onBack={() => navigate("/m")} />
+        {!canOrder && (
+          <div className="alert alert-warning">{branch.isOpen === false ? t("qr.closedNotice") : t("qr.viewOnlyNotice")}</div>
+        )}
 
-          {error && <div className="oses-banner oses-banner--muted">{error}</div>}
-          {!canOrder && branch.menuAcceptOrders === false && (
-            <div className="oses-banner oses-banner--muted">{t("qr.viewOnlyNotice")}</div>
-          )}
-          {branch.menuAcceptOrders && !branch.isOpen && (
-            <div className="oses-banner">{t("qr.closedNotice")}</div>
-          )}
-
-          <div className="oses-search">
-            <i className="fa fa-search" />
+        <div className="row">
+          <div className="col-12">
+            <h2 className="title32 txt_green my-4">{t("qr.nav.products")}</h2>
             <input
+              className="form-control mb-3"
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("qr.searchProduct")}
             />
           </div>
+        </div>
 
-          <div className="oses-tabs">
-            <button type="button" className={activeGroup === "all" ? "is-active" : ""} onClick={() => setActiveGroup("all")}>
-              {t("common.all")}
-            </button>
-            {(menu.groups || []).map((group) => (
+        {groups.length > 0 && (
+          <nav className="d-none d-sm-block">
+            <div className="nav nav-tabs nav-justified mb-3">
               <button
-                key={group.id}
                 type="button"
-                className={activeGroup === group.id ? "is-active" : ""}
-                onClick={() => setActiveGroup(group.id)}
+                className={`nav-item nav-link${activeGroup === "all" ? " active" : ""}`}
+                onClick={() => setActiveGroup("all")}
               >
-                {group.name}
+                {t("common.all")}
               </button>
-            ))}
-          </div>
+              {groups.map((group) => (
+                <button
+                  key={group.id}
+                  type="button"
+                  className={`nav-item nav-link${activeGroup === group.id ? " active" : ""}`}
+                  onClick={() => setActiveGroup(group.id)}
+                >
+                  {group.name}
+                </button>
+              ))}
+            </div>
+          </nav>
+        )}
 
-          <div className="oses-section__head oses-section__head--left">
-            <h2>{t("qr.popularFlavors")}</h2>
-            {cartCount > 0 && (
-              <Link to={`/m/branch/${branchId}/cart`} className="oses-text-link">
-                {t("qr.myCart")} · {money(cartTotal)}
-              </Link>
-            )}
-          </div>
-
-          <div className="oses-products__grid">
-            {products.map((product) => (
-              <OsesProductCard
-                key={product.id}
+        <div className="row">
+          {products.map((product) => (
+            <div key={product.id} className="col-12 col-lg-3 col-md-4 col-sm-6 my-4">
+              <OsesSingleProduct
                 product={product}
                 imageSrc={getPublicProductImageSrc(branchId, product)}
                 priceLabel={money(product.price1)}
                 canOrder={canOrder}
                 onAdd={() => addToCart(product)}
               />
-            ))}
-            {products.length === 0 && <p className="oses-empty">{t("qr.noProducts")}</p>}
-          </div>
+            </div>
+          ))}
+          {products.length === 0 && (
+            <div className="col-12 text-center py-5">{t("qr.noProducts")}</div>
+          )}
         </div>
-      </section>
+      </div>
     </PublicQrShell>
   );
 }
