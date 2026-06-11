@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { useLocale } from "../../context/LocaleContext";
+import { BRAND_NAME } from "../../constants/brand";
+import { getWebConfig } from "../../utils/menuWebConfig";
 
 function socialHref(type, value) {
   if (!value?.trim()) return null;
@@ -13,10 +15,14 @@ function socialHref(type, value) {
 
 export default function OsesSiteFooter({ firm }) {
   const { t } = useLocale();
+  const web = getWebConfig(firm);
   const social = firm?.social || {};
   const ig = socialHref("instagram", social.instagram);
   const fb = socialHref("facebook", social.facebook);
   const tt = socialHref("tiktok", social.tiktok);
+  const phone = web.contactPhone?.trim();
+  const email = web.contactEmail?.trim();
+  const copyright = web.copyrightSuffix?.trim() || t("qr.osesCopyright");
 
   const links = [
     { label: t("qr.nav.home"), href: "/m", route: true },
@@ -34,10 +40,16 @@ export default function OsesSiteFooter({ firm }) {
       <div className="container">
         <div className="row">
           <div className="col-12 col-sm-3">
-            <img src="/oses/assets/images/oses-25yil.png" className="img-fluid" alt="" />
-            <p className="phone">—</p>
+            {web.footerBadgeUrl ? (
+              <img src={web.footerBadgeUrl} className="img-fluid" alt="" />
+            ) : null}
+            <p className="phone">{phone || "—"}</p>
             <p className="mail">
-              <a href="mailto:info@cigkofte.az">info@cigkofte.az</a>
+              {email ? (
+                <a href={`mailto:${email}`}>{email}</a>
+              ) : (
+                <span>—</span>
+              )}
             </p>
           </div>
           <div className="col-12 col-sm-9">
@@ -73,19 +85,11 @@ export default function OsesSiteFooter({ firm }) {
                 )}
               </p>
             </div>
-            <div className="app">
-              <a target="_blank" rel="noopener noreferrer" href="https://play.google.com/store">
-                <img src="/oses/assets/images/google_play.svg" alt="Google Play" />
-              </a>
-              <a target="_blank" rel="noopener noreferrer" href="https://apps.apple.com/">
-                <img src="/oses/assets/images/apple_store.svg" alt="App Store" />
-              </a>
-            </div>
           </div>
           <div className="col-12">
             <hr />
             <p className="text-center mb-0">
-              © {new Date().getFullYear()} {firm?.menuTitle || "Cigkofte"} | {t("qr.osesCopyright")}
+              © {new Date().getFullYear()} {firm?.menuTitle || BRAND_NAME} | {copyright}
             </p>
           </div>
         </div>

@@ -53,25 +53,29 @@ export function getDb() {
   return db;
 }
 
+const BRAND_NAME = "İstanbul Çiğköfte";
+
 function normalizeFirmBranding(database) {
   try {
     database
       .prepare(
-        `UPDATE users SET firm_name = 'Cigkofte'
+        `UPDATE users SET firm_name = ?
          WHERE firm_name IS NULL OR TRIM(firm_name) = ''
             OR UPPER(firm_name) LIKE '%SMART%ADMIN%'
-            OR UPPER(firm_name) LIKE '%SMARTADM%'`
+            OR UPPER(firm_name) LIKE '%SMARTADM%'
+            OR LOWER(TRIM(firm_name)) = 'cigkofte'`
       )
-      .run();
+      .run(BRAND_NAME);
 
     database
       .prepare(
-        `UPDATE firm_settings SET menu_title = 'Cigkofte'
+        `UPDATE firm_settings SET menu_title = ?
          WHERE menu_title IS NULL OR TRIM(menu_title) = ''
             OR UPPER(menu_title) LIKE '%SMART%ADMIN%'
-            OR UPPER(menu_title) LIKE '%SMARTADM%'`
+            OR UPPER(menu_title) LIKE '%SMARTADM%'
+            OR LOWER(TRIM(menu_title)) = 'cigkofte'`
       )
-      .run();
+      .run(BRAND_NAME);
 
     database
       .prepare(
@@ -133,7 +137,7 @@ function seedIfEmpty(database) {
   const hash = bcrypt.hashSync("admin123", 10);
   database.prepare(
     "INSERT INTO users (id, email, password_hash, firm_id, firm_name, branch, role, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-  ).run("u1", "admin@benimpos.com", hash, firmId, "Cigkofte", "ANA HESAP", "admin", branchId);
+  ).run("u1", "admin@benimpos.com", hash, firmId, "İstanbul Çiğköfte", "ANA HESAP", "admin", branchId);
 
   const groups = [["g_cigkofte", "Çiğköfte"]];
   const insGroup = database.prepare("INSERT INTO `groups` (id, name, branch_id) VALUES (?, ?, ?)");

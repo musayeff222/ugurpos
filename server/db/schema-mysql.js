@@ -255,7 +255,8 @@ export function initMysqlSchema(db) {
       menu_logo_path VARCHAR(512),
       menu_open_time VARCHAR(8) DEFAULT '09:00',
       menu_close_time VARCHAR(8) DEFAULT '23:00',
-      menu_theme VARCHAR(32) DEFAULT 'classic'
+      menu_theme VARCHAR(32) DEFAULT 'classic',
+      menu_web_config LONGTEXT
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
     CREATE TABLE IF NOT EXISTS qr_orders (

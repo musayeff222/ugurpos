@@ -9,6 +9,7 @@ import { ensureFirmSettings, enrichMenuBranch, rowToFirmMenu } from "../utils/qr
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 import { saveMenuLogo, deleteMenuLogo } from "../utils/menuLogo.js";
 import { normalizeMenuTheme } from "../utils/menuTheme.js";
+import { mergeMenuWebConfig, parseMenuWebConfig, serializeMenuWebConfig, applyWebImageUploads } from "../utils/menuWebConfig.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -328,6 +329,8 @@ router.patch("/qr-menu", (req, res) => {
     logoMime,
     removeLogo,
     menuTheme,
+    webConfig,
+    webImageUploads,
   } = req.body;
 
   const lang = menuDefaultLang === "tr" ? "tr" : menuDefaultLang === "az" ? "az" : firmRow.menu_default_lang || "az";
@@ -339,6 +342,14 @@ router.patch("/qr-menu", (req, res) => {
     logoPath = null;
   } else if (logoData && logoMime) {
     logoPath = saveMenuLogo(req.user.firmId, logoData, logoMime);
+  }
+
+  let nextWebConfig = webConfig != null
+    ? mergeMenuWebConfig(firmRow.menu_web_config, webConfig)
+    : parseMenuWebConfig(firmRow.menu_web_config);
+
+  if (webImageUploads && Object.keys(webImageUploads).length > 0) {
+    nextWebConfig = applyWebImageUploads(req.user.firmId, nextWebConfig, webImageUploads);
   }
 
   db.prepare(
@@ -354,7 +365,8 @@ router.patch("/qr-menu", (req, res) => {
       menu_open_time = ?,
       menu_close_time = ?,
       menu_logo_path = ?,
-      menu_theme = ?
+      menu_theme = ?,
+      menu_web_config = ?
      WHERE firm_id = ?`
   ).run(
     menuEnabled === false ? 0 : 1,
@@ -369,6 +381,7 @@ router.patch("/qr-menu", (req, res) => {
     menuCloseTime ?? firmRow.menu_close_time ?? "23:00",
     logoPath,
     theme,
+    serializeMenuWebConfig(nextWebConfig),
     req.user.firmId
   );
 

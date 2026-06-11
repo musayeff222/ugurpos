@@ -11,9 +11,46 @@ import {
   getPublicProductImageSrc,
 } from "../../utils/qrMenuPublic";
 import { formatPublicMoney } from "../../utils/publicMoney";
+import { getWebConfig } from "../../utils/menuWebConfig";
 
 const LANG_KEY = "ugurpos_lang";
 const AUTO_RADIUS_KM = 80;
+
+function runOrderStripAction(action, goOrder) {
+  if (action === "branches") {
+    document.getElementById("subeler")?.scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+  if (action === "campaigns") {
+    document.getElementById("kampanyalar")?.scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+  goOrder();
+}
+
+function OrderStripImage({ item, goOrder }) {
+  if (!item?.imageUrl) return null;
+  const content = <img src={item.imageUrl} className="img-fluid mb-4" alt={item.alt || ""} />;
+  if (item.action === "branches") {
+    return (
+      <a href="#subeler" className="d-block w-100">
+        {content}
+      </a>
+    );
+  }
+  if (item.action === "campaigns") {
+    return (
+      <a href="#kampanyalar" className="d-block w-100">
+        {content}
+      </a>
+    );
+  }
+  return (
+    <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={() => runOrderStripAction(item.action, goOrder)}>
+      {content}
+    </button>
+  );
+}
 
 export default function PublicMenuLanding() {
   const navigate = useNavigate();
@@ -81,7 +118,8 @@ export default function PublicMenuLanding() {
   }, [data, search]);
 
   const firm = data?.firm;
-  const welcome = firm?.menuWelcome || t("qr.osesFranchiseText");
+  const web = getWebConfig(firm);
+  const welcome = web.franchiseText?.trim() || firm?.menuWelcome || t("qr.osesFranchiseText");
   const previewBranchId = preview?.branch?.id;
   const money = (v) => formatPublicMoney(v);
 
@@ -110,90 +148,95 @@ export default function PublicMenuLanding() {
 
   return (
     <PublicQrShell firm={firm}>
-      <OsesPromoSlider />
+      <OsesPromoSlider slides={web.promoSlides} onSlideClick={goOrder} />
 
-      {/* Sipariş butonları — oses.com.tr */}
-      <div className="container mt-4">
-        <div className="row">
-          <div className="col-12 col-md-6">
-            <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={goOrder}>
-              <img src="/oses/assets/images/oses-yemeksepeti.jpg" className="img-fluid mb-4" alt={t("qr.osesOrderYemeksepeti")} />
-            </button>
+      {web.showOrderStrip && web.orderStrip?.some((item) => item.imageUrl) && (
+        <>
+          <div className="container mt-4">
+            <div className="row">
+              {web.orderStrip.slice(0, 2).map((item, i) => (
+                <div key={`strip-top-${i}`} className="col-12 col-md-6">
+                  <OrderStripImage item={item} goOrder={goOrder} />
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="col-12 col-md-6">
-            <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={goOrder}>
-              <img src="/oses/assets/images/oses-getir.jpg" className="img-fluid mb-4" alt={t("qr.osesOrderGetir")} />
-            </button>
+          <div className="container mt-4">
+            <div className="row">
+              {web.orderStrip.slice(2, 5).map((item, i) => (
+                <div key={`strip-bottom-${i}`} className="col-12 col-md-4">
+                  <OrderStripImage item={item} goOrder={goOrder} />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
-      <div className="container mt-4">
-        <div className="row">
-          <div className="col-12 col-md-4">
-            <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={goOrder}>
-              <img src="/oses/assets/images/hemen_siparis_ver.png" className="img-fluid mb-4" alt={t("qr.osesOrderNow")} />
-            </button>
-          </div>
-          <div className="col-12 col-md-4">
-            <a href="#subeler">
-              <img src="/oses/assets/images/en_yakin_oses.png" className="img-fluid mb-4" alt={t("qr.osesNearest")} />
-            </a>
-          </div>
-          <div className="col-12 col-md-4">
-            <a href="#kampanyalar">
-              <img src="/oses/assets/images/kampanyalar.png" className="img-fluid mb-4" alt={t("qr.nav.campaigns")} />
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div className="container" id="kampanyalar">
-        <div className="row">
-          <div className="col-12 col-md-6">
-            <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={goOrder}>
-              <img src="/oses/photos/onecikanlar/tatli-severler.jpg" className="img-fluid" alt={t("qr.osesSlide3")} />
-            </button>
-          </div>
-          <div className="col-12 col-md-6">
-            <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={goOrder}>
-              <img src="/oses/photos/onecikanlar/mutluluga-doyma-zamani.jpg" className="img-fluid" alt={t("qr.osesSlide2")} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="franchiseFwrd my-5" id="franchise">
-        <div className="container">
+      {web.campaignBanners.some((banner) => banner.imageUrl) && (
+        <div className="container" id="kampanyalar">
           <div className="row">
-            <div className="col-12 col-sm-10 offset-sm-1">
-              <div className="box">
-                <h2 className="title32 txt_green">
-                  {t("qr.osesFranchiseTitle")}
-                  <br />
-                  {t("qr.osesFranchiseTitle2")}
-                </h2>
-                <h3 className="title24 txt_white">{t("qr.osesFranchiseSubtitle")}</h3>
-                <p className="txt_white">{welcome}</p>
-                <button type="button" className="btn_box_green btn_box" onClick={goOrder}>
-                  {t("qr.osesOrderNow")} <i className="fas fa-check" />
-                </button>
+            {web.campaignBanners.map((banner, i) =>
+              banner.imageUrl ? (
+                <div key={`${banner.imageUrl}-${i}`} className="col-12 col-md-6">
+                  <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={goOrder}>
+                    <img src={banner.imageUrl} className="img-fluid" alt={banner.alt || ""} />
+                  </button>
+                </div>
+              ) : null
+            )}
+          </div>
+        </div>
+      )}
+
+      {web.showFranchise && (
+        <div
+          className="franchiseFwrd my-5"
+          id="franchise"
+          style={
+            web.franchiseBackgroundUrl
+              ? { backgroundImage: `url(${web.franchiseBackgroundUrl})` }
+              : undefined
+          }
+        >
+          <div className="container">
+            <div className="row">
+              <div className="col-12 col-sm-10 offset-sm-1">
+                <div
+                  className="box"
+                  style={
+                    web.franchiseIconUrl
+                      ? {
+                          backgroundImage: `url(${web.franchiseIconUrl})`,
+                          backgroundRepeat: "no-repeat",
+                          backgroundPosition: "90% center",
+                          backgroundSize: "20%",
+                        }
+                      : undefined
+                  }
+                >
+                  <h2 className="title32 txt_green">
+                    {web.franchiseTitle1}
+                    <br />
+                    {web.franchiseTitle2}
+                  </h2>
+                  <h3 className="title24 txt_white">{web.franchiseSubtitle}</h3>
+                  <p className="txt_white">{welcome}</p>
+                  <button type="button" className="btn_box_green btn_box" onClick={goOrder}>
+                    {t("qr.osesOrderNow")} <i className="fas fa-check" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="container">
         <div className="card-deck">
-          {[
-            { img: "/oses/assets/images/ico_bayilik.png", title: t("qr.osesFeatureBayilik"), desc: t("qr.osesFeatureBayilikDesc") },
-            { img: "/oses/assets/images/ico_kalite.png", title: t("qr.osesFeatureQuality"), desc: t("qr.osesFeatureQualityDesc") },
-            { img: "/oses/assets/images/ico_gida-guvenligi.png", title: t("qr.osesFeatureSafety"), desc: t("qr.osesFeatureSafetyDesc") },
-            { img: "/oses/assets/images/ico_tuketici.png", title: t("qr.osesFeatureHappy"), desc: t("qr.osesFeatureHappyDesc") },
-          ].map((card) => (
+          {web.features.map((card) => (
             <div className="card" key={card.title}>
-              <img className="card-img-top" src={card.img} alt="" />
+              <img className="card-img-top" src={card.iconUrl} alt="" />
               <div className="card-body">
                 <h5 className="card-title title18 txt_green">{card.title}</h5>
                 <p className="card-text">{card.desc}</p>
@@ -226,15 +269,17 @@ export default function PublicMenuLanding() {
         </div>
       )}
 
-      <div className="container mt-5">
-        <div className="row">
-          <div className="col-12">
-            <a href="#subeler">
-              <img src="/oses/assets/images/oses-lezzetleri.jpg" className="img-fluid" alt={t("qr.osesLezzetleri")} />
-            </a>
+      {web.showLezzetlerBanner && web.lezzetlerImageUrl && (
+        <div className="container mt-5">
+          <div className="row">
+            <div className="col-12">
+              <a href="#subeler">
+                <img src={web.lezzetlerImageUrl} className="img-fluid" alt={t("qr.osesLezzetleri")} />
+              </a>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="container my-5" id="subeler">
         <div className="row">

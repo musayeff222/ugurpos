@@ -72,6 +72,7 @@ export function migrateQrMenu(db) {
     db.dialect === "mysql" ? "VARCHAR(32) DEFAULT 'classic'" : "TEXT DEFAULT 'classic'"
   );
   addColumnIfMissing(db, "qr_orders", "device_id", db.dialect === "mysql" ? "VARCHAR(64)" : "TEXT");
+  addColumnIfMissing(db, "firm_settings", "menu_web_config", db.dialect === "mysql" ? "LONGTEXT" : "TEXT");
 
   if (db.dialect !== "mysql") {
     db.exec("CREATE INDEX IF NOT EXISTS idx_qr_orders_device ON qr_orders(device_id)");

@@ -4,16 +4,20 @@ import { useLocale } from "../../context/LocaleContext";
 import PageHeader from "../../components/ui/PageHeader";
 import ProductImageField from "../../components/ProductImageField";
 import QrSocialLinks from "../../components/public/QrSocialLinks";
-import { QR_MENU_THEMES } from "../../constants/qrMenuThemes";
+import WebImageField from "../../components/admin/WebImageField";
+import { normalizeWebConfig } from "../../utils/menuWebConfig";
 import { formatMoney } from "../../utils/format";
 import { getMenuPublicUrl, getQrCodeUrl } from "../../utils/qrMenuPublic";
 
-const THEME_LABEL_KEYS = {
-  classic: "admin.qr.themeClassic",
-  dark: "admin.qr.themeDark",
-  fresh: "admin.qr.themeFresh",
-  elegant: "admin.qr.themeElegant",
-};
+function WebConfigField({ label, children, hint }) {
+  return (
+    <>
+      <label>{label}</label>
+      {children}
+      {hint ? <p className="hint-text">{hint}</p> : null}
+    </>
+  );
+}
 
 const STATUS_LABELS = {
   pending: "Bekliyor",
@@ -37,6 +41,8 @@ export default function AdminQrMenu() {
   const [orders, setOrders] = useState([]);
   const [orderFilter, setOrderFilter] = useState({ branchId: "", status: "pending" });
   const [firmDraft, setFirmDraft] = useState({});
+  const [webConfigDraft, setWebConfigDraft] = useState(null);
+  const [webImageUploads, setWebImageUploads] = useState({});
   const [logoValue, setLogoValue] = useState(undefined);
   const [branchDrafts, setBranchDrafts] = useState({});
   const [message, setMessage] = useState("");
@@ -58,8 +64,8 @@ export default function AdminQrMenu() {
       menuDefaultLang: data.firm.defaultLang || "az",
       menuOpenTime: data.firm.openTime || "09:00",
       menuCloseTime: data.firm.closeTime || "23:00",
-      menuTheme: data.firm.theme || "classic",
     });
+    setWebConfigDraft(normalizeWebConfig(data.firm.webConfig));
     setLogoValue(undefined);
     setBranchDrafts(
       Object.fromEntries(
@@ -114,13 +120,54 @@ export default function AdminQrMenu() {
     facebook: firmDraft.socialFacebook || "",
   };
 
-  const selectedTheme = QR_MENU_THEMES.find((item) => item.id === (firmDraft.menuTheme || "classic"));
+  const patchWeb = (key, value) => {
+    setWebConfigDraft((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const patchWebFeature = (index, key, value) => {
+    setWebConfigDraft((prev) => ({
+      ...prev,
+      features: prev.features.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
+    }));
+  };
+
+  const patchWebSlide = (index, key, value) => {
+    setWebConfigDraft((prev) => ({
+      ...prev,
+      promoSlides: prev.promoSlides.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
+    }));
+  };
+
+  const patchWebCampaign = (index, key, value) => {
+    setWebConfigDraft((prev) => ({
+      ...prev,
+      campaignBanners: prev.campaignBanners.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
+    }));
+  };
+
+  const patchWebOrderStrip = (index, key, value) => {
+    setWebConfigDraft((prev) => ({
+      ...prev,
+      orderStrip: prev.orderStrip.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
+    }));
+  };
+
+  const setImageUpload = (key, value) => {
+    setWebImageUploads((prev) => {
+      if (!value) {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      }
+      return { ...prev, [key]: value };
+    });
+  };
 
   const saveFirmSettings = async () => {
     setMessage("");
     setError("");
     try {
-      const payload = { ...firmDraft };
+      const payload = { ...firmDraft, webConfig: webConfigDraft, webImageUploads };
       if (logoValue === null) payload.removeLogo = true;
       else if (logoValue?.data) {
         payload.logoData = logoValue.data;
@@ -128,6 +175,8 @@ export default function AdminQrMenu() {
       }
       const data = await api.updateAdminQrMenu(payload);
       setFirm(data.firm);
+      setWebConfigDraft(normalizeWebConfig(data.firm.webConfig));
+      setWebImageUploads({});
       setLogoValue(undefined);
       setMessage(t("admin.qr.firmSaved"));
     } catch (err) {
@@ -165,7 +214,7 @@ export default function AdminQrMenu() {
     }
   };
 
-  if (loading) return <div className="card">{t("common.loading")}</div>;
+  if (loading || !webConfigDraft) return <div className="card">{t("common.loading")}</div>;
 
   return (
     <div className="admin-page admin-qr-page">
@@ -272,10 +321,7 @@ export default function AdminQrMenu() {
                   onChange={setLogoValue}
                 />
               </div>
-              <div
-                className={`admin-qr-design-preview qr-theme-${firmDraft.menuTheme || "classic"}`}
-                style={selectedTheme ? { background: selectedTheme.preview } : undefined}
-              >
+              <div className="admin-qr-design-preview">
                 {logoPreviewSrc ? (
                   <img src={logoPreviewSrc} alt="" className="admin-qr-design-preview__logo" key={logoPreviewSrc} />
                 ) : (
@@ -287,27 +333,228 @@ export default function AdminQrMenu() {
                 <span>{firmDraft.menuWelcome || "…"}</span>
               </div>
             </div>
+          </div>
 
-            <label>{t("admin.qr.menuDesign")}</label>
-            <p className="hint-text admin-qr-design-hint">{t("admin.qr.menuDesignHint")}</p>
-            <div className="admin-qr-theme-grid">
-              {QR_MENU_THEMES.map((theme) => (
-                <button
-                  key={theme.id}
-                  type="button"
-                  className={`admin-qr-theme-card ${firmDraft.menuTheme === theme.id ? "active" : ""}`}
-                  onClick={() => setFirmDraft((prev) => ({ ...prev, menuTheme: theme.id }))}
-                >
-                  <span className="admin-qr-theme-card__swatch" style={{ background: theme.preview }} />
-                  <span className="admin-qr-theme-card__colors">
-                    {theme.swatch.map((color) => (
-                      <i key={color} style={{ background: color }} />
-                    ))}
-                  </span>
-                  <strong>{t(THEME_LABEL_KEYS[theme.id])}</strong>
-                </button>
-              ))}
+          <div className="card admin-qr-firm-card">
+            <h3>{t("admin.qr.sectionWebContent")}</h3>
+            <p className="hint-text">{t("admin.qr.sectionWebContentHint")}</p>
+
+            <h4 className="admin-qr-section-title">{t("admin.qr.sectionFooter")}</h4>
+            <div className="admin-qr-firm-form">
+              <WebConfigField label={t("admin.qr.loginUrl")}>
+                <input
+                  placeholder="https://login.cigkofte.az"
+                  value={webConfigDraft.loginUrl || ""}
+                  onChange={(e) => patchWeb("loginUrl", e.target.value)}
+                />
+              </WebConfigField>
+              <WebConfigField label={t("admin.qr.contactPhone")}>
+                <input
+                  placeholder="+994501234567"
+                  value={webConfigDraft.contactPhone || ""}
+                  onChange={(e) => patchWeb("contactPhone", e.target.value)}
+                />
+              </WebConfigField>
+              <WebConfigField label={t("admin.qr.contactEmail")}>
+                <input
+                  placeholder="info@cigkofte.az"
+                  value={webConfigDraft.contactEmail || ""}
+                  onChange={(e) => patchWeb("contactEmail", e.target.value)}
+                />
+              </WebConfigField>
+              <WebImageField
+                label={t("admin.qr.footerBadgeUrl")}
+                hint={t("admin.qr.imageUploadHint")}
+                imageKey="footerBadgeUrl"
+                url={webConfigDraft.footerBadgeUrl || ""}
+                onUrlChange={(value) => patchWeb("footerBadgeUrl", value)}
+                upload={webImageUploads.footerBadgeUrl}
+                onUploadChange={setImageUpload}
+              />
+              <WebConfigField label={t("admin.qr.copyrightSuffix")}>
+                <input
+                  value={webConfigDraft.copyrightSuffix || ""}
+                  onChange={(e) => patchWeb("copyrightSuffix", e.target.value)}
+                />
+              </WebConfigField>
             </div>
+
+            <h4 className="admin-qr-section-title">{t("admin.qr.sectionPromo")}</h4>
+            <p className="hint-text">{t("admin.qr.promoHint")}</p>
+            {webConfigDraft.promoSlides.map((slide, i) => (
+              <div key={`promo-${i}`} className="admin-qr-web-block">
+                <strong>{t("admin.qr.promoSlide")} {i + 1}</strong>
+                <WebImageField
+                  label={t("admin.qr.imageUrl")}
+                  hint={t("admin.qr.imageUploadHint")}
+                  imageKey={`promoSlide-${i}`}
+                  url={slide.imageUrl || ""}
+                  onUrlChange={(value) => patchWebSlide(i, "imageUrl", value)}
+                  upload={webImageUploads[`promoSlide-${i}`]}
+                  onUploadChange={setImageUpload}
+                />
+                <WebConfigField label={t("admin.qr.imageAlt")}>
+                  <input value={slide.alt || ""} onChange={(e) => patchWebSlide(i, "alt", e.target.value)} />
+                </WebConfigField>
+              </div>
+            ))}
+
+            <h4 className="admin-qr-section-title">{t("admin.qr.sectionOrderStrip")}</h4>
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={!!webConfigDraft.showOrderStrip}
+                onChange={(e) => patchWeb("showOrderStrip", e.target.checked)}
+              />
+              {t("admin.qr.showOrderStrip")}
+            </label>
+            <p className="hint-text">{t("admin.qr.orderStripHint")}</p>
+            {webConfigDraft.orderStrip.map((item, i) => (
+              <div key={`order-strip-${i}`} className="admin-qr-web-block">
+                <strong>{t("admin.qr.orderStripItem")} {i + 1}</strong>
+                <WebImageField
+                  label={t("admin.qr.imageUrl")}
+                  hint={t("admin.qr.imageUploadHint")}
+                  imageKey={`orderStrip-${i}`}
+                  url={item.imageUrl || ""}
+                  onUrlChange={(value) => patchWebOrderStrip(i, "imageUrl", value)}
+                  upload={webImageUploads[`orderStrip-${i}`]}
+                  onUploadChange={setImageUpload}
+                />
+                <WebConfigField label={t("admin.qr.imageAlt")}>
+                  <input value={item.alt || ""} onChange={(e) => patchWebOrderStrip(i, "alt", e.target.value)} />
+                </WebConfigField>
+                <WebConfigField label={t("admin.qr.orderStripAction")}>
+                  <select value={item.action || "order"} onChange={(e) => patchWebOrderStrip(i, "action", e.target.value)}>
+                    <option value="order">{t("admin.qr.orderStripActionOrder")}</option>
+                    <option value="branches">{t("admin.qr.orderStripActionBranches")}</option>
+                    <option value="campaigns">{t("admin.qr.orderStripActionCampaigns")}</option>
+                  </select>
+                </WebConfigField>
+              </div>
+            ))}
+
+            <h4 className="admin-qr-section-title">{t("admin.qr.sectionCampaigns")}</h4>
+            {webConfigDraft.campaignBanners.map((banner, i) => (
+              <div key={`campaign-${i}`} className="admin-qr-web-block">
+                <strong>{t("admin.qr.campaignBanner")} {i + 1}</strong>
+                <WebImageField
+                  label={t("admin.qr.imageUrl")}
+                  hint={t("admin.qr.imageUploadHint")}
+                  imageKey={`campaign-${i}`}
+                  url={banner.imageUrl || ""}
+                  onUrlChange={(value) => patchWebCampaign(i, "imageUrl", value)}
+                  upload={webImageUploads[`campaign-${i}`]}
+                  onUploadChange={setImageUpload}
+                />
+                <WebConfigField label={t("admin.qr.imageAlt")}>
+                  <input value={banner.alt || ""} onChange={(e) => patchWebCampaign(i, "alt", e.target.value)} />
+                </WebConfigField>
+              </div>
+            ))}
+
+            <h4 className="admin-qr-section-title">{t("admin.qr.sectionFranchise")}</h4>
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={!!webConfigDraft.showFranchise}
+                onChange={(e) => patchWeb("showFranchise", e.target.checked)}
+              />
+              {t("admin.qr.showFranchise")}
+            </label>
+            <WebImageField
+              label={t("admin.qr.franchiseBackgroundUrl")}
+              hint={t("admin.qr.imageUploadHint")}
+              imageKey="franchiseBackgroundUrl"
+              url={webConfigDraft.franchiseBackgroundUrl || ""}
+              onUrlChange={(value) => patchWeb("franchiseBackgroundUrl", value)}
+              upload={webImageUploads.franchiseBackgroundUrl}
+              onUploadChange={setImageUpload}
+            />
+            <WebImageField
+              label={t("admin.qr.franchiseIconUrl")}
+              hint={t("admin.qr.imageUploadHint")}
+              imageKey="franchiseIconUrl"
+              url={webConfigDraft.franchiseIconUrl || ""}
+              onUrlChange={(value) => patchWeb("franchiseIconUrl", value)}
+              upload={webImageUploads.franchiseIconUrl}
+              onUploadChange={setImageUpload}
+            />
+            <div className="admin-qr-firm-form">
+              <WebConfigField label={t("admin.qr.franchiseTitle1")}>
+                <input
+                  value={webConfigDraft.franchiseTitle1 || ""}
+                  onChange={(e) => patchWeb("franchiseTitle1", e.target.value)}
+                />
+              </WebConfigField>
+              <WebConfigField label={t("admin.qr.franchiseTitle2")}>
+                <input
+                  value={webConfigDraft.franchiseTitle2 || ""}
+                  onChange={(e) => patchWeb("franchiseTitle2", e.target.value)}
+                />
+              </WebConfigField>
+              <WebConfigField label={t("admin.qr.franchiseSubtitle")}>
+                <input
+                  value={webConfigDraft.franchiseSubtitle || ""}
+                  onChange={(e) => patchWeb("franchiseSubtitle", e.target.value)}
+                />
+              </WebConfigField>
+              <WebConfigField label={t("admin.qr.franchiseText")} hint={t("admin.qr.franchiseTextHint")}>
+                <textarea
+                  rows={3}
+                  value={webConfigDraft.franchiseText || ""}
+                  onChange={(e) => patchWeb("franchiseText", e.target.value)}
+                />
+              </WebConfigField>
+            </div>
+
+            <h4 className="admin-qr-section-title">{t("admin.qr.sectionFeatures")}</h4>
+            {webConfigDraft.features.map((feature, i) => (
+              <div key={`feature-${i}`} className="admin-qr-web-block">
+                <strong>{t("admin.qr.featureBox")} {i + 1}</strong>
+                <WebImageField
+                  label={t("admin.qr.featureIconUrl")}
+                  hint={t("admin.qr.imageUploadHint")}
+                  imageKey={`feature-${i}`}
+                  url={feature.iconUrl || ""}
+                  onUrlChange={(value) => patchWebFeature(i, "iconUrl", value)}
+                  upload={webImageUploads[`feature-${i}`]}
+                  onUploadChange={setImageUpload}
+                />
+                <WebConfigField label={t("admin.qr.featureTitle")}>
+                  <input
+                    value={feature.title || ""}
+                    onChange={(e) => patchWebFeature(i, "title", e.target.value)}
+                  />
+                </WebConfigField>
+                <WebConfigField label={t("admin.qr.featureDesc")}>
+                  <textarea
+                    rows={2}
+                    value={feature.desc || ""}
+                    onChange={(e) => patchWebFeature(i, "desc", e.target.value)}
+                  />
+                </WebConfigField>
+              </div>
+            ))}
+
+            <h4 className="admin-qr-section-title">{t("admin.qr.sectionBanners")}</h4>
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={!!webConfigDraft.showLezzetlerBanner}
+                onChange={(e) => patchWeb("showLezzetlerBanner", e.target.checked)}
+              />
+              {t("admin.qr.showLezzetlerBanner")}
+            </label>
+            <WebImageField
+              label={t("admin.qr.lezzetlerImageUrl")}
+              hint={t("admin.qr.imageUploadHint")}
+              imageKey="lezzetlerImageUrl"
+              url={webConfigDraft.lezzetlerImageUrl || ""}
+              onUrlChange={(value) => patchWeb("lezzetlerImageUrl", value)}
+              upload={webImageUploads.lezzetlerImageUrl}
+              onUploadChange={setImageUpload}
+            />
           </div>
 
           <div className="card admin-qr-firm-card">

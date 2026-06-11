@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 88" role="img" aria-label="0stanbul �ik�fte">
+  <defs>
+    <linearGradient id="green" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#97d700"/>
+      <stop offset="100%" stop-color="#6fa800"/>
+    </linearGradient>
+  </defs>
+  <text x="4" y="38" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="700" fill="url(#green)">0STANBUL</text>
+  <text x="6" y="72" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" letter-spacing="2" fill="#2d2d2d">�0K�FTE</text>
+  <path d="M4 46 H250" stroke="#97d700" stroke-width="4" stroke-linecap="round"/>
+</svg>

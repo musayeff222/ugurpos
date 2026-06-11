@@ -1,6 +1,7 @@
 import { isMenuOpen, resolveMenuHours } from "./menuHours.js";
 import { menuLogoPublicUrlWithVersion } from "./menuLogo.js";
 import { normalizeMenuTheme } from "./menuTheme.js";
+import { parseMenuWebConfig } from "./menuWebConfig.js";
 
 export function enrichMenuBranch(branchRow, firmRow) {
   const menu = rowToMenuBranch(branchRow);
@@ -30,9 +31,11 @@ export function generateFirmMenuSlug(db, firmId) {
   return slug;
 }
 
-export function ensureFirmSettings(db, firmId, firmName = "Cigkofte") {
+export function ensureFirmSettings(db, firmId, firmName = "İstanbul Çiğköfte") {
   const displayName =
-    !firmName || /smart\s*admin/i.test(firmName) || /smartadm/i.test(firmName) ? "Cigkofte" : firmName;
+    !firmName || /smart\s*admin/i.test(firmName) || /smartadm/i.test(firmName)
+      ? "İstanbul Çiğköfte"
+      : firmName;
   let row = db.prepare("SELECT * FROM firm_settings WHERE firm_id = ?").get(firmId);
   if (!row) {
     const slug = generateFirmMenuSlug(db, firmId);
@@ -86,7 +89,7 @@ export function rowToFirmMenu(row, firmName = "") {
   return {
     firmId: row.firm_id,
     menuSlug: row.menu_slug,
-    menuTitle: row.menu_title || (firmName && !/smart\s*admin/i.test(firmName) ? firmName : "Cigkofte"),
+    menuTitle: row.menu_title || (firmName && !/smart\s*admin/i.test(firmName) ? firmName : "İstanbul Çiğköfte"),
     menuWelcome: row.menu_welcome || "",
     menuEnabled: !!row.menu_enabled,
     defaultLang,
@@ -102,6 +105,7 @@ export function rowToFirmMenu(row, firmName = "") {
     hasLogo: !!row.menu_logo_path,
     logoUrl: row.menu_logo_path ? menuLogoPublicUrlWithVersion(row.firm_id, row.menu_logo_path) : null,
     theme: normalizeMenuTheme(row.menu_theme),
+    webConfig: parseMenuWebConfig(row.menu_web_config),
   };
 }
 
