@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import PageHeader from "../../components/ui/PageHeader";
+import { getBranchLabel } from "../../utils/branchDisplay";
 
 export default function AdminDashboard() {
   const [summary, setSummary] = useState(null);
@@ -62,9 +63,7 @@ export default function AdminDashboard() {
               <Link key={b.id} to={`/admin/branches/${b.id}`} className="admin-branch-card admin-branch-card--link">
                 <div className="admin-branch-card__head">
                   <div>
-                    <h3>
-                      #{b.branchNo} {b.name}
-                    </h3>
+                    <h3>{getBranchLabel(b)}</h3>
                     <span className="admin-branch-email">{b.email || "E-posta yok"}</span>
                   </div>
                   <span className={`admin-badge ${b.active ? "ok" : "off"}`}>{b.active ? "Aktif" : "Pasif"}</span>

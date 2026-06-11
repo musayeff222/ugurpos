@@ -1,36 +1,214 @@
-/* İstanbul Çiğköfte — sarı tema */
+/* İstanbul Çiğköfte — tam sarı tema */
+:root {
+  --oses-yellow: #ffc107;
+  --oses-yellow-dark: #e6a800;
+  --oses-yellow-deep: #c89600;
+  --oses-yellow-light: #ffe082;
+  --oses-yellow-pale: #fff3c4;
+  --oses-yellow-text: #5d4600;
+  --oses-yellow-text-dark: #7a5c00;
+}
+
+html:has(.oses-site-body),
 .oses-site-body {
-  background: #fffdf0;
+  background: var(--oses-yellow) !important;
+  color: var(--oses-yellow-text);
 }
 
 .oses-site-body #mainContent {
-  background: transparent;
-}
-
-.oses-site-body header.sticky-top {
-  box-shadow: 0 2px 12px rgba(122, 92, 0, 0.15);
-}
-
-.oses-site-body footer {
-  background-color: #ffc107;
+  background: var(--oses-yellow);
 }
 
 .oses-site-body .account {
-  background-color: #e6a800;
+  background-color: var(--oses-yellow-deep) !important;
+}
+
+.oses-site-body .account a {
+  color: #fff;
+}
+
+.oses-site-body header,
+.oses-site-body header.sticky-top {
+  background-color: var(--oses-yellow) !important;
+  box-shadow: 0 2px 10px rgba(93, 70, 0, 0.12);
+}
+
+.oses-site-body header .navbar,
+.oses-site-body header .container {
+  background: transparent;
+}
+
+.oses-site-body .navbar-expand-lg .navbar-nav .nav-link {
+  color: var(--oses-yellow-text) !important;
+}
+
+.oses-site-body .navbar-expand-lg .navbar-nav .nav-link:hover,
+.oses-site-body .navbar-expand-lg .navbar-nav .nav-link.active {
+  color: #fff !important;
+}
+
+.oses-site-body .navbar-toggler {
+  color: var(--oses-yellow-text);
+  border-color: rgba(93, 70, 0, 0.35);
+}
+
+.oses-site-body .navbar-toggler:hover {
+  color: #fff;
+}
+
+.oses-site-body .account .lang-switcher {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.oses-site-body .account .lang-switcher button {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.oses-site-body .account .lang-switcher button.active {
+  background: var(--oses-yellow);
+  color: var(--oses-yellow-text);
+  font-weight: 700;
+}
+
+.oses-site-body .account a:hover {
+  color: var(--oses-yellow-pale) !important;
+}
+
+@media (max-width: 991.98px) {
+  .oses-site-body .navbar-nav {
+    background-color: var(--oses-yellow-dark) !important;
+  }
+
+  .oses-site-body .navbar-expand-lg .navbar-nav .nav-link {
+    color: #fff !important;
+  }
+}
+
+.oses-site-body footer {
+  background-color: var(--oses-yellow-deep) !important;
+}
+
+.oses-site-body footer hr {
+  border-color: var(--oses-yellow-text-dark);
+}
+
+.oses-site-body .container,
+.oses-site-body .container-fluid,
+.oses-site-body .fluid-container {
+  background: transparent;
+}
+
+/* Kartlar, ürünler, şubeler */
+.oses-site-body .card,
+.oses-site-body .card-body,
+.oses-site-body .card-img-top {
+  background: var(--oses-yellow-light) !important;
+  border-color: var(--oses-yellow-dark);
+  color: var(--oses-yellow-text);
+}
+
+.oses-site-body .single-product {
+  background: var(--oses-yellow-light) !important;
+  box-shadow: 0 8px 24px rgba(93, 70, 0, 0.12);
+}
+
+.oses-site-body #satisnoktalari .wrapper,
+.oses-site-body #subeler .wrapper {
+  background-color: var(--oses-yellow-light) !important;
+  border-color: var(--oses-yellow-dark) !important;
 }
 
 .oses-site-body .productList .nav-tabs {
-  background: #ffc107;
+  background: var(--oses-yellow-dark) !important;
+}
+
+.oses-site-body .productList .nav-tabs .nav-link {
+  color: var(--oses-yellow-text-dark);
+}
+
+.oses-site-body .productList .nav-tabs .nav-link.active {
+  background: var(--oses-yellow-pale) !important;
+  color: var(--oses-yellow-text-dark) !important;
+}
+
+.oses-site-body .form-control {
+  background: var(--oses-yellow-pale);
+  border-color: var(--oses-yellow-dark);
+  color: var(--oses-yellow-text);
+}
+
+.oses-site-body .form-control:focus {
+  background: #fffde7;
+  border-color: var(--oses-yellow-text-dark);
+  box-shadow: 0 0 0 0.15rem rgba(122, 92, 0, 0.15);
+}
+
+.oses-site-body .alert-warning {
+  background: var(--oses-yellow-pale);
+  border-color: var(--oses-yellow-dark);
+  color: var(--oses-yellow-text);
 }
 
 .oses-site-body .btn_box_green,
 .oses-site-body .single-product .btn-add {
-  background-color: #ffc107;
-  color: #5d4600;
+  background-color: var(--oses-yellow-text-dark) !important;
+  color: #fff !important;
 }
 
 .oses-site-body .btn_box_green:hover,
 .oses-site-body .single-product .btn-add:hover {
-  background-color: #e6a800;
-  color: #fff;
+  background-color: #5d4600 !important;
+}
+
+.oses-site-body .btn_box_line {
+  border-color: var(--oses-yellow-text-dark);
+  color: var(--oses-yellow-text-dark);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.oses-site-body .txt_green,
+.oses-site-body .txt_green a,
+.oses-site-body a.txt_green {
+  color: var(--oses-yellow-text-dark) !important;
+}
+
+.oses-site-body .retailerBreadcrumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Sosyal medya — küçük ikonlar */
+.oses-site-body footer .social .qr-social-links {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.oses-site-body footer .social .qr-social-links__btn--brand {
+  width: 22px;
+  height: 22px;
+}
+
+.oses-site-body footer .social .qr-social-links__btn--brand svg {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+}
+
+.oses-site-body footer .social .qr-social-links__btn--brand:hover {
+  transform: translateY(-1px);
+}
+
+.oses-site-body footer .social span {
+  font-size: 14px;
+  line-height: 1.4;
 }

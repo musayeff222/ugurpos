@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import PageHeader from "../../components/ui/PageHeader";
 import { formatMoney } from "../../utils/format";
+import { getBranchLabel } from "../../utils/branchDisplay";
 
 export default function AdminBranches() {
   const [branches, setBranches] = useState([]);
@@ -37,9 +38,7 @@ export default function AdminBranches() {
           >
             <div className="admin-branch-card__head">
               <div>
-                <h3>
-                  #{b.branchNo} {b.name}
-                </h3>
+                <h3>{getBranchLabel(b)}</h3>
                 <span className="admin-branch-email">{b.email}</span>
               </div>
               <span className={`admin-badge ${b.active ? "ok" : "off"}`}>{b.active ? "Aktif" : "Pasif"}</span>

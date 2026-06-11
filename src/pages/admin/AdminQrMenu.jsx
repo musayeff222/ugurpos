@@ -387,6 +387,13 @@ export default function AdminQrMenu() {
                 />
                 {t("admin.qr.menuActive")}
               </label>
+              <WebConfigField label={t("admin.qr.loginUrl")} hint={t("admin.qr.loginUrlHint")}>
+                <input
+                  placeholder="https://login.cigkofte.az"
+                  value={webConfigDraft.loginUrl || ""}
+                  onChange={(e) => patchWeb("loginUrl", e.target.value)}
+                />
+              </WebConfigField>
             </div>
           </AdminQrSectionCard>
 
@@ -430,13 +437,6 @@ export default function AdminQrMenu() {
                 <option value="az">Azərbaycan</option>
                 <option value="tr">Türkçe</option>
               </select>
-              <WebConfigField label={t("admin.qr.loginUrl")}>
-                <input
-                  placeholder="https://login.cigkofte.az"
-                  value={webConfigDraft.loginUrl || ""}
-                  onChange={(e) => patchWeb("loginUrl", e.target.value)}
-                />
-              </WebConfigField>
             </div>
           </AdminQrSectionCard>
 

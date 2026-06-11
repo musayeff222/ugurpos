@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import PageHeader from "../../components/ui/PageHeader";
-import { getBranchAdminLabel, getBranchLabel } from "../../utils/branchDisplay";
+import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatMoney } from "../../utils/format";
 
 const PAYMENT_LABELS = {
@@ -120,7 +120,7 @@ export default function AdminBranchDetail() {
   return (
     <div className="admin-page">
       <PageHeader
-        title={branch ? getBranchAdminLabel(branch) : "Şube"}
+        title={branch ? getBranchLabel(branch) : "Şube"}
         actions={
           <>
             <Link to="/admin/branches" className="btn btn-default btn-sm">

@@ -197,8 +197,8 @@ header #mainCart>button{
     border: none;
     padding: 0 8px;
     transition: height .2s ease-in-out;
-    color:#fff;
-    background:#7A5C00;
+    color:#5d4600;
+    background:#ffe082;
 }
 @media (max-width: 767.98px) {header #mainCart>button{border-radius:0;height:50px;}}
 header #mainCart button i{font-size: 18px; margin-bottom: 5px;}
@@ -267,7 +267,7 @@ header .navbar-nav{padding-right:90px;}
 	.navbar-brand{padding: 5px 0;}
 	.navbar-brand img,
 	header.is-sticky .navbar-brand img{height: 40px;}
-	.navbar-nav{left: 0;right: 0;background-color:#7A5C00;position: fixed;text-align: center; padding:0;height:100vh;}
+	.navbar-nav{left: 0;right: 0;background-color:#E6A800;position: fixed;text-align: center; padding:0;height:100vh;}
 	.nav-item {border-bottom:1px solid #548400;}
 	.nav-item:last-child {border:none;}
 	.navbar-expand-lg .navbar-nav .nav-link{margin: 0;padding:20px 0px;font-size: 20px;width:100%; color:#fff; font-size:14px; }
@@ -445,25 +445,25 @@ footer ul li a:hover{color: #fff;}
 .social a:hover{color:#fff;}
 .social .qr-social-links {
   display: inline-flex;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: 6px;
   vertical-align: middle;
 }
 .social .qr-social-links__btn--brand {
-  width: 36px;
-  height: 36px;
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   transition: transform 0.15s ease;
 }
 .social .qr-social-links__btn--brand:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 .social .qr-social-links__btn--brand svg {
-  width: 36px;
-  height: 36px;
+  width: 22px;
+  height: 22px;
   display: block;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .app {text-align:right;}

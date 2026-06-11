@@ -10,10 +10,7 @@ export function getBranchLabel(branch, fallback = "") {
   );
 }
 
-/** Admin paneli için dahili etiket (numara + ad) */
+/** Admin paneli için şube etiketi — yalnız ad */
 export function getBranchAdminLabel(branch, fallback = "") {
-  if (!branch) return fallback;
-  const name = getBranchLabel(branch, fallback);
-  if (!branch.branchNo) return name;
-  return `#${branch.branchNo} ${name}`;
+  return getBranchLabel(branch, fallback);
 }
