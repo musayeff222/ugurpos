@@ -7,6 +7,7 @@ const OSES_LINKS = [
   { id: "oses-fa", href: "https://use.fontawesome.com/releases/v5.6.3/css/all.css" },
   { id: "oses-style", href: "/oses/css/style.css" },
   { id: "oses-promo", href: "/oses/css/oses-promo.css" },
+  { id: "oses-yellow", href: "/oses/css/oses-yellow-theme.css" },
 ];
 
 export default function OsesSiteLayout({ firm, children }) {

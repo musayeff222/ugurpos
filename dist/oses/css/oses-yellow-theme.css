@@ -1,0 +1,36 @@
+/* İstanbul Çiğköfte — sarı tema */
+.oses-site-body {
+  background: #fffdf0;
+}
+
+.oses-site-body #mainContent {
+  background: transparent;
+}
+
+.oses-site-body header.sticky-top {
+  box-shadow: 0 2px 12px rgba(122, 92, 0, 0.15);
+}
+
+.oses-site-body footer {
+  background-color: #ffc107;
+}
+
+.oses-site-body .account {
+  background-color: #e6a800;
+}
+
+.oses-site-body .productList .nav-tabs {
+  background: #ffc107;
+}
+
+.oses-site-body .btn_box_green,
+.oses-site-body .single-product .btn-add {
+  background-color: #ffc107;
+  color: #5d4600;
+}
+
+.oses-site-body .btn_box_green:hover,
+.oses-site-body .single-product .btn-add:hover {
+  background-color: #e6a800;
+  color: #fff;
+}

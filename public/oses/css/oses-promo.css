@@ -8,14 +8,14 @@
 .oses-promo-dots { position: absolute; left: 0; right: 0; bottom: 18px; z-index: 2; text-align: center; margin: 0; padding: 0; list-style: none; }
 .oses-promo-dots li { display: inline-block; margin: 0 4px; }
 .oses-promo-dots button { width: 16px; height: 16px; border-radius: 8px; background: #fff; border: 5px solid #fff; padding: 0; cursor: pointer; }
-.oses-promo-dots li.is-active button { background: #3d6100; }
-.single-product .btn-add { border: none; background: #97d700; color: #fff; border-radius: 5px; padding: 8px 16px; font-weight: 600; cursor: pointer; width: 100%; }
-.single-product .btn-add:hover { background: #77a60a; }
+.oses-promo-dots li.is-active button { background: #7A5C00; }
+.single-product .btn-add { border: none; background: #FFC107; color: #fff; border-radius: 5px; padding: 8px 16px; font-weight: 600; cursor: pointer; width: 100%; }
+.single-product .btn-add:hover { background: #E6A800; }
 .single-product .price { color: #d91423; font-size: 1rem; margin: 0; }
 .single-product .price b { font-size: 1.2rem; }
 #satisnoktalari .wrapper { cursor: pointer; }
-#satisnoktalari .wrapper:hover { border-color: #97d700 !important; }
-.oses-site-body footer .social a { margin-right: 8px; font-size: 20px; color: #3d6100; }
+#satisnoktalari .wrapper:hover { border-color: #FFC107 !important; }
+.oses-site-body footer .social a { margin-right: 8px; font-size: 20px; color: #7A5C00; }
 .oses-site-body footer .social a:hover { color: #fff; }
 .oses-site-body .productList .nav-link { cursor: pointer; background: transparent; border: none; }
 .oses-site-body .navbar-nav .nav-link.active { color: #fff; text-decoration: underline; }
