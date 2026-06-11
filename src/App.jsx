@@ -44,6 +44,8 @@ import AdminBranches from "./pages/admin/AdminBranches";
 import AdminBranchCreate from "./pages/admin/AdminBranchCreate";
 import AdminBranchDetail from "./pages/admin/AdminBranchDetail";
 import AdminQrMenu from "./pages/admin/AdminQrMenu";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminActivity from "./pages/admin/AdminActivity";
 import PublicMenuLanding from "./pages/public/PublicMenuLanding";
 import PublicBranchMenu from "./pages/public/PublicBranchMenu";
 import PublicBranchCart from "./pages/public/PublicBranchCart";
@@ -81,6 +83,8 @@ export default function App() {
         <Route path="branches/new" element={<AdminBranchCreate />} />
         <Route path="branches/:id" element={<AdminBranchDetail />} />
         <Route path="qr-menu" element={<AdminQrMenu />} />
+        <Route path="activity" element={<AdminActivity />} />
+        <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />
       <Route path="/" element={<MainLayout />}>

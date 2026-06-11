@@ -44,6 +44,12 @@ export const api = {
   updateBranch: (id, patch) => request(`/admin/branches/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteBranch: (id) => request(`/admin/branches/${id}`, { method: "DELETE" }),
 
+  getAdminActivity: () => request("/admin/activity"),
+  getAdminActivityPoll: (after) =>
+    request(`/admin/activity/poll${after ? `?after=${encodeURIComponent(after)}` : ""}`),
+  changeAdminPassword: (payload) =>
+    request("/admin/account/password", { method: "PATCH", body: JSON.stringify(payload) }),
+
   getAdminQrMenu: () => request("/admin/qr-menu"),
   updateAdminQrMenu: (patch) =>
     request("/admin/qr-menu", { method: "PATCH", body: JSON.stringify(patch) }),

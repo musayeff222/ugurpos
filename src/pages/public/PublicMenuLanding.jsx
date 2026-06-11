@@ -12,7 +12,7 @@ import {
 } from "../../utils/qrMenuPublic";
 import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatPublicMoney } from "../../utils/publicMoney";
-import { getWebConfig } from "../../utils/menuWebConfig";
+import { getWebConfig, isWebItemEnabled } from "../../utils/menuWebConfig";
 
 const LANG_KEY = "ugurpos_lang";
 const AUTO_RADIUS_KM = 80;
@@ -149,13 +149,15 @@ export default function PublicMenuLanding() {
 
   return (
     <PublicQrShell firm={firm}>
-      <OsesPromoSlider slides={web.promoSlides} onSlideClick={goOrder} />
+      {web.showPromoSlider !== false && (
+        <OsesPromoSlider slides={web.promoSlides} onSlideClick={goOrder} />
+      )}
 
-      {web.showOrderStrip && web.orderStrip?.some((item) => item.imageUrl) && (
+      {web.showOrderStrip && web.orderStrip?.some((item) => item.imageUrl && isWebItemEnabled(item)) && (
         <div className="container mt-4">
           <div className="row">
             {web.orderStrip
-              .filter((item) => item.imageUrl)
+              .filter((item) => item.imageUrl && isWebItemEnabled(item))
               .map((item, i) => (
                 <div key={item.id || `strip-${i}`} className="col-12 col-md-6 col-lg-4">
                   <OrderStripImage item={item} goOrder={goOrder} />
@@ -165,11 +167,12 @@ export default function PublicMenuLanding() {
         </div>
       )}
 
-      {web.campaignBanners.some((banner) => banner.imageUrl) && (
+      {web.showCampaigns !== false &&
+        web.campaignBanners.some((banner) => banner.imageUrl && isWebItemEnabled(banner)) && (
         <div className="container" id="kampanyalar">
           <div className="row">
             {web.campaignBanners.map((banner, i) =>
-              banner.imageUrl ? (
+              banner.imageUrl && isWebItemEnabled(banner) ? (
                 <div key={banner.id || `${banner.imageUrl}-${i}`} className="col-12 col-md-6 col-lg-4">
                   <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={goOrder}>
                     <img src={banner.imageUrl} className="img-fluid mb-4" alt={banner.alt || ""} />
@@ -224,19 +227,21 @@ export default function PublicMenuLanding() {
         </div>
       )}
 
-      <div className="container">
-        <div className="card-deck">
-          {web.features.map((card) => (
-            <div className="card" key={card.title}>
-              <img className="card-img-top" src={card.iconUrl} alt="" />
-              <div className="card-body">
-                <h5 className="card-title title18 txt_green">{card.title}</h5>
-                <p className="card-text">{card.desc}</p>
+      {web.showFeatures !== false && web.features.some(isWebItemEnabled) && (
+        <div className="container">
+          <div className="card-deck">
+            {web.features.filter(isWebItemEnabled).map((card) => (
+              <div className="card" key={card.title}>
+                <img className="card-img-top" src={card.iconUrl} alt="" />
+                <div className="card-body">
+                  <h5 className="card-title title18 txt_green">{card.title}</h5>
+                  <p className="card-text">{card.desc}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {preview?.products?.length > 0 && previewBranchId && (
         <div className="container productList mt-5">

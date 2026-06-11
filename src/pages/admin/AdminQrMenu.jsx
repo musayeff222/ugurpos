@@ -20,6 +20,15 @@ function WebConfigField({ label, children, hint }) {
   );
 }
 
+function WebItemVisibilityToggle({ checked, onChange, label }) {
+  return (
+    <label className="checkbox-row admin-qr-item-visible">
+      <input type="checkbox" checked={checked !== false} onChange={(e) => onChange(e.target.checked)} />
+      {label}
+    </label>
+  );
+}
+
 function AdminQrSectionCard({ id, title, hint, children, active = true }) {
   return (
     <div
@@ -188,7 +197,7 @@ export default function AdminQrMenu() {
   const addPromoSlide = () => {
     setWebConfigDraft((prev) => ({
       ...prev,
-      promoSlides: [...prev.promoSlides, { id: createBannerId("promo"), imageUrl: "", alt: "" }],
+      promoSlides: [...prev.promoSlides, { id: createBannerId("promo"), imageUrl: "", alt: "", enabled: true }],
     }));
   };
 
@@ -202,7 +211,7 @@ export default function AdminQrMenu() {
   const addCampaignBanner = () => {
     setWebConfigDraft((prev) => ({
       ...prev,
-      campaignBanners: [...prev.campaignBanners, { id: createBannerId("campaign"), imageUrl: "", alt: "" }],
+      campaignBanners: [...prev.campaignBanners, { id: createBannerId("campaign"), imageUrl: "", alt: "", enabled: true }],
     }));
   };
 
@@ -216,7 +225,7 @@ export default function AdminQrMenu() {
   const addOrderStripItem = () => {
     setWebConfigDraft((prev) => ({
       ...prev,
-      orderStrip: [...prev.orderStrip, { id: createBannerId("orderStrip"), imageUrl: "", alt: "", action: "order" }],
+      orderStrip: [...prev.orderStrip, { id: createBannerId("orderStrip"), imageUrl: "", alt: "", action: "order", enabled: true }],
     }));
   };
 
@@ -479,14 +488,30 @@ export default function AdminQrMenu() {
             hint={t("admin.qr.promoHint")}
             active={activeSettingsSection === "qr-section-promo"}
           >
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={webConfigDraft.showPromoSlider !== false}
+                onChange={(e) => patchWeb("showPromoSlider", e.target.checked)}
+              />
+              {t("admin.qr.showPromoSlider")}
+            </label>
             {webConfigDraft.promoSlides.map((slide, i) => (
-              <div key={slide.id || `promo-${i}`} className="admin-qr-web-block">
+              <div
+                key={slide.id || `promo-${i}`}
+                className={`admin-qr-web-block${slide.enabled === false ? " admin-qr-web-block--hidden" : ""}`}
+              >
                 <div className="admin-qr-web-block__head">
                   <strong>{t("admin.qr.promoSlide")} {i + 1}</strong>
                   <button type="button" className="btn btn-danger btn-sm" onClick={() => removePromoSlide(i)}>
                     {t("admin.qr.removeBanner")}
                   </button>
                 </div>
+                <WebItemVisibilityToggle
+                  checked={slide.enabled}
+                  onChange={(value) => patchWebSlide(i, "enabled", value)}
+                  label={t("admin.qr.showOnSite")}
+                />
                 <WebImageField
                   label={t("admin.qr.imageUrl")}
                   hint={t("admin.qr.imageUploadHint")}
@@ -521,13 +546,21 @@ export default function AdminQrMenu() {
               {t("admin.qr.showOrderStrip")}
             </label>
             {webConfigDraft.orderStrip.map((item, i) => (
-              <div key={item.id || `order-strip-${i}`} className="admin-qr-web-block">
+              <div
+                key={item.id || `order-strip-${i}`}
+                className={`admin-qr-web-block${item.enabled === false ? " admin-qr-web-block--hidden" : ""}`}
+              >
                 <div className="admin-qr-web-block__head">
                   <strong>{t("admin.qr.orderStripItem")} {i + 1}</strong>
                   <button type="button" className="btn btn-danger btn-sm" onClick={() => removeOrderStripItem(i)}>
                     {t("admin.qr.removeBanner")}
                   </button>
                 </div>
+                <WebItemVisibilityToggle
+                  checked={item.enabled}
+                  onChange={(value) => patchWebOrderStrip(i, "enabled", value)}
+                  label={t("admin.qr.showOnSite")}
+                />
                 <WebImageField
                   label={t("admin.qr.imageUrl")}
                   hint={t("admin.qr.imageUploadHint")}
@@ -560,14 +593,30 @@ export default function AdminQrMenu() {
             hint={t("admin.qr.campaignHint")}
             active={activeSettingsSection === "qr-section-campaigns"}
           >
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={webConfigDraft.showCampaigns !== false}
+                onChange={(e) => patchWeb("showCampaigns", e.target.checked)}
+              />
+              {t("admin.qr.showCampaigns")}
+            </label>
             {webConfigDraft.campaignBanners.map((banner, i) => (
-              <div key={banner.id || `campaign-${i}`} className="admin-qr-web-block">
+              <div
+                key={banner.id || `campaign-${i}`}
+                className={`admin-qr-web-block${banner.enabled === false ? " admin-qr-web-block--hidden" : ""}`}
+              >
                 <div className="admin-qr-web-block__head">
                   <strong>{t("admin.qr.campaignBanner")} {i + 1}</strong>
                   <button type="button" className="btn btn-danger btn-sm" onClick={() => removeCampaignBanner(i)}>
                     {t("admin.qr.removeBanner")}
                   </button>
                 </div>
+                <WebItemVisibilityToggle
+                  checked={banner.enabled}
+                  onChange={(value) => patchWebCampaign(i, "enabled", value)}
+                  label={t("admin.qr.showOnSite")}
+                />
                 <WebImageField
                   label={t("admin.qr.imageUrl")}
                   hint={t("admin.qr.imageUploadHint")}
@@ -652,9 +701,25 @@ export default function AdminQrMenu() {
             title={t("admin.qr.sectionFeatures")}
             active={activeSettingsSection === "qr-section-features"}
           >
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={webConfigDraft.showFeatures !== false}
+                onChange={(e) => patchWeb("showFeatures", e.target.checked)}
+              />
+              {t("admin.qr.showFeatures")}
+            </label>
             {webConfigDraft.features.map((feature, i) => (
-              <div key={`feature-${i}`} className="admin-qr-web-block">
+              <div
+                key={`feature-${i}`}
+                className={`admin-qr-web-block${feature.enabled === false ? " admin-qr-web-block--hidden" : ""}`}
+              >
                 <strong>{t("admin.qr.featureBox")} {i + 1}</strong>
+                <WebItemVisibilityToggle
+                  checked={feature.enabled}
+                  onChange={(value) => patchWebFeature(i, "enabled", value)}
+                  label={t("admin.qr.showOnSite")}
+                />
                 <WebImageField
                   label={t("admin.qr.featureIconUrl")}
                   hint={t("admin.qr.imageUploadHint")}
@@ -752,7 +817,7 @@ export default function AdminQrMenu() {
           >
             <div className="admin-qr-social-form">
               <label>
-                <i className="fa fa-instagram admin-qr-social-icon admin-qr-social-icon--ig" />
+                <i className="fa-brands fa-instagram admin-qr-social-icon admin-qr-social-icon--fab" />
                 {t("admin.qr.socialInstagram")}
               </label>
               <input
@@ -761,7 +826,7 @@ export default function AdminQrMenu() {
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialInstagram: e.target.value }))}
               />
               <label>
-                <i className="fa fa-whatsapp admin-qr-social-icon admin-qr-social-icon--wa" />
+                <i className="fa-brands fa-whatsapp admin-qr-social-icon admin-qr-social-icon--fab" />
                 {t("admin.qr.socialWhatsapp")}
               </label>
               <input
@@ -769,8 +834,26 @@ export default function AdminQrMenu() {
                 value={firmDraft.socialWhatsapp || ""}
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialWhatsapp: e.target.value }))}
               />
+              <label className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={webConfigDraft.showWhatsappFloat !== false}
+                  onChange={(e) => patchWeb("showWhatsappFloat", e.target.checked)}
+                />
+                {t("admin.qr.showWhatsappFloat")}
+              </label>
+              <WebConfigField
+                label={t("admin.qr.whatsappFloatPhone")}
+                hint={t("admin.qr.whatsappFloatPhoneHint")}
+              >
+                <input
+                  placeholder="+994501234567"
+                  value={webConfigDraft.whatsappFloatPhone || ""}
+                  onChange={(e) => patchWeb("whatsappFloatPhone", e.target.value)}
+                />
+              </WebConfigField>
               <label>
-                <i className="fa fa-facebook admin-qr-social-icon admin-qr-social-icon--fb" />
+                <i className="fa-brands fa-facebook-f admin-qr-social-icon admin-qr-social-icon--fab" />
                 {t("admin.qr.socialFacebook")}
               </label>
               <input
@@ -779,7 +862,7 @@ export default function AdminQrMenu() {
                 onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialFacebook: e.target.value }))}
               />
               <label>
-                <i className="fa fa-music admin-qr-social-icon admin-qr-social-icon--tt" />
+                <i className="fa-brands fa-tiktok admin-qr-social-icon admin-qr-social-icon--fab" />
                 {t("admin.qr.socialTiktok")}
               </label>
               <input
@@ -789,7 +872,7 @@ export default function AdminQrMenu() {
               />
               <div className="admin-qr-social-preview">
                 <span>{t("admin.qr.socialPreview")}</span>
-                <QrSocialLinks social={socialPreview} />
+                <QrSocialLinks social={socialPreview} variant="fab" />
               </div>
             </div>
           </AdminQrSectionCard>

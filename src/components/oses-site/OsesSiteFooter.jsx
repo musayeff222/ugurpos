@@ -56,7 +56,7 @@ export default function OsesSiteFooter({ firm }) {
               <p>
                 <span>{t("qr.osesSocialTitle")}</span>
                 <br />
-                <QrSocialLinks social={social} variant="brand" className="oses-footer__social" />
+                <QrSocialLinks social={social} variant="fab" className="oses-footer__social" />
               </p>
             </div>
           </div>

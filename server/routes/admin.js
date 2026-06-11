@@ -1,4 +1,5 @@
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import { getDb, uid, getSaleWithItems } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
 import { adminMiddleware } from "../middleware/admin.js";
@@ -10,6 +11,7 @@ import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 import { saveMenuLogo, deleteMenuLogo } from "../utils/menuLogo.js";
 import { normalizeMenuTheme } from "../utils/menuTheme.js";
 import { mergeMenuWebConfig, parseMenuWebConfig, serializeMenuWebConfig, applyWebImageUploads } from "../utils/menuWebConfig.js";
+import { listActivityLogs, rowToActivityLog } from "../utils/activityLog.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -453,6 +455,56 @@ router.patch("/qr-orders/:id", (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+router.get("/activity", (req, res) => {
+  const db = getDb();
+  const limit = Number(req.query.limit) || 80;
+  const rows = listActivityLogs(db, req.user.firmId, { limit });
+  res.json(rows.map(rowToActivityLog));
+});
+
+router.get("/activity/poll", (req, res) => {
+  const db = getDb();
+  const after = req.query.after || null;
+  const rows = listActivityLogs(db, req.user.firmId, { limit: 30, after });
+  const pendingQrOrders = db
+    .prepare(
+      `SELECT COUNT(*) as c FROM qr_orders o
+       JOIN branches b ON b.id = o.branch_id
+       WHERE b.firm_id = ? AND o.status = 'pending'`
+    )
+    .get(req.user.firmId).c;
+
+  res.json({
+    events: rows.map(rowToActivityLog),
+    pendingQrOrders: Number(pendingQrOrders) || 0,
+  });
+});
+
+router.patch("/account/password", (req, res) => {
+  const db = getDb();
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: "Mevcut ve yeni şifre gerekli" });
+  }
+  if (String(newPassword).length < 6) {
+    return res.status(400).json({ error: "Yeni şifre en az 6 karakter olmalı" });
+  }
+
+  const user = db.prepare("SELECT * FROM users WHERE id = ? AND firm_id = ?").get(req.user.id, req.user.firmId);
+  if (!user) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+  if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
+    return res.status(401).json({ error: "Mevcut şifre hatalı" });
+  }
+
+  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
+    bcrypt.hashSync(newPassword, 10),
+    user.id
+  );
+
+  res.json({ ok: true, message: "Admin şifresi güncellendi" });
 });
 
 export default router;

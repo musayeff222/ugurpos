@@ -124,22 +124,46 @@ function IconTiktok({ brand }) {
 }
 
 const ICONS = {
-  instagram: { Icon: IconInstagram, label: "Instagram" },
-  facebook: { Icon: IconFacebook, label: "Facebook" },
-  whatsapp: { Icon: IconWhatsapp, label: "WhatsApp" },
-  tiktok: { Icon: IconTiktok, label: "TikTok" },
+  instagram: { Icon: IconInstagram, label: "Instagram", fab: "fa-brands fa-instagram" },
+  facebook: { Icon: IconFacebook, label: "Facebook", fab: "fa-brands fa-facebook-f" },
+  whatsapp: { Icon: IconWhatsapp, label: "WhatsApp", fab: "fa-brands fa-whatsapp" },
+  tiktok: { Icon: IconTiktok, label: "TikTok", fab: "fa-brands fa-tiktok" },
 };
 
 const ORDER = ["instagram", "tiktok", "whatsapp", "facebook"];
 
 export default function QrSocialLinks({ social = {}, className = "", variant = "compact" }) {
   const brand = variant === "brand";
+  const fab = variant === "fab";
   const links = ORDER.map((type) => ({
     type,
     url: normalizeSocialUrl(type, social[type]),
   })).filter((item) => item.url);
 
   if (links.length === 0) return null;
+
+  if (fab) {
+    return (
+      <div className={`qr-social-links qr-social-links--fab ${className}`.trim()}>
+        {links.map(({ type, url }) => {
+          const { label, fab: fabClass } = ICONS[type];
+          return (
+            <a
+              key={type}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`qr-social-links__btn qr-social-links__btn--fab qr-social-links__btn--${type}`}
+              aria-label={label}
+              title={label}
+            >
+              <i className={fabClass} aria-hidden="true" />
+            </a>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className={`qr-social-links ${brand ? "qr-social-links--brand" : ""} ${className}`.trim()}>

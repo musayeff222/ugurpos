@@ -21,6 +21,7 @@ import {
 } from "../utils/menuLogo.js";
 import { isMenuOpen, resolveMenuHours } from "../utils/menuHours.js";
 import { buildDeliveryOrderNote } from "../utils/orderAddress.js";
+import { logActivity } from "../utils/activityLog.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -211,6 +212,15 @@ function createOrder(db, res, firmRow, branchId, body) {
   });
 
   tx();
+  logActivity(db, {
+    firmId: firmRow.firm_id,
+    branchId: branch.id,
+    branchName: branch.name,
+    type: "qr_order",
+    title: `Yeni web siparişi: ${orderCode}`,
+    detail: `${customerName.trim()} · ${total}`,
+    refId: orderId,
+  });
   res.status(201).json(loadQrOrder(db, orderId, branch.id));
 }
 

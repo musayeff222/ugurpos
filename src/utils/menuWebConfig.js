@@ -15,7 +15,12 @@ export const DEFAULT_MENU_WEB_CONFIG = {
   franchiseIconUrl: "/oses/assets/images/franchise-icon.png",
   showLezzetlerBanner: true,
   lezzetlerImageUrl: "/oses/assets/images/oses-lezzetleri.jpg",
+  showPromoSlider: true,
+  showCampaigns: true,
+  showFeatures: true,
   showOrderStrip: true,
+  showWhatsappFloat: true,
+  whatsappFloatPhone: "",
   orderStrip: [
     { imageUrl: "/oses/assets/images/oses-yemeksepeti.jpg", alt: "Online Sipariş Ver", action: "order" },
     { imageUrl: "/oses/assets/images/oses-getir.jpg", alt: "Menüyü İncele", action: "order" },
@@ -60,7 +65,17 @@ function withBannerId(item, prefix, index) {
   return {
     ...item,
     id: item?.id || `${prefix}-${index}`,
+    enabled: item?.enabled !== false,
   };
+}
+
+export function isWebItemEnabled(item) {
+  return item?.enabled !== false;
+}
+
+export function getVisibleWebItems(items) {
+  if (!Array.isArray(items)) return [];
+  return items.filter(isWebItemEnabled);
 }
 
 function normalizePromoSlides(raw) {
@@ -68,7 +83,11 @@ function normalizePromoSlides(raw) {
     return DEFAULT_MENU_WEB_CONFIG.promoSlides.map((item, i) => withBannerId(item, "promo", i));
   }
   return raw.map((item, i) =>
-    withBannerId({ imageUrl: item.imageUrl || "", alt: item.alt ?? "" }, "promo", i)
+    withBannerId(
+      { imageUrl: item.imageUrl || "", alt: item.alt ?? "", enabled: item.enabled },
+      "promo",
+      i
+    )
   );
 }
 
@@ -77,7 +96,11 @@ function normalizeCampaignBanners(raw) {
     return DEFAULT_MENU_WEB_CONFIG.campaignBanners.map((item, i) => withBannerId(item, "campaign", i));
   }
   return raw.map((item, i) =>
-    withBannerId({ imageUrl: item.imageUrl || "", alt: item.alt ?? "" }, "campaign", i)
+    withBannerId(
+      { imageUrl: item.imageUrl || "", alt: item.alt ?? "", enabled: item.enabled },
+      "campaign",
+      i
+    )
   );
 }
 
@@ -91,6 +114,7 @@ function normalizeOrderStrip(raw) {
         imageUrl: item.imageUrl || "",
         alt: item.alt ?? "",
         action: item.action || "order",
+        enabled: item.enabled,
       },
       "orderStrip",
       i
@@ -122,6 +146,7 @@ export function normalizeWebConfig(raw) {
             iconUrl: f.iconUrl || DEFAULT_MENU_WEB_CONFIG.features[i].iconUrl,
             title: f.title ?? DEFAULT_MENU_WEB_CONFIG.features[i].title,
             desc: f.desc ?? DEFAULT_MENU_WEB_CONFIG.features[i].desc,
+            enabled: f.enabled !== false,
           }))
         : DEFAULT_MENU_WEB_CONFIG.features.map((f) => ({ ...f })),
     promoSlides: normalizePromoSlides(raw.promoSlides),

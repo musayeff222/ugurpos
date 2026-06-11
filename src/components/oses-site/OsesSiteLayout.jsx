@@ -1,13 +1,15 @@
 import { useEffect } from "react";
 import OsesSiteHeader from "./OsesSiteHeader";
 import OsesSiteFooter from "./OsesSiteFooter";
+import WhatsappFloatButton from "./WhatsappFloatButton";
 
 const OSES_LINKS = [
   { id: "oses-bootstrap", href: "https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" },
-  { id: "oses-fa", href: "https://use.fontawesome.com/releases/v5.6.3/css/all.css" },
+  { id: "oses-fa", href: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" },
   { id: "oses-style", href: "/oses/css/style.css" },
   { id: "oses-promo", href: "/oses/css/oses-promo.css" },
   { id: "oses-yellow", href: "/oses/css/oses-yellow-theme.css" },
+  { id: "oses-wa-float", href: "/oses/css/whatsapp-float.css" },
 ];
 
 export default function OsesSiteLayout({ firm, children }) {
@@ -39,6 +41,7 @@ export default function OsesSiteLayout({ firm, children }) {
       <OsesSiteHeader firm={firm} />
       <div id="mainContent">{children}</div>
       <OsesSiteFooter firm={firm} />
+      <WhatsappFloatButton firm={firm} />
     </>
   );
 }

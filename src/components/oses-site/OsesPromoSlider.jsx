@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { DEFAULT_MENU_WEB_CONFIG } from "../../utils/menuWebConfig";
+import { DEFAULT_MENU_WEB_CONFIG, isWebItemEnabled } from "../../utils/menuWebConfig";
 
 const FALLBACK_SLIDES = DEFAULT_MENU_WEB_CONFIG.promoSlides.map((s) => ({
   src: s.imageUrl,
@@ -12,7 +12,7 @@ export default function OsesPromoSlider({ slides, onSlideClick }) {
   const slideList = useMemo(() => {
     const list = slides?.length
       ? slides
-          .filter((s) => s.imageUrl || s.src)
+          .filter((s) => (s.imageUrl || s.src) && isWebItemEnabled(s))
           .map((s) => ({
             id: s.id,
             src: s.imageUrl || s.src,

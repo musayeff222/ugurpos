@@ -1,10 +1,10 @@
 /* İstanbul Çiğköfte — tam sarı tema */
 :root {
-  --oses-yellow: #ffc107;
-  --oses-yellow-dark: #e6a800;
-  --oses-yellow-deep: #c89600;
-  --oses-yellow-light: #ffe082;
-  --oses-yellow-pale: #fff3c4;
+  --oses-yellow: #e6c10a;
+  --oses-yellow-dark: #c9ab09;
+  --oses-yellow-deep: #b89a08;
+  --oses-yellow-light: #f0d956;
+  --oses-yellow-pale: #faf6d4;
   --oses-yellow-text: #5d4600;
   --oses-yellow-text-dark: #7a5c00;
 }
@@ -94,7 +94,7 @@ html:has(.oses-site-body),
 }
 
 .oses-site-body footer {
-  background-color: var(--oses-yellow-deep) !important;
+  background-color: var(--oses-yellow) !important;
 }
 
 .oses-site-body footer hr {
@@ -185,27 +185,25 @@ html:has(.oses-site-body),
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Sosyal medya — küçük ikonlar */
-.oses-site-body footer .social .qr-social-links {
+/* Sosyal medya — orijinal FA marka ikonları */
+.oses-site-body footer .social .qr-social-links--fab {
   display: inline-flex;
-  gap: 6px;
   flex-wrap: wrap;
   margin-top: 6px;
 }
 
-.oses-site-body footer .social .qr-social-links__btn--brand {
-  width: 22px;
-  height: 22px;
+.oses-site-body footer .social .qr-social-links__btn--fab {
+  font-size: 18px;
+  color: var(--oses-yellow-text-dark);
+  margin: 0 10px;
 }
 
-.oses-site-body footer .social .qr-social-links__btn--brand svg {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
+.oses-site-body footer .social .qr-social-links__btn--fab i {
+  font-size: 18px;
 }
 
-.oses-site-body footer .social .qr-social-links__btn--brand:hover {
-  transform: translateY(-1px);
+.oses-site-body footer .social .qr-social-links__btn--fab:hover {
+  color: #fff;
 }
 
 .oses-site-body footer .social span {

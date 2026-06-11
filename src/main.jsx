@@ -5,6 +5,7 @@ import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import { WebOrdersProvider } from "./context/WebOrdersContext";
+import { AdminAlertsProvider } from "./context/AdminAlertsContext";
 import { StoreProvider } from "./store/StoreContext";
 import "./styles/global.css";
 import "./styles/forms.css";
@@ -15,9 +16,11 @@ createRoot(document.getElementById("root")).render(
       <AuthProvider>
         <LocaleProvider>
           <WebOrdersProvider>
-            <StoreProvider>
-              <App />
-            </StoreProvider>
+            <AdminAlertsProvider>
+              <StoreProvider>
+                <App />
+              </StoreProvider>
+            </AdminAlertsProvider>
           </WebOrdersProvider>
         </LocaleProvider>
       </AuthProvider>

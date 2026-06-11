@@ -5,6 +5,7 @@ import { rowToBranch } from "../db/migrate-branches.js";
 import { signAdminToken, signBranchToken, authMiddleware } from "../middleware/auth.js";
 import { getBranchesForFirm } from "../middleware/branch.js";
 import { verifyBranchPassword, normalizeBranchEmail } from "../utils/branchAuth.js";
+import { logActivity } from "../utils/activityLog.js";
 
 const router = Router();
 
@@ -64,6 +65,12 @@ router.post("/login", (req, res) => {
     db.prepare("SELECT id FROM branches WHERE firm_id = ? AND active = 1 ORDER BY name LIMIT 1").get(user.firm_id)?.id;
 
   const token = signAdminToken(user, branchId);
+  logActivity(db, {
+    firmId: user.firm_id,
+    type: "admin_login",
+    title: "Admin girişi",
+    detail: user.email,
+  });
   res.json({
     token,
     user: buildAdminResponse(db, user, branchId),
@@ -87,6 +94,14 @@ router.post("/branch-login", (req, res) => {
 
   const firmName = getFirmName(db, branch.firm_id);
   const token = signBranchToken(branch, firmName);
+  logActivity(db, {
+    firmId: branch.firm_id,
+    branchId: branch.id,
+    branchName: branch.name,
+    type: "branch_login",
+    title: `${branch.name} giriş yaptı`,
+    detail: branch.email,
+  });
   res.json({
     token,
     user: buildBranchResponse(db, branch),

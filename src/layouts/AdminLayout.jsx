@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useAdminAlerts } from "../context/AdminAlertsContext";
 import "../styles/admin.css";
 
 const adminNav = [
   { to: "/admin", label: "Özet", icon: "fa-home", end: true },
   { to: "/admin/branches", label: "Şubeler", icon: "fa-building" },
-  { to: "/admin/qr-menu", label: "Web Sipariş", icon: "fa-shopping-bag" },
+  { to: "/admin/activity", label: "Hareketler", icon: "fa-bell", badge: "activity" },
+  { to: "/admin/qr-menu", label: "Web Sipariş", icon: "fa-shopping-bag", badge: "orders" },
+  { to: "/admin/settings", label: "Ayarlar", icon: "fa-cog" },
 ];
 
 export default function AdminLayout() {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { pendingQrOrders, latestAlert, clearLatest } = useAdminAlerts();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -30,11 +34,20 @@ export default function AdminLayout() {
   const isNavActive = (item) =>
     location.pathname === item.to ||
     (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches")) ||
-    (item.to === "/admin/qr-menu" && location.pathname.startsWith("/admin/qr-menu"));
+    (item.to === "/admin/qr-menu" && location.pathname.startsWith("/admin/qr-menu")) ||
+    (item.to === "/admin/activity" && location.pathname.startsWith("/admin/activity")) ||
+    (item.to === "/admin/settings" && location.pathname.startsWith("/admin/settings"));
 
   const pageTitle =
     adminNav.find((item) => isNavActive(item))?.label ||
     (location.pathname.includes("/branches/new") ? "Yeni Şube" : "Admin");
+
+  const alertLink =
+    latestAlert?.type === "qr_order"
+      ? "/admin/qr-menu"
+      : latestAlert?.type === "branch_login"
+        ? "/admin/activity"
+        : "/admin/activity";
 
   return (
     <div className="admin-shell">
@@ -53,6 +66,9 @@ export default function AdminLayout() {
             >
               <i className={`fa ${item.icon}`} aria-hidden />
               {item.label}
+              {item.badge === "orders" && pendingQrOrders > 0 && (
+                <span className="admin-nav-badge">{pendingQrOrders}</span>
+              )}
             </Link>
           ))}
         </nav>
@@ -93,6 +109,13 @@ export default function AdminLayout() {
         </header>
 
         <div className="admin-content">
+          {latestAlert && !location.pathname.startsWith(alertLink) && (
+            <Link to={alertLink} className="admin-alert-toast" onClick={clearLatest}>
+              <strong>{latestAlert.title}</strong>
+              {latestAlert.detail ? <span>{latestAlert.detail}</span> : null}
+              <em>Görüntüle →</em>
+            </Link>
+          )}
           <Outlet />
         </div>
       </main>
@@ -107,6 +130,9 @@ export default function AdminLayout() {
           >
             <i className={`fa ${item.icon}`} aria-hidden />
             <span>{item.label}</span>
+            {item.badge === "orders" && pendingQrOrders > 0 && (
+              <span className="admin-nav-badge admin-nav-badge--bottom">{pendingQrOrders}</span>
+            )}
           </Link>
         ))}
       </nav>

@@ -17,7 +17,12 @@ export const DEFAULT_MENU_WEB_CONFIG = {
   franchiseIconUrl: "/oses/assets/images/franchise-icon.png",
   showLezzetlerBanner: true,
   lezzetlerImageUrl: "/oses/assets/images/oses-lezzetleri.jpg",
+  showPromoSlider: true,
+  showCampaigns: true,
+  showFeatures: true,
   showOrderStrip: true,
+  showWhatsappFloat: true,
+  whatsappFloatPhone: "",
   orderStrip: [
     { imageUrl: "/oses/assets/images/oses-yemeksepeti.jpg", alt: "Online Sipariş Ver", action: "order" },
     { imageUrl: "/oses/assets/images/oses-getir.jpg", alt: "Menüyü İncele", action: "order" },
@@ -77,6 +82,7 @@ function withBannerId(item, prefix, index) {
   return {
     ...item,
     id: item?.id || `${prefix}-${index}`,
+    enabled: item?.enabled !== false,
   };
 }
 
@@ -89,6 +95,7 @@ function normalizePromoSlides(raw) {
       {
         imageUrl: item.imageUrl || "",
         alt: item.alt ?? "",
+        enabled: item.enabled,
       },
       "promo",
       i
@@ -105,6 +112,7 @@ function normalizeCampaignBanners(raw) {
       {
         imageUrl: item.imageUrl || "",
         alt: item.alt ?? "",
+        enabled: item.enabled,
       },
       "campaign",
       i
@@ -122,6 +130,7 @@ function normalizeOrderStrip(raw) {
         imageUrl: item.imageUrl || "",
         alt: item.alt ?? "",
         action: item.action || "order",
+        enabled: item.enabled,
       },
       "orderStrip",
       i
@@ -140,6 +149,7 @@ function normalizeParsedConfig(parsed = {}) {
             iconUrl: f.iconUrl || DEFAULT_MENU_WEB_CONFIG.features[i].iconUrl,
             title: f.title ?? DEFAULT_MENU_WEB_CONFIG.features[i].title,
             desc: f.desc ?? DEFAULT_MENU_WEB_CONFIG.features[i].desc,
+            enabled: f.enabled !== false,
           }))
         : cloneDefaultFeatures(),
     promoSlides: normalizePromoSlides(parsed.promoSlides),
@@ -174,6 +184,7 @@ export function mergeMenuWebConfig(existingRaw, patch = {}) {
       iconUrl: f.iconUrl || current.features[i]?.iconUrl || DEFAULT_MENU_WEB_CONFIG.features[i].iconUrl,
       title: f.title ?? current.features[i]?.title ?? "",
       desc: f.desc ?? current.features[i]?.desc ?? "",
+      enabled: f.enabled !== false,
     }));
   }
   if (patch.promoSlides) next.promoSlides = normalizePromoSlides(patch.promoSlides);
