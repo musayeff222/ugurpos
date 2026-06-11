@@ -519,19 +519,15 @@ export default function Sales() {
                       </button>
                     </th>
                     <th>Ürün</th>
-                    <th>İsk./Not</th>
                     <th style={{ width: 120 }}>Miktar</th>
                     <th style={{ width: 90 }}>Fiyat</th>
                     <th style={{ width: 90 }}>Tutar</th>
-                    <th style={{ width: 40 }} title="Fiyatı güncelle">
-                      G. (?)
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {cart.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="sales-empty">
+                      <td colSpan={5} className="sales-empty">
                         &nbsp;
                       </td>
                     </tr>
@@ -545,9 +541,6 @@ export default function Sales() {
                         </td>
                         <td>{line.name}</td>
                         <td>
-                          <input className="sales-line-note" defaultValue={line.note} placeholder="" />
-                        </td>
-                        <td>
                           <input
                             type="number"
                             min="1"
@@ -558,9 +551,6 @@ export default function Sales() {
                         </td>
                         <td>{line.price.toFixed(2)}</td>
                         <td>{(line.qty * line.price).toFixed(2)}</td>
-                        <td>
-                          <input type="checkbox" />
-                        </td>
                       </tr>
                     ))
                   )}
