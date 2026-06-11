@@ -83,6 +83,15 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const patchUser = (patch) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      localStorage.setItem(USER_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -92,6 +101,7 @@ export function AuthProvider({ children }) {
         enterBranchAsAdmin,
         returnToAdminPanel,
         logout,
+        patchUser,
         refreshBranches,
         loading,
         isAuthenticated: !!user && !!getToken(),

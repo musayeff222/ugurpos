@@ -49,6 +49,8 @@ export const api = {
     request(`/admin/activity/poll${after ? `?after=${encodeURIComponent(after)}` : ""}`),
   changeAdminPassword: (payload) =>
     request("/admin/account/password", { method: "PATCH", body: JSON.stringify(payload) }),
+  updateAdminAccount: (payload) =>
+    request("/admin/account", { method: "PATCH", body: JSON.stringify(payload) }),
 
   getAdminQrMenu: () => request("/admin/qr-menu"),
   updateAdminQrMenu: (patch) =>

@@ -4,8 +4,13 @@ import { useAuth } from "../../context/AuthContext";
 import PageHeader from "../../components/ui/PageHeader";
 
 export default function AdminSettings() {
-  const { user } = useAuth();
-  const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const { user, patchUser } = useAuth();
+  const [form, setForm] = useState({
+    newEmail: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -15,23 +20,33 @@ export default function AdminSettings() {
     setMessage("");
     setError("");
 
-    if (form.newPassword !== form.confirmPassword) {
+    const newEmail = form.newEmail.trim().toLowerCase();
+    const newPassword = form.newPassword.trim();
+
+    if (!newEmail && !newPassword) {
+      setError("Yeni giriş e-postası veya yeni şifre girin.");
+      return;
+    }
+
+    if (newPassword && newPassword !== form.confirmPassword) {
       setError("Yeni şifreler eşleşmiyor.");
       return;
     }
-    if (form.newPassword.length < 6) {
+    if (newPassword && newPassword.length < 6) {
       setError("Yeni şifre en az 6 karakter olmalı.");
       return;
     }
 
     setSaving(true);
     try {
-      await api.changeAdminPassword({
+      const result = await api.updateAdminAccount({
         currentPassword: form.currentPassword,
-        newPassword: form.newPassword,
+        newEmail: newEmail || undefined,
+        newPassword: newPassword || undefined,
       });
-      setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      setMessage("Admin şifreniz güncellendi.");
+      patchUser({ email: result.email || user?.email });
+      setForm({ newEmail: "", currentPassword: "", newPassword: "", confirmPassword: "" });
+      setMessage(result.message || "Admin giriş bilgileri güncellendi.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -41,19 +56,32 @@ export default function AdminSettings() {
 
   return (
     <div className="admin-page">
-      <PageHeader title="Ayarlar" subtitle="Admin hesabı güvenliği" />
+      <PageHeader title="Ayarlar" subtitle="Admin giriş bilgileri (/login/admin)" />
 
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 
       <div className="card admin-settings-card">
-        <h3>Admin şifresi değiştir</h3>
-        <p className="hint-text">Web sipariş yönetim paneli giriş şifrenizi buradan güncelleyebilirsiniz.</p>
+        <h3>Admin giriş bilgilerini güncelle</h3>
+        <p className="hint-text">
+          Yönetim paneli giriş e-postası ve şifresini buradan değiştirebilirsiniz. POS / şube girişi
+          (/login) ayrıdır.
+        </p>
         <p className="admin-settings-email">
-          <strong>Hesap:</strong> {user?.email}
+          <strong>Mevcut giriş e-postası:</strong> {user?.email || "—"}
         </p>
 
         <form className="form-grid admin-settings-form" onSubmit={handleSubmit}>
+          <label>Yeni giriş e-postası</label>
+          <input
+            type="email"
+            autoComplete="username"
+            placeholder="admin@firma.com"
+            value={form.newEmail}
+            onChange={(e) => setForm((prev) => ({ ...prev, newEmail: e.target.value }))}
+          />
+          <p className="hint-text admin-settings-field-hint">Boş bırakırsanız e-posta değişmez.</p>
+
           <label>Mevcut şifre</label>
           <input
             type="password"
@@ -67,9 +95,9 @@ export default function AdminSettings() {
           <input
             type="password"
             autoComplete="new-password"
+            placeholder="Değiştirmeyecekseniz boş bırakın"
             value={form.newPassword}
             onChange={(e) => setForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-            required
           />
 
           <label>Yeni şifre (tekrar)</label>
@@ -78,12 +106,11 @@ export default function AdminSettings() {
             autoComplete="new-password"
             value={form.confirmPassword}
             onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-            required
           />
 
           <div className="form-actions">
             <button type="submit" className="btn btn-success" disabled={saving}>
-              {saving ? "Kaydediliyor…" : "Şifreyi güncelle"}
+              {saving ? "Kaydediliyor…" : "Giriş bilgilerini güncelle"}
             </button>
           </div>
         </form>

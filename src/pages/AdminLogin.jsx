@@ -5,7 +5,7 @@ import "../styles/login.css";
 import "../styles/admin.css";
 
 export default function AdminLogin() {
-  const { login, isAuthenticated, isAdmin, isBranchUser } = useAuth();
+  const { login, logout, isAuthenticated, isAdmin, isBranchUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");

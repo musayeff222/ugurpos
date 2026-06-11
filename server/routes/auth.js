@@ -25,7 +25,7 @@ function buildAdminResponse(db, user, branchId) {
     branchId: branch?.id || branchId,
     branchName: branch?.name || user.branch || "ANA HESAP",
     branchNo: branch?.code ? String(parseInt(branch.code, 10) || branch.code) : "",
-    email: branch?.email || "",
+    branchEmail: branch?.email || "",
     role: user.role || "admin",
     loginType: "admin",
     branches,

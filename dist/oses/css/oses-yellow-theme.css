@@ -210,3 +210,27 @@ html:has(.oses-site-body),
   font-size: 14px;
   line-height: 1.4;
 }
+
+/* WhatsApp float — sarı tema uyumu */
+.oses-site-body .wa-float__btn {
+  border-color: var(--oses-yellow, #e6c10a);
+}
+
+.oses-site-body .wa-float__btn:hover,
+.oses-site-body .wa-float__btn:focus {
+  border-color: var(--oses-yellow-dark, #c9ab09);
+}
+
+.oses-site-body .wa-float__bubble {
+  background: var(--oses-yellow-pale, #faf6d4);
+  color: var(--oses-yellow-text-dark, #7a5c00);
+  border-color: var(--oses-yellow-dark, #c9ab09);
+}
+
+.oses-site-body .wa-float__bubble::after {
+  border-top-color: var(--oses-yellow-dark, #c9ab09);
+}
+
+.oses-site-body .wa-float__bubble::before {
+  border-top-color: var(--oses-yellow-pale, #faf6d4);
+}

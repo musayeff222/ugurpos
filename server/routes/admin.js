@@ -167,7 +167,7 @@ router.post("/branches/:id/enter", (req, res) => {
       branchId: branch.id,
       branchName: branch.name,
       branchNo: branch.code ? String(parseInt(branch.code, 10) || branch.code) : "",
-      email: branch.email,
+      branchEmail: branch.email,
       role: "admin",
       loginType: "admin",
       impersonating: true,
@@ -483,13 +483,30 @@ router.get("/activity/poll", (req, res) => {
 });
 
 router.patch("/account/password", (req, res) => {
-  const db = getDb();
-  const { currentPassword, newPassword } = req.body;
+  req.body = {
+    currentPassword: req.body.currentPassword,
+    newPassword: req.body.newPassword,
+  };
+  return updateAdminAccount(req, res);
+});
 
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ error: "Mevcut ve yeni şifre gerekli" });
+router.patch("/account", (req, res) => updateAdminAccount(req, res));
+
+function updateAdminAccount(req, res) {
+  const db = getDb();
+  const { currentPassword, newEmail, newPassword } = req.body;
+
+  if (!currentPassword) {
+    return res.status(400).json({ error: "Mevcut şifre gerekli" });
   }
-  if (String(newPassword).length < 6) {
+
+  const nextEmailRaw = typeof newEmail === "string" ? newEmail.trim().toLowerCase() : "";
+  const nextPasswordRaw = typeof newPassword === "string" ? newPassword : "";
+
+  if (!nextEmailRaw && !nextPasswordRaw) {
+    return res.status(400).json({ error: "Yeni e-posta veya şifre girin" });
+  }
+  if (nextPasswordRaw && nextPasswordRaw.length < 6) {
     return res.status(400).json({ error: "Yeni şifre en az 6 karakter olmalı" });
   }
 
@@ -499,12 +516,30 @@ router.patch("/account/password", (req, res) => {
     return res.status(401).json({ error: "Mevcut şifre hatalı" });
   }
 
-  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
-    bcrypt.hashSync(newPassword, 10),
-    user.id
-  );
+  let email = user.email;
+  if (nextEmailRaw) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmailRaw)) {
+      return res.status(400).json({ error: "Geçerli bir e-posta girin" });
+    }
+    const taken = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(nextEmailRaw, user.id);
+    if (taken) {
+      return res.status(409).json({ error: "Bu e-posta zaten kullanılıyor" });
+    }
+    email = nextEmailRaw;
+  }
 
-  res.json({ ok: true, message: "Admin şifresi güncellendi" });
-});
+  let passwordHash = user.password_hash;
+  if (nextPasswordRaw) {
+    passwordHash = bcrypt.hashSync(nextPasswordRaw, 10);
+  }
+
+  db.prepare("UPDATE users SET email = ?, password_hash = ? WHERE id = ?").run(email, passwordHash, user.id);
+
+  res.json({
+    ok: true,
+    email,
+    message: "Admin giriş bilgileri güncellendi",
+  });
+}
 
 export default router;
