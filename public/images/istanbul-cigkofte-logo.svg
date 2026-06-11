@@ -6,6 +6,6 @@
     </linearGradient>
   </defs>
   <text x="4" y="38" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="700" fill="url(#brandYellow)">İSTANBUL</text>
-  <text x="6" y="72" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" letter-spacing="2" fill="#5d4600">ÇİĞKÖFTE</text>
+  <text x="6" y="72" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" letter-spacing="2" fill="#ffffff">ÇİĞKÖFTE</text>
   <path d="M4 46 H250" stroke="#e6c10a" stroke-width="4" stroke-linecap="round"/>
 </svg>

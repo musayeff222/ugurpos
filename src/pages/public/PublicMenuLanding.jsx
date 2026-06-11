@@ -16,6 +16,7 @@ import { getWebConfig, isWebItemEnabled } from "../../utils/menuWebConfig";
 
 const LANG_KEY = "ugurpos_lang";
 const AUTO_RADIUS_KM = 80;
+const ORDER_STRIP_TOP_COUNT = 3;
 
 function runOrderStripAction(action, goOrder) {
   if (action === "branches") {
@@ -121,6 +122,15 @@ export default function PublicMenuLanding() {
   const firm = data?.firm;
   const web = getWebConfig(firm);
   const welcome = web.franchiseText?.trim() || firm?.menuWelcome || t("qr.osesFranchiseText");
+  const orderStripItems = useMemo(
+    () => (web.orderStrip || []).filter((item) => item.imageUrl && isWebItemEnabled(item)),
+    [web.orderStrip]
+  );
+  const showOrderStripFill =
+    web.showOrderStripFillImage !== false && !!web.orderStripFillImageUrl;
+  const orderStripTop = orderStripItems.slice(0, ORDER_STRIP_TOP_COUNT);
+  const orderStripBottom = orderStripItems.slice(ORDER_STRIP_TOP_COUNT);
+  const orderStripTopCol = showOrderStripFill ? "col-12 col-md-6 col-lg-3" : "col-12 col-md-6 col-lg-4";
   const previewBranchId = preview?.branch?.id;
   const money = (v) => formatPublicMoney(v);
 
@@ -153,17 +163,38 @@ export default function PublicMenuLanding() {
         <OsesPromoSlider slides={web.promoSlides} onSlideClick={goOrder} />
       )}
 
-      {web.showOrderStrip && web.orderStrip?.some((item) => item.imageUrl && isWebItemEnabled(item)) && (
-        <div className="container mt-4">
-          <div className="row">
-            {web.orderStrip
-              .filter((item) => item.imageUrl && isWebItemEnabled(item))
-              .map((item, i) => (
-                <div key={item.id || `strip-${i}`} className="col-12 col-md-6 col-lg-4">
+      {web.showOrderStrip && (orderStripItems.length > 0 || showOrderStripFill) && (
+        <div className="container mt-4 order-strip">
+          {orderStripTop.length > 0 || showOrderStripFill ? (
+            <div className="row order-strip__row order-strip__row--top">
+              {orderStripTop.map((item, i) => (
+                <div key={item.id || `strip-top-${i}`} className={orderStripTopCol}>
                   <OrderStripImage item={item} goOrder={goOrder} />
                 </div>
               ))}
-          </div>
+              {showOrderStripFill && (
+                <div className={orderStripTopCol}>
+                  <OrderStripImage
+                    item={{
+                      imageUrl: web.orderStripFillImageUrl,
+                      alt: web.orderStripFillImageAlt || "",
+                      action: web.orderStripFillAction || "order",
+                    }}
+                    goOrder={goOrder}
+                  />
+                </div>
+              )}
+            </div>
+          ) : null}
+          {orderStripBottom.length > 0 ? (
+            <div className="row order-strip__row order-strip__row--bottom">
+              {orderStripBottom.map((item, i) => (
+                <div key={item.id || `strip-bottom-${i}`} className="col-12 col-md-6 col-lg-4">
+                  <OrderStripImage item={item} goOrder={goOrder} />
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
 

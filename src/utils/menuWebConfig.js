@@ -21,6 +21,10 @@ export const DEFAULT_MENU_WEB_CONFIG = {
   showOrderStrip: true,
   showWhatsappFloat: true,
   whatsappFloatPhone: "",
+  showOrderStripFillImage: true,
+  orderStripFillImageUrl: "/oses/assets/images/oses-lezzetleri.jpg",
+  orderStripFillImageAlt: "İstanbul Çiğköfte",
+  orderStripFillAction: "order",
   orderStrip: [
     { imageUrl: "/oses/assets/images/oses-yemeksepeti.jpg", alt: "Online Sipariş Ver", action: "order" },
     { imageUrl: "/oses/assets/images/oses-getir.jpg", alt: "Menüyü İncele", action: "order" },

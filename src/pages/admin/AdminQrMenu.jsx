@@ -585,6 +585,43 @@ export default function AdminQrMenu() {
             <button type="button" className="btn btn-default btn-sm admin-qr-add-banner" onClick={addOrderStripItem}>
               + {t("admin.qr.addBanner")}
             </button>
+            <div className="admin-qr-web-block admin-qr-web-block--fill">
+              <strong>{t("admin.qr.orderStripFillTitle")}</strong>
+              <p className="hint-text">{t("admin.qr.orderStripFillHint")}</p>
+              <label className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={webConfigDraft.showOrderStripFillImage !== false}
+                  onChange={(e) => patchWeb("showOrderStripFillImage", e.target.checked)}
+                />
+                {t("admin.qr.showOrderStripFillImage")}
+              </label>
+              <WebImageField
+                label={t("admin.qr.orderStripFillImageUrl")}
+                hint={t("admin.qr.imageUploadHint")}
+                imageKey="orderStripFillImageUrl"
+                url={webConfigDraft.orderStripFillImageUrl || ""}
+                onUrlChange={(value) => patchWeb("orderStripFillImageUrl", value)}
+                upload={webImageUploads.orderStripFillImageUrl}
+                onUploadChange={setImageUpload}
+              />
+              <WebConfigField label={t("admin.qr.imageAlt")}>
+                <input
+                  value={webConfigDraft.orderStripFillImageAlt || ""}
+                  onChange={(e) => patchWeb("orderStripFillImageAlt", e.target.value)}
+                />
+              </WebConfigField>
+              <WebConfigField label={t("admin.qr.orderStripAction")}>
+                <select
+                  value={webConfigDraft.orderStripFillAction || "order"}
+                  onChange={(e) => patchWeb("orderStripFillAction", e.target.value)}
+                >
+                  <option value="order">{t("admin.qr.orderStripActionOrder")}</option>
+                  <option value="branches">{t("admin.qr.orderStripActionBranches")}</option>
+                  <option value="campaigns">{t("admin.qr.orderStripActionCampaigns")}</option>
+                </select>
+              </WebConfigField>
+            </div>
           </AdminQrSectionCard>
 
           <AdminQrSectionCard

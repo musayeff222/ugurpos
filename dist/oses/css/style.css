@@ -178,14 +178,28 @@ ul.bullet1 li{
 .account .text-right a{margin-left: 20px; margin-right: 0;}
 
 header{
-	background-color: #e6c10a;
+	background-color: #111;
 	height: 90px;
 	transition: height .2s ease-in-out;
 }
 header .navbar{padding: 0;}
-.navbar-brand{padding: 12px 0;}
-.navbar-brand img{height: 66px; transition: height .2s ease-in-out;}
-.navbar-expand-lg .navbar-nav .nav-link{color: #7A5C00; display: inline-block; margin: 0 0 0 1rem; padding: 0; font-weight: 600;}
+.navbar-brand{
+  padding: 12px 16px 12px 0;
+  display: flex;
+  align-items: center;
+  min-width: 260px;
+  max-width: 380px;
+}
+.navbar-brand img{
+  height: auto;
+  max-height: 66px;
+  width: 100%;
+  max-width: 360px;
+  object-fit: contain;
+  object-position: left center;
+  transition: max-height .2s ease-in-out;
+}
+.navbar-expand-lg .navbar-nav .nav-link{color: #fff; display: inline-block; margin: 0 0 0 1rem; padding: 0; font-weight: 600;}
 header #mainCart{position: absolute; right: 0;}
 header #mainCart>button{
 	font-size: 12px;
@@ -253,7 +267,7 @@ header #mainCart .dropdown-menu table td .remove-cart-item{color: #FFE082;height
 
 
 header.is-sticky{height: 60px;position: fixed;left: 0;right: 0;}
-header.is-sticky .navbar-brand img{height: 36px;}
+header.is-sticky .navbar-brand img{max-height: 36px;}
 header.is-sticky #mainCart button{
     border: none;
     margin-left: 15px;
@@ -264,9 +278,9 @@ header .navbar-nav{padding-right:90px;}
 
 @media (max-width: 767.98px) {
 	header,header.is-sticky{height: 50px;}
-	.navbar-brand{padding: 5px 0;}
+	.navbar-brand{padding: 5px 8px 5px 0; min-width: 160px; max-width: 220px;}
 	.navbar-brand img,
-	header.is-sticky .navbar-brand img{height: 40px;}
+	header.is-sticky .navbar-brand img{max-height: 40px; max-width: 200px;}
 	.navbar-nav{left: 0;right: 0;background-color:#c9ab09;position: fixed;text-align: center; padding:0;height:100vh;}
 	.nav-item {border-bottom:1px solid #548400;}
 	.nav-item:last-child {border:none;}

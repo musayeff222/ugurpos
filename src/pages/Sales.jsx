@@ -5,6 +5,7 @@ import Modal from "../components/ui/Modal";
 import { calcCartTotal, formatMoney, uid } from "../utils/format";
 import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
+import { playPosItemAddedSound, playPosPaymentSound } from "../utils/posSounds";
 import "../styles/sales.css";
 
 const TAB_COUNT = 5;
@@ -171,6 +172,7 @@ export default function Sales() {
     setBarcode("");
     setSearchResults([]);
     barcodeRef.current?.focus();
+    playPosItemAddedSound();
   };
 
   const handleBarcodeInput = (value) => {
@@ -217,6 +219,7 @@ export default function Sales() {
       },
     ]);
     setMiscAmount("");
+    playPosItemAddedSound();
   };
 
   const updateQty = (lineId, qty) => {
@@ -270,6 +273,7 @@ export default function Sales() {
 
       setLastSale(sale);
       setMessage("Satış tamamlandı.");
+      playPosPaymentSound();
       setCartForTab([]);
       setPaid("0");
       setDiscount("");

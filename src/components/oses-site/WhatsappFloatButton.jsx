@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "../../context/LocaleContext";
 import { getWebConfig } from "../../utils/menuWebConfig";
 
-const INTRO_SESSION_KEY = "ugurpos_wa_float_intro";
-const INTRO_DELAY_MS = 5000;
+const WA_READY_KEY = "ugurpos_wa_float_ready";
+const FIRST_SHOW_DELAY_MS = 5000;
 const SCROLL_SHOW_DELAY_MS = 8000;
 
 function WhatsappIcon() {
@@ -26,9 +26,10 @@ function buildWhatsappUrl(phone) {
 export default function WhatsappFloatButton({ firm }) {
   const { t } = useLocale();
   const web = getWebConfig(firm);
-  const [visible, setVisible] = useState(true);
-  const [showIntro, setShowIntro] = useState(false);
-  const showTimerRef = useRef(null);
+  const [visible, setVisible] = useState(false);
+  const allowShowRef = useRef(false);
+  const firstShowTimerRef = useRef(null);
+  const scrollShowTimerRef = useRef(null);
 
   const whatsappUrl = useMemo(() => {
     if (web.showWhatsappFloat === false) return null;
@@ -39,16 +40,30 @@ export default function WhatsappFloatButton({ firm }) {
     return buildWhatsappUrl(phone);
   }, [firm, web.showWhatsappFloat, web.whatsappFloatPhone, firm?.social?.whatsapp]);
 
+  const revealButton = () => {
+    if (!allowShowRef.current) return;
+    setVisible(true);
+  };
+
   useEffect(() => {
     if (!whatsappUrl) return undefined;
-    if (sessionStorage.getItem(INTRO_SESSION_KEY)) return undefined;
 
-    const introTimer = window.setTimeout(() => {
-      setShowIntro(true);
-      sessionStorage.setItem(INTRO_SESSION_KEY, "1");
-    }, INTRO_DELAY_MS);
+    const showNow = () => {
+      allowShowRef.current = true;
+      sessionStorage.setItem(WA_READY_KEY, "1");
+      setVisible(true);
+    };
 
-    return () => window.clearTimeout(introTimer);
+    if (sessionStorage.getItem(WA_READY_KEY)) {
+      showNow();
+      return undefined;
+    }
+
+    firstShowTimerRef.current = window.setTimeout(showNow, FIRST_SHOW_DELAY_MS);
+
+    return () => {
+      if (firstShowTimerRef.current) window.clearTimeout(firstShowTimerRef.current);
+    };
   }, [whatsappUrl]);
 
   useEffect(() => {
@@ -56,43 +71,32 @@ export default function WhatsappFloatButton({ firm }) {
 
     const onScroll = () => {
       setVisible(false);
-      setShowIntro(false);
-      if (showTimerRef.current) window.clearTimeout(showTimerRef.current);
-      showTimerRef.current = window.setTimeout(() => {
-        setVisible(true);
-      }, SCROLL_SHOW_DELAY_MS);
+      if (scrollShowTimerRef.current) window.clearTimeout(scrollShowTimerRef.current);
+      scrollShowTimerRef.current = window.setTimeout(revealButton, SCROLL_SHOW_DELAY_MS);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
-      if (showTimerRef.current) window.clearTimeout(showTimerRef.current);
+      if (scrollShowTimerRef.current) window.clearTimeout(scrollShowTimerRef.current);
     };
   }, [whatsappUrl]);
 
   if (!whatsappUrl) return null;
 
-  const dismissIntro = () => setShowIntro(false);
+  const label = t("qr.whatsappFloatLabel");
 
   return (
-    <div
-      className={`wa-float${visible ? "" : " wa-float--hidden"}${showIntro ? " wa-float--intro" : ""}`}
-      aria-hidden={!visible}
-    >
-      {showIntro && visible && (
-        <div className="wa-float__bubble" role="status">
-          {t("qr.whatsappFloatLabel")}
-        </div>
-      )}
+    <div className={`wa-float${visible ? "" : " wa-float--hidden"}`} aria-hidden={!visible}>
       <a
         href={whatsappUrl}
         className="wa-float__btn"
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={t("qr.whatsappFloatLabel")}
-        onClick={dismissIntro}
+        aria-label={label}
       >
         <WhatsappIcon />
+        <span className="wa-float__label">{label}</span>
       </a>
     </div>
   );
