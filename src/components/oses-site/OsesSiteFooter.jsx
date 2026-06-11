@@ -2,24 +2,12 @@ import { Link } from "react-router-dom";
 import { useLocale } from "../../context/LocaleContext";
 import { BRAND_NAME } from "../../constants/brand";
 import { getWebConfig } from "../../utils/menuWebConfig";
-
-function socialHref(type, value) {
-  if (!value?.trim()) return null;
-  const raw = value.trim();
-  if (/^https?:\/\//i.test(raw)) return raw;
-  if (type === "instagram") return `https://instagram.com/${raw.replace(/^@/, "")}`;
-  if (type === "facebook") return `https://facebook.com/${raw.replace(/^@/, "")}`;
-  if (type === "tiktok") return `https://tiktok.com/@${raw.replace(/^@/, "")}`;
-  return null;
-}
+import QrSocialLinks from "../public/QrSocialLinks";
 
 export default function OsesSiteFooter({ firm }) {
   const { t } = useLocale();
   const web = getWebConfig(firm);
   const social = firm?.social || {};
-  const ig = socialHref("instagram", social.instagram);
-  const fb = socialHref("facebook", social.facebook);
-  const tt = socialHref("tiktok", social.tiktok);
   const phone = web.contactPhone?.trim();
   const email = web.contactEmail?.trim();
   const copyright = web.copyrightSuffix?.trim() || t("qr.osesCopyright");
@@ -68,21 +56,7 @@ export default function OsesSiteFooter({ firm }) {
               <p>
                 <span>{t("qr.osesSocialTitle")}</span>
                 <br />
-                {fb && (
-                  <a href={fb} target="_blank" rel="noopener noreferrer">
-                    <i className="fab fa-facebook-f" />
-                  </a>
-                )}
-                {ig && (
-                  <a href={ig} target="_blank" rel="noopener noreferrer">
-                    <i className="fab fa-instagram" />
-                  </a>
-                )}
-                {tt && (
-                  <a href={tt} target="_blank" rel="noopener noreferrer">
-                    <i className="fab fa-tiktok" />
-                  </a>
-                )}
+                <QrSocialLinks social={social} variant="brand" className="oses-footer__social" />
               </p>
             </div>
           </div>

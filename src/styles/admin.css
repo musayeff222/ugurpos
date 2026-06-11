@@ -823,35 +823,64 @@
   text-decoration: underline;
 }
 
-.admin-qr-settings-nav {
+.admin-qr-settings-layout {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-  padding: 12px 14px;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.admin-qr-settings-sidebar {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
   background: #f3f4f6;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   position: sticky;
   top: 8px;
-  z-index: 5;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
 }
 
-.admin-qr-settings-nav__link {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid #d1d5db;
+.admin-qr-settings-sidebar__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
   color: #374151;
   font-size: 13px;
-  text-decoration: none;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.admin-qr-settings-nav__link:hover {
+.admin-qr-settings-sidebar__item:hover {
+  background: #fff;
+  border-color: #d1d5db;
+}
+
+.admin-qr-settings-sidebar__item.is-active {
+  background: #fff;
   border-color: #97d700;
   color: #4d7c0f;
+  font-weight: 600;
+}
+
+.admin-qr-settings-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-qr-settings-panel .admin-qr-section-card:not(.admin-qr-section-card--active) {
+  display: none;
+}
+
+.admin-qr-settings-panel .admin-qr-section-card--active {
+  scroll-margin-top: 0;
 }
 
 .admin-qr-section-card {
@@ -1208,6 +1237,19 @@
   margin-top: 8px;
 }
 
+.admin-qr-social-preview .qr-social-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-qr-social-preview .qr-social-links__btn--brand svg {
+  width: 36px;
+  height: 36px;
+  display: block;
+  border-radius: 8px;
+}
+
 .admin-qr-social-preview span {
   font-size: 13px;
   color: #6b7280;
@@ -1223,6 +1265,26 @@
 }
 
 @media (max-width: 900px) {
+  .admin-qr-settings-layout {
+    flex-direction: column;
+  }
+
+  .admin-qr-settings-sidebar {
+    flex: none;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-height: none;
+    position: static;
+  }
+
+  .admin-qr-settings-sidebar__item {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+  }
+
   .admin-qr-logo-design {
     grid-template-columns: 1fr;
   }

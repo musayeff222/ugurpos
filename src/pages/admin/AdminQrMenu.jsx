@@ -20,9 +20,13 @@ function WebConfigField({ label, children, hint }) {
   );
 }
 
-function AdminQrSectionCard({ id, title, hint, children }) {
+function AdminQrSectionCard({ id, title, hint, children, active = true }) {
   return (
-    <div className="card admin-qr-firm-card admin-qr-section-card" id={id}>
+    <div
+      className={`card admin-qr-firm-card admin-qr-section-card${active ? " admin-qr-section-card--active" : ""}`}
+      id={id}
+      hidden={!active}
+    >
       <h3>{title}</h3>
       {hint ? <p className="hint-text">{hint}</p> : null}
       {children}
@@ -74,23 +78,26 @@ export default function AdminQrMenu() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [activeSettingsSection, setActiveSettingsSection] = useState(SETTINGS_NAV[0].id);
+
+  const applyFirmDraft = (firmData) => ({
+    menuEnabled: firmData.menuEnabled !== false,
+    menuTitle: firmData.menuTitle || "",
+    menuWelcome: firmData.menuWelcome || "",
+    socialInstagram: firmData.social?.instagram || "",
+    socialWhatsapp: firmData.social?.whatsapp || "",
+    socialTiktok: firmData.social?.tiktok || "",
+    socialFacebook: firmData.social?.facebook || "",
+    menuDefaultLang: firmData.defaultLang || "az",
+    menuOpenTime: firmData.openTime || "09:00",
+    menuCloseTime: firmData.closeTime || "23:00",
+  });
 
   const loadSettings = async () => {
     const data = await api.getAdminQrMenu();
     setFirm(data.firm);
     setBranches(data.branches);
-    setFirmDraft({
-      menuEnabled: data.firm.menuEnabled !== false,
-      menuTitle: data.firm.menuTitle || "",
-      menuWelcome: data.firm.menuWelcome || "",
-      socialInstagram: data.firm.social?.instagram || "",
-      socialWhatsapp: data.firm.social?.whatsapp || "",
-      socialTiktok: data.firm.social?.tiktok || "",
-      socialFacebook: data.firm.social?.facebook || "",
-      menuDefaultLang: data.firm.defaultLang || "az",
-      menuOpenTime: data.firm.openTime || "09:00",
-      menuCloseTime: data.firm.closeTime || "23:00",
-    });
+    setFirmDraft(applyFirmDraft(data.firm));
     setWebConfigDraft(normalizeWebConfig(data.firm.webConfig));
     setLogoValue(undefined);
     setBranchDrafts(
@@ -235,7 +242,20 @@ export default function AdminQrMenu() {
     setMessage("");
     setError("");
     try {
-      const payload = { ...firmDraft, webConfig: webConfigDraft, webImageUploads };
+      const payload = {
+        menuEnabled: firmDraft.menuEnabled,
+        menuTitle: firmDraft.menuTitle,
+        menuWelcome: firmDraft.menuWelcome,
+        socialInstagram: firmDraft.socialInstagram ?? "",
+        socialWhatsapp: firmDraft.socialWhatsapp ?? "",
+        socialTiktok: firmDraft.socialTiktok ?? "",
+        socialFacebook: firmDraft.socialFacebook ?? "",
+        menuDefaultLang: firmDraft.menuDefaultLang,
+        menuOpenTime: firmDraft.menuOpenTime,
+        menuCloseTime: firmDraft.menuCloseTime,
+        webConfig: webConfigDraft,
+        webImageUploads,
+      };
       if (logoValue === null) payload.removeLogo = true;
       else if (logoValue?.data) {
         payload.logoData = logoValue.data;
@@ -243,6 +263,7 @@ export default function AdminQrMenu() {
       }
       const data = await api.updateAdminQrMenu(payload);
       setFirm(data.firm);
+      setFirmDraft(applyFirmDraft(data.firm));
       setWebConfigDraft(normalizeWebConfig(data.firm.webConfig));
       setWebImageUploads({});
       setLogoValue(undefined);
@@ -319,16 +340,27 @@ export default function AdminQrMenu() {
       </ul>
 
       {tab === "settings" && (
-        <>
-          <nav className="admin-qr-settings-nav" aria-label={t("admin.qr.settingsNavLabel")}>
+        <div className="admin-qr-settings-layout">
+          <aside className="admin-qr-settings-sidebar" aria-label={t("admin.qr.settingsNavLabel")}>
             {SETTINGS_NAV.map((item) => (
-              <a key={item.id} href={`#${item.id}`} className="admin-qr-settings-nav__link">
+              <button
+                key={item.id}
+                type="button"
+                className={`admin-qr-settings-sidebar__item${activeSettingsSection === item.id ? " is-active" : ""}`}
+                onClick={() => setActiveSettingsSection(item.id)}
+              >
                 {t(item.labelKey)}
-              </a>
+              </button>
             ))}
-          </nav>
+          </aside>
 
-          <AdminQrSectionCard id="qr-section-link" title={t("admin.qr.sectionLink")} hint={t("admin.qr.sectionLinkHint")}>
+          <div className="admin-qr-settings-panel">
+          <AdminQrSectionCard
+            id="qr-section-link"
+            title={t("admin.qr.sectionLink")}
+            hint={t("admin.qr.sectionLinkHint")}
+            active={activeSettingsSection === "qr-section-link"}
+          >
             {menuUrl && (
               <div className="admin-qr-firm-link">
                 {!firm?.menuEnabled && (
@@ -358,7 +390,12 @@ export default function AdminQrMenu() {
             </div>
           </AdminQrSectionCard>
 
-          <AdminQrSectionCard id="qr-section-page" title={t("admin.qr.sectionPageParams")} hint={t("admin.qr.sectionPageParamsHint")}>
+          <AdminQrSectionCard
+            id="qr-section-page"
+            title={t("admin.qr.sectionPageParams")}
+            hint={t("admin.qr.sectionPageParamsHint")}
+            active={activeSettingsSection === "qr-section-page"}
+          >
             <div className="admin-qr-firm-form">
               <label>{t("admin.qr.menuTitle")}</label>
               <input
@@ -403,7 +440,12 @@ export default function AdminQrMenu() {
             </div>
           </AdminQrSectionCard>
 
-          <AdminQrSectionCard id="qr-section-logo" title={t("admin.qr.sectionLogoDesign")} hint={t("admin.qr.menuLogoHint")}>
+          <AdminQrSectionCard
+            id="qr-section-logo"
+            title={t("admin.qr.sectionLogoDesign")}
+            hint={t("admin.qr.menuLogoHint")}
+            active={activeSettingsSection === "qr-section-logo"}
+          >
             <div className="admin-qr-logo-design">
               <div className="admin-qr-logo-upload">
                 <label>{t("admin.qr.menuLogo")}</label>
@@ -431,7 +473,12 @@ export default function AdminQrMenu() {
             </div>
           </AdminQrSectionCard>
 
-          <AdminQrSectionCard id="qr-section-promo" title={t("admin.qr.sectionPromo")} hint={t("admin.qr.promoHint")}>
+          <AdminQrSectionCard
+            id="qr-section-promo"
+            title={t("admin.qr.sectionPromo")}
+            hint={t("admin.qr.promoHint")}
+            active={activeSettingsSection === "qr-section-promo"}
+          >
             {webConfigDraft.promoSlides.map((slide, i) => (
               <div key={slide.id || `promo-${i}`} className="admin-qr-web-block">
                 <div className="admin-qr-web-block__head">
@@ -459,7 +506,12 @@ export default function AdminQrMenu() {
             </button>
           </AdminQrSectionCard>
 
-          <AdminQrSectionCard id="qr-section-order-strip" title={t("admin.qr.sectionOrderStrip")} hint={t("admin.qr.orderStripHint")}>
+          <AdminQrSectionCard
+            id="qr-section-order-strip"
+            title={t("admin.qr.sectionOrderStrip")}
+            hint={t("admin.qr.orderStripHint")}
+            active={activeSettingsSection === "qr-section-order-strip"}
+          >
             <label className="checkbox-row">
               <input
                 type="checkbox"
@@ -502,7 +554,12 @@ export default function AdminQrMenu() {
             </button>
           </AdminQrSectionCard>
 
-          <AdminQrSectionCard id="qr-section-campaigns" title={t("admin.qr.sectionCampaigns")} hint={t("admin.qr.campaignHint")}>
+          <AdminQrSectionCard
+            id="qr-section-campaigns"
+            title={t("admin.qr.sectionCampaigns")}
+            hint={t("admin.qr.campaignHint")}
+            active={activeSettingsSection === "qr-section-campaigns"}
+          >
             {webConfigDraft.campaignBanners.map((banner, i) => (
               <div key={banner.id || `campaign-${i}`} className="admin-qr-web-block">
                 <div className="admin-qr-web-block__head">
@@ -530,7 +587,11 @@ export default function AdminQrMenu() {
             </button>
           </AdminQrSectionCard>
 
-          <AdminQrSectionCard id="qr-section-franchise" title={t("admin.qr.sectionFranchise")}>
+          <AdminQrSectionCard
+            id="qr-section-franchise"
+            title={t("admin.qr.sectionFranchise")}
+            active={activeSettingsSection === "qr-section-franchise"}
+          >
             <label className="checkbox-row">
               <input
                 type="checkbox"
@@ -586,7 +647,11 @@ export default function AdminQrMenu() {
             </div>
           </AdminQrSectionCard>
 
-          <AdminQrSectionCard id="qr-section-features" title={t("admin.qr.sectionFeatures")}>
+          <AdminQrSectionCard
+            id="qr-section-features"
+            title={t("admin.qr.sectionFeatures")}
+            active={activeSettingsSection === "qr-section-features"}
+          >
             {webConfigDraft.features.map((feature, i) => (
               <div key={`feature-${i}`} className="admin-qr-web-block">
                 <strong>{t("admin.qr.featureBox")} {i + 1}</strong>
@@ -616,7 +681,11 @@ export default function AdminQrMenu() {
             ))}
           </AdminQrSectionCard>
 
-          <AdminQrSectionCard id="qr-section-extra" title={t("admin.qr.sectionBanners")}>
+          <AdminQrSectionCard
+            id="qr-section-extra"
+            title={t("admin.qr.sectionBanners")}
+            active={activeSettingsSection === "qr-section-extra"}
+          >
             <label className="checkbox-row">
               <input
                 type="checkbox"
@@ -636,7 +705,12 @@ export default function AdminQrMenu() {
             />
           </AdminQrSectionCard>
 
-          <AdminQrSectionCard id="qr-section-footer" title={t("admin.qr.sectionFooter")} hint={t("admin.qr.sectionFooterHint")}>
+          <AdminQrSectionCard
+            id="qr-section-footer"
+            title={t("admin.qr.sectionFooter")}
+            hint={t("admin.qr.sectionFooterHint")}
+            active={activeSettingsSection === "qr-section-footer"}
+          >
             <div className="admin-qr-firm-form">
               <WebConfigField label={t("admin.qr.contactPhone")}>
                 <input
@@ -670,7 +744,12 @@ export default function AdminQrMenu() {
             </div>
           </AdminQrSectionCard>
 
-          <AdminQrSectionCard id="qr-section-social" title={t("admin.qr.sectionSocial")} hint={t("admin.qr.socialHint")}>
+          <AdminQrSectionCard
+            id="qr-section-social"
+            title={t("admin.qr.sectionSocial")}
+            hint={t("admin.qr.socialHint")}
+            active={activeSettingsSection === "qr-section-social"}
+          >
             <div className="admin-qr-social-form">
               <label>
                 <i className="fa fa-instagram admin-qr-social-icon admin-qr-social-icon--ig" />
@@ -715,13 +794,11 @@ export default function AdminQrMenu() {
             </div>
           </AdminQrSectionCard>
 
-          <div className="admin-qr-save-all-wrap">
-            <button type="button" className="btn btn-success" onClick={saveFirmSettings}>
-              {t("admin.qr.saveFirm")}
-            </button>
-          </div>
-
-          <AdminQrSectionCard id="qr-section-branches" title={t("admin.qr.branchesTitle")}>
+          <AdminQrSectionCard
+            id="qr-section-branches"
+            title={t("admin.qr.branchesTitle")}
+            active={activeSettingsSection === "qr-section-branches"}
+          >
           <div className="admin-qr-settings">
             {branches.filter((b) => b.active !== false).map((branch) => {
               const draft = branchDrafts[branch.id] || {};
@@ -849,7 +926,16 @@ export default function AdminQrMenu() {
             })}
           </div>
           </AdminQrSectionCard>
-        </>
+
+          {activeSettingsSection !== "qr-section-branches" && (
+            <div className="admin-qr-save-all-wrap">
+              <button type="button" className="btn btn-success" onClick={saveFirmSettings}>
+                {t("admin.qr.saveFirm")}
+              </button>
+            </div>
+          )}
+          </div>
+        </div>
       )}
 
       {tab === "orders" && (

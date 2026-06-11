@@ -443,6 +443,28 @@ footer ul li a:hover{color: #fff;}
 .social span{border-bottom:1px solid #3e6100;padding-bottom:5px;line-height:40px;font-weight:bold;}
 .social a{font-size:18px;color:#3e6100;margin:0 10px;}
 .social a:hover{color:#fff;}
+.social .qr-social-links {
+  display: inline-flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  vertical-align: middle;
+}
+.social .qr-social-links__btn--brand {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  transition: transform 0.15s ease;
+}
+.social .qr-social-links__btn--brand:hover {
+  transform: translateY(-2px);
+}
+.social .qr-social-links__btn--brand svg {
+  width: 36px;
+  height: 36px;
+  display: block;
+  border-radius: 8px;
+}
 
 .app {text-align:right;}
 .app a{display:inline-block;margin:0 0 0 10px;}
