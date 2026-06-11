@@ -73,14 +73,60 @@ function cloneDefaultSlides(key) {
   return DEFAULT_MENU_WEB_CONFIG[key].map((s) => ({ ...s }));
 }
 
+function withBannerId(item, prefix, index) {
+  return {
+    ...item,
+    id: item?.id || `${prefix}-${index}`,
+  };
+}
+
+function normalizePromoSlides(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return cloneDefaultSlides("promoSlides").map((item, i) => withBannerId(item, "promo", i));
+  }
+  return raw.map((item, i) =>
+    withBannerId(
+      {
+        imageUrl: item.imageUrl || "",
+        alt: item.alt ?? "",
+      },
+      "promo",
+      i
+    )
+  );
+}
+
+function normalizeCampaignBanners(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return cloneDefaultSlides("campaignBanners").map((item, i) => withBannerId(item, "campaign", i));
+  }
+  return raw.map((item, i) =>
+    withBannerId(
+      {
+        imageUrl: item.imageUrl || "",
+        alt: item.alt ?? "",
+      },
+      "campaign",
+      i
+    )
+  );
+}
+
 function normalizeOrderStrip(raw) {
-  const defaults = cloneDefaultSlides("orderStrip");
-  if (!Array.isArray(raw) || raw.length === 0) return defaults;
-  return defaults.map((item, i) => ({
-    imageUrl: raw[i]?.imageUrl || item.imageUrl,
-    alt: raw[i]?.alt ?? item.alt,
-    action: raw[i]?.action || item.action || "order",
-  }));
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return cloneDefaultSlides("orderStrip").map((item, i) => withBannerId(item, "orderStrip", i));
+  }
+  return raw.map((item, i) =>
+    withBannerId(
+      {
+        imageUrl: item.imageUrl || "",
+        alt: item.alt ?? "",
+        action: item.action || "order",
+      },
+      "orderStrip",
+      i
+    )
+  );
 }
 
 function normalizeParsedConfig(parsed = {}) {
@@ -96,14 +142,8 @@ function normalizeParsedConfig(parsed = {}) {
             desc: f.desc ?? DEFAULT_MENU_WEB_CONFIG.features[i].desc,
           }))
         : cloneDefaultFeatures(),
-    promoSlides:
-      Array.isArray(parsed.promoSlides) && parsed.promoSlides.length > 0
-        ? parsed.promoSlides
-        : cloneDefaultSlides("promoSlides"),
-    campaignBanners:
-      Array.isArray(parsed.campaignBanners) && parsed.campaignBanners.length > 0
-        ? parsed.campaignBanners
-        : cloneDefaultSlides("campaignBanners"),
+    promoSlides: normalizePromoSlides(parsed.promoSlides),
+    campaignBanners: normalizeCampaignBanners(parsed.campaignBanners),
   };
 }
 
@@ -136,10 +176,19 @@ export function mergeMenuWebConfig(existingRaw, patch = {}) {
       desc: f.desc ?? current.features[i]?.desc ?? "",
     }));
   }
-  if (patch.promoSlides) next.promoSlides = patch.promoSlides;
-  if (patch.campaignBanners) next.campaignBanners = patch.campaignBanners;
+  if (patch.promoSlides) next.promoSlides = normalizePromoSlides(patch.promoSlides);
+  if (patch.campaignBanners) next.campaignBanners = normalizeCampaignBanners(patch.campaignBanners);
   if (patch.orderStrip) next.orderStrip = normalizeOrderStrip(patch.orderStrip);
   return next;
+}
+
+function findBannerByKey(list, key) {
+  if (!Array.isArray(list)) return null;
+  const byId = list.find((item) => item.id === key);
+  if (byId) return byId;
+  const index = Number(key);
+  if (!Number.isNaN(index) && list[index]) return list[index];
+  return null;
 }
 
 function applyImageKey(config, key, url) {
@@ -148,17 +197,17 @@ function applyImageKey(config, key, url) {
     return;
   }
 
-  let match = key.match(/^promoSlide-(\d+)$/);
+  let match = key.match(/^promoSlide-(.+)$/);
   if (match) {
-    const i = Number(match[1]);
-    if (config.promoSlides[i]) config.promoSlides[i].imageUrl = url;
+    const slide = findBannerByKey(config.promoSlides, match[1]);
+    if (slide) slide.imageUrl = url;
     return;
   }
 
-  match = key.match(/^campaign-(\d+)$/);
+  match = key.match(/^campaign-(.+)$/);
   if (match) {
-    const i = Number(match[1]);
-    if (config.campaignBanners[i]) config.campaignBanners[i].imageUrl = url;
+    const banner = findBannerByKey(config.campaignBanners, match[1]);
+    if (banner) banner.imageUrl = url;
     return;
   }
 
@@ -169,10 +218,10 @@ function applyImageKey(config, key, url) {
     return;
   }
 
-  match = key.match(/^orderStrip-(\d+)$/);
+  match = key.match(/^orderStrip-(.+)$/);
   if (match) {
-    const i = Number(match[1]);
-    if (config.orderStrip[i]) config.orderStrip[i].imageUrl = url;
+    const item = findBannerByKey(config.orderStrip, match[1]);
+    if (item) item.imageUrl = url;
   }
 }
 

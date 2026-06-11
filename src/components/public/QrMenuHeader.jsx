@@ -1,4 +1,5 @@
 import { useLocale } from "../../context/LocaleContext";
+import { getBranchLabel } from "../../utils/branchDisplay";
 
 export default function QrMenuHeader({ firm, branch, showBack, onBack }) {
   const { t } = useLocale();
@@ -36,7 +37,7 @@ export default function QrMenuHeader({ firm, branch, showBack, onBack }) {
               {branch && (
                 <span className="public-hero__chip">
                   <i className="fa fa-map-marker" />
-                  #{branch.branchNo} {branch.name}
+                  {getBranchLabel(branch)}
                 </span>
               )}
             </div>

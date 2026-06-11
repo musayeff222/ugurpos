@@ -5,7 +5,8 @@ import PageHeader from "../../components/ui/PageHeader";
 import ProductImageField from "../../components/ProductImageField";
 import QrSocialLinks from "../../components/public/QrSocialLinks";
 import WebImageField from "../../components/admin/WebImageField";
-import { normalizeWebConfig } from "../../utils/menuWebConfig";
+import { normalizeWebConfig, createBannerId } from "../../utils/menuWebConfig";
+import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatMoney } from "../../utils/format";
 import { getMenuPublicUrl, getQrCodeUrl } from "../../utils/qrMenuPublic";
 
@@ -18,6 +19,31 @@ function WebConfigField({ label, children, hint }) {
     </>
   );
 }
+
+function AdminQrSectionCard({ id, title, hint, children }) {
+  return (
+    <div className="card admin-qr-firm-card admin-qr-section-card" id={id}>
+      <h3>{title}</h3>
+      {hint ? <p className="hint-text">{hint}</p> : null}
+      {children}
+    </div>
+  );
+}
+
+const SETTINGS_NAV = [
+  { id: "qr-section-link", labelKey: "admin.qr.navLink" },
+  { id: "qr-section-page", labelKey: "admin.qr.navPage" },
+  { id: "qr-section-logo", labelKey: "admin.qr.navLogo" },
+  { id: "qr-section-promo", labelKey: "admin.qr.navPromo" },
+  { id: "qr-section-order-strip", labelKey: "admin.qr.navOrderStrip" },
+  { id: "qr-section-campaigns", labelKey: "admin.qr.navCampaigns" },
+  { id: "qr-section-franchise", labelKey: "admin.qr.navFranchise" },
+  { id: "qr-section-features", labelKey: "admin.qr.navFeatures" },
+  { id: "qr-section-extra", labelKey: "admin.qr.navExtra" },
+  { id: "qr-section-footer", labelKey: "admin.qr.navFooter" },
+  { id: "qr-section-social", labelKey: "admin.qr.navSocial" },
+  { id: "qr-section-branches", labelKey: "admin.qr.navBranches" },
+];
 
 const STATUS_LABELS = {
   pending: "Bekliyor",
@@ -152,6 +178,48 @@ export default function AdminQrMenu() {
     }));
   };
 
+  const addPromoSlide = () => {
+    setWebConfigDraft((prev) => ({
+      ...prev,
+      promoSlides: [...prev.promoSlides, { id: createBannerId("promo"), imageUrl: "", alt: "" }],
+    }));
+  };
+
+  const removePromoSlide = (index) => {
+    setWebConfigDraft((prev) => ({
+      ...prev,
+      promoSlides: prev.promoSlides.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addCampaignBanner = () => {
+    setWebConfigDraft((prev) => ({
+      ...prev,
+      campaignBanners: [...prev.campaignBanners, { id: createBannerId("campaign"), imageUrl: "", alt: "" }],
+    }));
+  };
+
+  const removeCampaignBanner = (index) => {
+    setWebConfigDraft((prev) => ({
+      ...prev,
+      campaignBanners: prev.campaignBanners.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addOrderStripItem = () => {
+    setWebConfigDraft((prev) => ({
+      ...prev,
+      orderStrip: [...prev.orderStrip, { id: createBannerId("orderStrip"), imageUrl: "", alt: "", action: "order" }],
+    }));
+  };
+
+  const removeOrderStripItem = (index) => {
+    setWebConfigDraft((prev) => ({
+      ...prev,
+      orderStrip: prev.orderStrip.filter((_, i) => i !== index),
+    }));
+  };
+
   const setImageUpload = (key, value) => {
     setWebImageUploads((prev) => {
       if (!value) {
@@ -214,6 +282,20 @@ export default function AdminQrMenu() {
     }
   };
 
+  const deleteBranch = async (branch) => {
+    const label = getBranchLabel(branch, t("admin.qr.branchFallback"));
+    if (!window.confirm(t("admin.qr.deleteBranchConfirm", { name: label }))) return;
+    setMessage("");
+    setError("");
+    try {
+      await api.deleteBranch(branch.id);
+      await loadSettings();
+      setMessage(t("admin.qr.branchDeleted"));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   if (loading || !webConfigDraft) return <div className="card">{t("common.loading")}</div>;
 
   return (
@@ -238,9 +320,15 @@ export default function AdminQrMenu() {
 
       {tab === "settings" && (
         <>
-          <div className="card admin-qr-firm-card">
-            <h3>{t("admin.qr.menuLink")}</h3>
+          <nav className="admin-qr-settings-nav" aria-label={t("admin.qr.settingsNavLabel")}>
+            {SETTINGS_NAV.map((item) => (
+              <a key={item.id} href={`#${item.id}`} className="admin-qr-settings-nav__link">
+                {t(item.labelKey)}
+              </a>
+            ))}
+          </nav>
 
+          <AdminQrSectionCard id="qr-section-link" title={t("admin.qr.sectionLink")} hint={t("admin.qr.sectionLinkHint")}>
             {menuUrl && (
               <div className="admin-qr-firm-link">
                 {!firm?.menuEnabled && (
@@ -258,9 +346,7 @@ export default function AdminQrMenu() {
                 </div>
               </div>
             )}
-
             <div className="admin-qr-firm-form">
-              <h4 className="admin-qr-section-title">{t("admin.qr.sectionGeneral")}</h4>
               <label className="checkbox-row">
                 <input
                   type="checkbox"
@@ -269,6 +355,11 @@ export default function AdminQrMenu() {
                 />
                 {t("admin.qr.menuActive")}
               </label>
+            </div>
+          </AdminQrSectionCard>
+
+          <AdminQrSectionCard id="qr-section-page" title={t("admin.qr.sectionPageParams")} hint={t("admin.qr.sectionPageParamsHint")}>
+            <div className="admin-qr-firm-form">
               <label>{t("admin.qr.menuTitle")}</label>
               <input
                 value={firmDraft.menuTitle || ""}
@@ -302,12 +393,17 @@ export default function AdminQrMenu() {
                 <option value="az">Azərbaycan</option>
                 <option value="tr">Türkçe</option>
               </select>
+              <WebConfigField label={t("admin.qr.loginUrl")}>
+                <input
+                  placeholder="https://login.cigkofte.az"
+                  value={webConfigDraft.loginUrl || ""}
+                  onChange={(e) => patchWeb("loginUrl", e.target.value)}
+                />
+              </WebConfigField>
             </div>
-          </div>
+          </AdminQrSectionCard>
 
-          <div className="card admin-qr-firm-card">
-            <h3>{t("admin.qr.sectionLogoDesign")}</h3>
-            <p className="hint-text">{t("admin.qr.menuLogoHint")}</p>
+          <AdminQrSectionCard id="qr-section-logo" title={t("admin.qr.sectionLogoDesign")} hint={t("admin.qr.menuLogoHint")}>
             <div className="admin-qr-logo-design">
               <div className="admin-qr-logo-upload">
                 <label>{t("admin.qr.menuLogo")}</label>
@@ -333,64 +429,24 @@ export default function AdminQrMenu() {
                 <span>{firmDraft.menuWelcome || "…"}</span>
               </div>
             </div>
-          </div>
+          </AdminQrSectionCard>
 
-          <div className="card admin-qr-firm-card">
-            <h3>{t("admin.qr.sectionWebContent")}</h3>
-            <p className="hint-text">{t("admin.qr.sectionWebContentHint")}</p>
-
-            <h4 className="admin-qr-section-title">{t("admin.qr.sectionFooter")}</h4>
-            <div className="admin-qr-firm-form">
-              <WebConfigField label={t("admin.qr.loginUrl")}>
-                <input
-                  placeholder="https://login.cigkofte.az"
-                  value={webConfigDraft.loginUrl || ""}
-                  onChange={(e) => patchWeb("loginUrl", e.target.value)}
-                />
-              </WebConfigField>
-              <WebConfigField label={t("admin.qr.contactPhone")}>
-                <input
-                  placeholder="+994501234567"
-                  value={webConfigDraft.contactPhone || ""}
-                  onChange={(e) => patchWeb("contactPhone", e.target.value)}
-                />
-              </WebConfigField>
-              <WebConfigField label={t("admin.qr.contactEmail")}>
-                <input
-                  placeholder="info@cigkofte.az"
-                  value={webConfigDraft.contactEmail || ""}
-                  onChange={(e) => patchWeb("contactEmail", e.target.value)}
-                />
-              </WebConfigField>
-              <WebImageField
-                label={t("admin.qr.footerBadgeUrl")}
-                hint={t("admin.qr.imageUploadHint")}
-                imageKey="footerBadgeUrl"
-                url={webConfigDraft.footerBadgeUrl || ""}
-                onUrlChange={(value) => patchWeb("footerBadgeUrl", value)}
-                upload={webImageUploads.footerBadgeUrl}
-                onUploadChange={setImageUpload}
-              />
-              <WebConfigField label={t("admin.qr.copyrightSuffix")}>
-                <input
-                  value={webConfigDraft.copyrightSuffix || ""}
-                  onChange={(e) => patchWeb("copyrightSuffix", e.target.value)}
-                />
-              </WebConfigField>
-            </div>
-
-            <h4 className="admin-qr-section-title">{t("admin.qr.sectionPromo")}</h4>
-            <p className="hint-text">{t("admin.qr.promoHint")}</p>
+          <AdminQrSectionCard id="qr-section-promo" title={t("admin.qr.sectionPromo")} hint={t("admin.qr.promoHint")}>
             {webConfigDraft.promoSlides.map((slide, i) => (
-              <div key={`promo-${i}`} className="admin-qr-web-block">
-                <strong>{t("admin.qr.promoSlide")} {i + 1}</strong>
+              <div key={slide.id || `promo-${i}`} className="admin-qr-web-block">
+                <div className="admin-qr-web-block__head">
+                  <strong>{t("admin.qr.promoSlide")} {i + 1}</strong>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removePromoSlide(i)}>
+                    {t("admin.qr.removeBanner")}
+                  </button>
+                </div>
                 <WebImageField
                   label={t("admin.qr.imageUrl")}
                   hint={t("admin.qr.imageUploadHint")}
-                  imageKey={`promoSlide-${i}`}
+                  imageKey={`promoSlide-${slide.id || i}`}
                   url={slide.imageUrl || ""}
                   onUrlChange={(value) => patchWebSlide(i, "imageUrl", value)}
-                  upload={webImageUploads[`promoSlide-${i}`]}
+                  upload={webImageUploads[`promoSlide-${slide.id || i}`]}
                   onUploadChange={setImageUpload}
                 />
                 <WebConfigField label={t("admin.qr.imageAlt")}>
@@ -398,8 +454,12 @@ export default function AdminQrMenu() {
                 </WebConfigField>
               </div>
             ))}
+            <button type="button" className="btn btn-default btn-sm admin-qr-add-banner" onClick={addPromoSlide}>
+              + {t("admin.qr.addBanner")}
+            </button>
+          </AdminQrSectionCard>
 
-            <h4 className="admin-qr-section-title">{t("admin.qr.sectionOrderStrip")}</h4>
+          <AdminQrSectionCard id="qr-section-order-strip" title={t("admin.qr.sectionOrderStrip")} hint={t("admin.qr.orderStripHint")}>
             <label className="checkbox-row">
               <input
                 type="checkbox"
@@ -408,17 +468,21 @@ export default function AdminQrMenu() {
               />
               {t("admin.qr.showOrderStrip")}
             </label>
-            <p className="hint-text">{t("admin.qr.orderStripHint")}</p>
             {webConfigDraft.orderStrip.map((item, i) => (
-              <div key={`order-strip-${i}`} className="admin-qr-web-block">
-                <strong>{t("admin.qr.orderStripItem")} {i + 1}</strong>
+              <div key={item.id || `order-strip-${i}`} className="admin-qr-web-block">
+                <div className="admin-qr-web-block__head">
+                  <strong>{t("admin.qr.orderStripItem")} {i + 1}</strong>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeOrderStripItem(i)}>
+                    {t("admin.qr.removeBanner")}
+                  </button>
+                </div>
                 <WebImageField
                   label={t("admin.qr.imageUrl")}
                   hint={t("admin.qr.imageUploadHint")}
-                  imageKey={`orderStrip-${i}`}
+                  imageKey={`orderStrip-${item.id || i}`}
                   url={item.imageUrl || ""}
                   onUrlChange={(value) => patchWebOrderStrip(i, "imageUrl", value)}
-                  upload={webImageUploads[`orderStrip-${i}`]}
+                  upload={webImageUploads[`orderStrip-${item.id || i}`]}
                   onUploadChange={setImageUpload}
                 />
                 <WebConfigField label={t("admin.qr.imageAlt")}>
@@ -433,18 +497,27 @@ export default function AdminQrMenu() {
                 </WebConfigField>
               </div>
             ))}
+            <button type="button" className="btn btn-default btn-sm admin-qr-add-banner" onClick={addOrderStripItem}>
+              + {t("admin.qr.addBanner")}
+            </button>
+          </AdminQrSectionCard>
 
-            <h4 className="admin-qr-section-title">{t("admin.qr.sectionCampaigns")}</h4>
+          <AdminQrSectionCard id="qr-section-campaigns" title={t("admin.qr.sectionCampaigns")} hint={t("admin.qr.campaignHint")}>
             {webConfigDraft.campaignBanners.map((banner, i) => (
-              <div key={`campaign-${i}`} className="admin-qr-web-block">
-                <strong>{t("admin.qr.campaignBanner")} {i + 1}</strong>
+              <div key={banner.id || `campaign-${i}`} className="admin-qr-web-block">
+                <div className="admin-qr-web-block__head">
+                  <strong>{t("admin.qr.campaignBanner")} {i + 1}</strong>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeCampaignBanner(i)}>
+                    {t("admin.qr.removeBanner")}
+                  </button>
+                </div>
                 <WebImageField
                   label={t("admin.qr.imageUrl")}
                   hint={t("admin.qr.imageUploadHint")}
-                  imageKey={`campaign-${i}`}
+                  imageKey={`campaign-${banner.id || i}`}
                   url={banner.imageUrl || ""}
                   onUrlChange={(value) => patchWebCampaign(i, "imageUrl", value)}
-                  upload={webImageUploads[`campaign-${i}`]}
+                  upload={webImageUploads[`campaign-${banner.id || i}`]}
                   onUploadChange={setImageUpload}
                 />
                 <WebConfigField label={t("admin.qr.imageAlt")}>
@@ -452,8 +525,12 @@ export default function AdminQrMenu() {
                 </WebConfigField>
               </div>
             ))}
+            <button type="button" className="btn btn-default btn-sm admin-qr-add-banner" onClick={addCampaignBanner}>
+              + {t("admin.qr.addBanner")}
+            </button>
+          </AdminQrSectionCard>
 
-            <h4 className="admin-qr-section-title">{t("admin.qr.sectionFranchise")}</h4>
+          <AdminQrSectionCard id="qr-section-franchise" title={t("admin.qr.sectionFranchise")}>
             <label className="checkbox-row">
               <input
                 type="checkbox"
@@ -507,8 +584,9 @@ export default function AdminQrMenu() {
                 />
               </WebConfigField>
             </div>
+          </AdminQrSectionCard>
 
-            <h4 className="admin-qr-section-title">{t("admin.qr.sectionFeatures")}</h4>
+          <AdminQrSectionCard id="qr-section-features" title={t("admin.qr.sectionFeatures")}>
             {webConfigDraft.features.map((feature, i) => (
               <div key={`feature-${i}`} className="admin-qr-web-block">
                 <strong>{t("admin.qr.featureBox")} {i + 1}</strong>
@@ -536,8 +614,9 @@ export default function AdminQrMenu() {
                 </WebConfigField>
               </div>
             ))}
+          </AdminQrSectionCard>
 
-            <h4 className="admin-qr-section-title">{t("admin.qr.sectionBanners")}</h4>
+          <AdminQrSectionCard id="qr-section-extra" title={t("admin.qr.sectionBanners")}>
             <label className="checkbox-row">
               <input
                 type="checkbox"
@@ -555,11 +634,43 @@ export default function AdminQrMenu() {
               upload={webImageUploads.lezzetlerImageUrl}
               onUploadChange={setImageUpload}
             />
-          </div>
+          </AdminQrSectionCard>
 
-          <div className="card admin-qr-firm-card">
-            <h3>{t("admin.qr.sectionSocial")}</h3>
-            <p className="hint-text">{t("admin.qr.socialHint")}</p>
+          <AdminQrSectionCard id="qr-section-footer" title={t("admin.qr.sectionFooter")} hint={t("admin.qr.sectionFooterHint")}>
+            <div className="admin-qr-firm-form">
+              <WebConfigField label={t("admin.qr.contactPhone")}>
+                <input
+                  placeholder="+994501234567"
+                  value={webConfigDraft.contactPhone || ""}
+                  onChange={(e) => patchWeb("contactPhone", e.target.value)}
+                />
+              </WebConfigField>
+              <WebConfigField label={t("admin.qr.contactEmail")}>
+                <input
+                  placeholder="info@cigkofte.az"
+                  value={webConfigDraft.contactEmail || ""}
+                  onChange={(e) => patchWeb("contactEmail", e.target.value)}
+                />
+              </WebConfigField>
+              <WebImageField
+                label={t("admin.qr.footerBadgeUrl")}
+                hint={t("admin.qr.imageUploadHint")}
+                imageKey="footerBadgeUrl"
+                url={webConfigDraft.footerBadgeUrl || ""}
+                onUrlChange={(value) => patchWeb("footerBadgeUrl", value)}
+                upload={webImageUploads.footerBadgeUrl}
+                onUploadChange={setImageUpload}
+              />
+              <WebConfigField label={t("admin.qr.copyrightSuffix")}>
+                <input
+                  value={webConfigDraft.copyrightSuffix || ""}
+                  onChange={(e) => patchWeb("copyrightSuffix", e.target.value)}
+                />
+              </WebConfigField>
+            </div>
+          </AdminQrSectionCard>
+
+          <AdminQrSectionCard id="qr-section-social" title={t("admin.qr.sectionSocial")} hint={t("admin.qr.socialHint")}>
             <div className="admin-qr-social-form">
               <label>
                 <i className="fa fa-instagram admin-qr-social-icon admin-qr-social-icon--ig" />
@@ -602,7 +713,7 @@ export default function AdminQrMenu() {
                 <QrSocialLinks social={socialPreview} />
               </div>
             </div>
-          </div>
+          </AdminQrSectionCard>
 
           <div className="admin-qr-save-all-wrap">
             <button type="button" className="btn btn-success" onClick={saveFirmSettings}>
@@ -610,24 +721,31 @@ export default function AdminQrMenu() {
             </button>
           </div>
 
-          <h3 className="admin-section-title">{t("admin.qr.branchesTitle")}</h3>
+          <AdminQrSectionCard id="qr-section-branches" title={t("admin.qr.branchesTitle")}>
           <div className="admin-qr-settings">
-            {branches.map((branch) => {
+            {branches.filter((b) => b.active !== false).map((branch) => {
               const draft = branchDrafts[branch.id] || {};
               return (
                 <div key={branch.id} className="card admin-qr-branch-card admin-qr-branch-card--compact">
                   <div className="admin-qr-branch-card__head">
                     <div>
-                      <h3>
-                        #{branch.branchNo} {branch.name}
-                      </h3>
+                      <h3>{getBranchLabel(branch)}</h3>
                       {branch.address && <p className="hint-text">{branch.address}</p>}
                     </div>
+                    <div className="admin-qr-branch-card__actions">
                       {branch.pendingOrders > 0 && (
-                      <span className="admin-badge pending">
-                        {branch.pendingOrders} {t("admin.qr.pending")}
-                      </span>
-                    )}
+                        <span className="admin-badge pending">
+                          {branch.pendingOrders} {t("admin.qr.pending")}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() => deleteBranch(branch)}
+                      >
+                        {t("admin.qr.deleteBranch")}
+                      </button>
+                    </div>
                   </div>
                   <div className="admin-qr-branch-form">
                     <label className="checkbox-row">
@@ -730,6 +848,7 @@ export default function AdminQrMenu() {
               );
             })}
           </div>
+          </AdminQrSectionCard>
         </>
       )}
 
@@ -741,9 +860,9 @@ export default function AdminQrMenu() {
               onChange={(e) => setOrderFilter((prev) => ({ ...prev, branchId: e.target.value }))}
             >
               <option value="">Tüm şubeler</option>
-              {branches.map((b) => (
+              {branches.filter((b) => b.active !== false).map((b) => (
                 <option key={b.id} value={b.id}>
-                  #{b.branchNo} {b.name}
+                  {getBranchLabel(b)}
                 </option>
               ))}
             </select>
@@ -775,7 +894,7 @@ export default function AdminQrMenu() {
                     <strong>{formatMoney(order.total, lang)}</strong>
                   </div>
                   <p className="admin-qr-order-branch">
-                    <i className="fa fa-map-marker" /> Şube: #{order.branchNo} {order.branchName}
+                    <i className="fa fa-map-marker" /> {getBranchLabel({ name: order.branchName })}
                   </p>
                   <p>
                     {order.customerName}

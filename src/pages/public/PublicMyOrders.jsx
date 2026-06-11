@@ -5,6 +5,7 @@ import StitchIcon from "../../components/public/StitchIcon";
 import { useLocale } from "../../context/LocaleContext";
 import { formatMoney } from "../../utils/format";
 import { fetchMyPublicOrders, fetchPublicFirmMenu, fetchPublicOrder } from "../../utils/qrMenuPublic";
+import { getBranchLabel } from "../../utils/branchDisplay";
 import {
   loadMyOrders,
   syncOrdersFromServer,
@@ -93,9 +94,7 @@ export default function PublicMyOrders() {
                       {statusLabel(status)}
                     </span>
                   </div>
-                  <p>
-                    #{full.branchNo || ""} {full.branchName || ""}
-                  </p>
+                  <p>{getBranchLabel({ name: full.branchName })}</p>
                   <strong className="sf-order-card__total">{money(full.total)}</strong>
                   <small>{new Date(full.createdAt).toLocaleString(lang === "az" ? "az-AZ" : "tr-TR")}</small>
                 </Link>

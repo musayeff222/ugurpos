@@ -10,6 +10,7 @@ import {
   fetchPublicFirmMenu,
   getPublicProductImageSrc,
 } from "../../utils/qrMenuPublic";
+import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatPublicMoney } from "../../utils/publicMoney";
 import { getWebConfig } from "../../utils/menuWebConfig";
 
@@ -151,26 +152,17 @@ export default function PublicMenuLanding() {
       <OsesPromoSlider slides={web.promoSlides} onSlideClick={goOrder} />
 
       {web.showOrderStrip && web.orderStrip?.some((item) => item.imageUrl) && (
-        <>
-          <div className="container mt-4">
-            <div className="row">
-              {web.orderStrip.slice(0, 2).map((item, i) => (
-                <div key={`strip-top-${i}`} className="col-12 col-md-6">
+        <div className="container mt-4">
+          <div className="row">
+            {web.orderStrip
+              .filter((item) => item.imageUrl)
+              .map((item, i) => (
+                <div key={item.id || `strip-${i}`} className="col-12 col-md-6 col-lg-4">
                   <OrderStripImage item={item} goOrder={goOrder} />
                 </div>
               ))}
-            </div>
           </div>
-          <div className="container mt-4">
-            <div className="row">
-              {web.orderStrip.slice(2, 5).map((item, i) => (
-                <div key={`strip-bottom-${i}`} className="col-12 col-md-4">
-                  <OrderStripImage item={item} goOrder={goOrder} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
+        </div>
       )}
 
       {web.campaignBanners.some((banner) => banner.imageUrl) && (
@@ -178,9 +170,9 @@ export default function PublicMenuLanding() {
           <div className="row">
             {web.campaignBanners.map((banner, i) =>
               banner.imageUrl ? (
-                <div key={`${banner.imageUrl}-${i}`} className="col-12 col-md-6">
+                <div key={banner.id || `${banner.imageUrl}-${i}`} className="col-12 col-md-6 col-lg-4">
                   <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={goOrder}>
-                    <img src={banner.imageUrl} className="img-fluid" alt={banner.alt || ""} />
+                    <img src={banner.imageUrl} className="img-fluid mb-4" alt={banner.alt || ""} />
                   </button>
                 </div>
               ) : null
@@ -300,9 +292,7 @@ export default function PublicMenuLanding() {
             {filteredBranches.map((branch) => (
               <div key={branch.id} className="col-12 mb-3">
                 <div className="wrapper" role="button" tabIndex={0} onClick={() => goBranch(branch.id)} onKeyDown={(e) => e.key === "Enter" && goBranch(branch.id)}>
-                  <h2>
-                    #{branch.branchNo} {branch.name}
-                  </h2>
+                  <h2>{getBranchLabel(branch)}</h2>
                   {branch.address && <h3>{branch.address}</h3>}
                   <p>
                     {branch.openTime} – {branch.closeTime} · {branch.isOpen ? t("qr.openNow") : t("qr.closedNow")}

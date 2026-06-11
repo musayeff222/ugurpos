@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
 import OsesSingleProduct from "../../components/oses-site/OsesSingleProduct";
 import { useLocale } from "../../context/LocaleContext";
+import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatPublicMoney } from "../../utils/publicMoney";
 import { fetchPublicBranchMenu, getPublicProductImageSrc } from "../../utils/qrMenuPublic";
 import { loadBranchCart, saveBranchCart, saveLastBranchId } from "../../utils/qrMenuStorage";
@@ -87,7 +88,7 @@ export default function PublicBranchMenu() {
               ← {t("qr.nav.home")}
             </button>
             <p className="mb-0">
-              <strong>#{branch.branchNo} {branch.name}</strong>
+              <strong>{getBranchLabel(branch)}</strong>
             </p>
             {cartCount > 0 && (
               <Link to={`/m/branch/${branchId}/cart`} className="btn_box_green btn_box">

@@ -286,8 +286,8 @@ router.delete("/branches/:id", (req, res) => {
     return res.status(400).json({ error: "Son aktif şube silinemez" });
   }
 
-  db.prepare("UPDATE branches SET active = 0 WHERE id = ?").run(req.params.id);
-  res.json({ ok: true });
+  db.prepare("UPDATE branches SET active = 0, menu_enabled = 0 WHERE id = ?").run(req.params.id);
+  res.json({ ok: true, message: "Şube silindi (pasifleştirildi)." });
 });
 
 router.get("/qr-menu", (req, res) => {

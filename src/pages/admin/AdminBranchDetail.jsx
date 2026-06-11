@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import PageHeader from "../../components/ui/PageHeader";
+import { getBranchAdminLabel, getBranchLabel } from "../../utils/branchDisplay";
 import { formatMoney } from "../../utils/format";
 
 const PAYMENT_LABELS = {
@@ -101,12 +102,25 @@ export default function AdminBranchDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    const label = getBranchLabel(branch);
+    if (!window.confirm(`"${label}" şubesini silmek istediğinize emin misiniz? Web sitesinden kaldırılır.`)) return;
+    setMessage("");
+    setError("");
+    try {
+      await api.deleteBranch(id);
+      navigate("/admin/branches", { state: { message: "Şube silindi." } });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   if (!branch && !error) return <div className="card">Yükleniyor...</div>;
 
   return (
     <div className="admin-page">
       <PageHeader
-        title={branch ? `#${branch.branchNo} ${branch.name}` : "Şube"}
+        title={branch ? getBranchAdminLabel(branch) : "Şube"}
         actions={
           <>
             <Link to="/admin/branches" className="btn btn-default btn-sm">
@@ -186,7 +200,7 @@ export default function AdminBranchDetail() {
                 onChange={(e) => setForm({ ...form, branchNo: e.target.value })}
                 required
               />
-              <p className="hint-text">Web sipariş, siparişler ve şube listesinde görünen numara.</p>
+              <p className="hint-text">Dahili numara. Web sitesinde müşteriye gösterilmez.</p>
 
               <label>Giriş E-postası *</label>
               <input
@@ -245,6 +259,9 @@ export default function AdminBranchDetail() {
               <div className="form-actions">
                 <button type="button" className="btn btn-warning" onClick={toggleActive}>
                   {branch.active ? "Pasifleştir" : "Aktifleştir"}
+                </button>
+                <button type="button" className="btn btn-danger" onClick={handleDelete}>
+                  Şubeyi Sil
                 </button>
                 <button type="submit" className="btn btn-success">
                   Kaydet

@@ -1,5 +1,6 @@
 import StitchIcon from "./StitchIcon";
 import { useLocale } from "../../context/LocaleContext";
+import { getBranchLabel } from "../../utils/branchDisplay";
 
 export default function PublicBranchBar({ branch, onBack }) {
   const { t } = useLocale();
@@ -13,9 +14,7 @@ export default function PublicBranchBar({ branch, onBack }) {
       <div className="sf-branch-bar__info">
         <div className="sf-branch-bar__location">
           <StitchIcon name="location_on" filled />
-          <span>
-            #{branch.branchNo} {branch.name}
-          </span>
+          <span>{getBranchLabel(branch)}</span>
         </div>
         {branch.address && <small>{branch.address}</small>}
       </div>

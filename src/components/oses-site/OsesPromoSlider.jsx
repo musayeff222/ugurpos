@@ -11,7 +11,14 @@ const FALLBACK_SLIDES = DEFAULT_MENU_WEB_CONFIG.promoSlides.map((s) => ({
 export default function OsesPromoSlider({ slides, onSlideClick }) {
   const slideList = useMemo(() => {
     const list = slides?.length
-      ? slides.map((s) => ({ src: s.imageUrl || s.src, alt: s.alt || "", href: s.href || null }))
+      ? slides
+          .filter((s) => s.imageUrl || s.src)
+          .map((s) => ({
+            id: s.id,
+            src: s.imageUrl || s.src,
+            alt: s.alt || "",
+            href: s.href || null,
+          }))
       : FALLBACK_SLIDES;
     return list.filter((s) => s.src);
   }, [slides]);
@@ -44,7 +51,7 @@ export default function OsesPromoSlider({ slides, onSlideClick }) {
             />
           );
           return (
-            <li key={`${slide.src}-${i}`} className={i === index ? "is-active" : ""}>
+            <li key={slide.id || `${slide.src}-${i}`} className={i === index ? "is-active" : ""}>
               {slide.href ? <Link to={slide.href}>{content}</Link> : content}
             </li>
           );

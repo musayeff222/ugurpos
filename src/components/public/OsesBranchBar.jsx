@@ -1,4 +1,5 @@
 import { useLocale } from "../../context/LocaleContext";
+import { getBranchLabel } from "../../utils/branchDisplay";
 
 export default function OsesBranchBar({ branch, onBack }) {
   const { t } = useLocale();
@@ -11,7 +12,7 @@ export default function OsesBranchBar({ branch, onBack }) {
       </button>
       <div className="oses-branch-bar__info">
         <strong>
-          <i className="fa fa-map-marker" /> #{branch.branchNo} {branch.name}
+          <i className="fa fa-map-marker" /> {getBranchLabel(branch)}
         </strong>
         {branch.address && <small>{branch.address}</small>}
       </div>

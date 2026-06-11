@@ -5,6 +5,7 @@ import { useLocale } from "../../context/LocaleContext";
 import { formatPublicMoney } from "../../utils/publicMoney";
 import { fetchPublicFirmMenu, fetchPublicOrder } from "../../utils/qrMenuPublic";
 import { rememberOrder } from "../../utils/qrMenuStorage";
+import { getBranchLabel } from "../../utils/branchDisplay";
 
 export default function PublicOrderStatus() {
   const { orderId } = useParams();
@@ -69,7 +70,7 @@ export default function PublicOrderStatus() {
               <p>{t("qr.orderReceivedHint")}</p>
               <hr />
               <p>
-                {t("qr.branch")}: <strong>#{order.branchNo} {order.branchName}</strong>
+                {t("qr.branch")}: <strong>{getBranchLabel({ name: order.branchName })}</strong>
               </p>
               {order.deliveryAddress && (
                 <p>

@@ -56,24 +56,60 @@ export const DEFAULT_MENU_WEB_CONFIG = {
   ],
 };
 
+function withBannerId(item, prefix, index) {
+  return {
+    ...item,
+    id: item?.id || `${prefix}-${index}`,
+  };
+}
+
+function normalizePromoSlides(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return DEFAULT_MENU_WEB_CONFIG.promoSlides.map((item, i) => withBannerId(item, "promo", i));
+  }
+  return raw.map((item, i) =>
+    withBannerId({ imageUrl: item.imageUrl || "", alt: item.alt ?? "" }, "promo", i)
+  );
+}
+
+function normalizeCampaignBanners(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return DEFAULT_MENU_WEB_CONFIG.campaignBanners.map((item, i) => withBannerId(item, "campaign", i));
+  }
+  return raw.map((item, i) =>
+    withBannerId({ imageUrl: item.imageUrl || "", alt: item.alt ?? "" }, "campaign", i)
+  );
+}
+
 function normalizeOrderStrip(raw) {
-  const defaults = DEFAULT_MENU_WEB_CONFIG.orderStrip.map((s) => ({ ...s }));
-  if (!Array.isArray(raw) || raw.length === 0) return defaults;
-  return defaults.map((item, i) => ({
-    imageUrl: raw[i]?.imageUrl || item.imageUrl,
-    alt: raw[i]?.alt ?? item.alt,
-    action: raw[i]?.action || item.action || "order",
-  }));
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return DEFAULT_MENU_WEB_CONFIG.orderStrip.map((item, i) => withBannerId(item, "orderStrip", i));
+  }
+  return raw.map((item, i) =>
+    withBannerId(
+      {
+        imageUrl: item.imageUrl || "",
+        alt: item.alt ?? "",
+        action: item.action || "order",
+      },
+      "orderStrip",
+      i
+    )
+  );
+}
+
+export function createBannerId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 export function normalizeWebConfig(raw) {
   if (!raw) {
     return {
       ...DEFAULT_MENU_WEB_CONFIG,
-      orderStrip: DEFAULT_MENU_WEB_CONFIG.orderStrip.map((s) => ({ ...s })),
+      orderStrip: DEFAULT_MENU_WEB_CONFIG.orderStrip.map((s, i) => withBannerId(s, "orderStrip", i)),
       features: DEFAULT_MENU_WEB_CONFIG.features.map((f) => ({ ...f })),
-      promoSlides: DEFAULT_MENU_WEB_CONFIG.promoSlides.map((s) => ({ ...s })),
-      campaignBanners: DEFAULT_MENU_WEB_CONFIG.campaignBanners.map((s) => ({ ...s })),
+      promoSlides: DEFAULT_MENU_WEB_CONFIG.promoSlides.map((s, i) => withBannerId(s, "promo", i)),
+      campaignBanners: DEFAULT_MENU_WEB_CONFIG.campaignBanners.map((s, i) => withBannerId(s, "campaign", i)),
     };
   }
   return {
@@ -88,14 +124,8 @@ export function normalizeWebConfig(raw) {
             desc: f.desc ?? DEFAULT_MENU_WEB_CONFIG.features[i].desc,
           }))
         : DEFAULT_MENU_WEB_CONFIG.features.map((f) => ({ ...f })),
-    promoSlides:
-      Array.isArray(raw.promoSlides) && raw.promoSlides.length > 0
-        ? raw.promoSlides.map((s) => ({ ...s }))
-        : DEFAULT_MENU_WEB_CONFIG.promoSlides.map((s) => ({ ...s })),
-    campaignBanners:
-      Array.isArray(raw.campaignBanners) && raw.campaignBanners.length > 0
-        ? raw.campaignBanners.map((s) => ({ ...s }))
-        : DEFAULT_MENU_WEB_CONFIG.campaignBanners.map((s) => ({ ...s })),
+    promoSlides: normalizePromoSlides(raw.promoSlides),
+    campaignBanners: normalizeCampaignBanners(raw.campaignBanners),
   };
 }
 
