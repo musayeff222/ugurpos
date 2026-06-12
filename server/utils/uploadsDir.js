@@ -21,20 +21,23 @@ function dirExists(dir) {
   }
 }
 
-/** Hostinger: domains/site.az/nodejs + public_html yaninda kalici uploads/ */
+/** Hostinger: public_html/uploads (nodejs disinda, File Manager'da gorunur) */
 export function resolveHostingerDomainUploads() {
   const domainRoot = path.dirname(PROJECT_ROOT);
   const appFolder = path.basename(PROJECT_ROOT).toLowerCase();
+  const publicHtml = path.join(domainRoot, "public_html");
+  const isHostingerLayout =
+    appFolder === "nodejs" ||
+    appFolder === "node" ||
+    (dirExists(publicHtml) && dirExists(path.join(domainRoot, "nodejs")));
 
-  if (appFolder === "nodejs" || appFolder === "node") {
-    return path.join(domainRoot, "uploads");
+  if (!isHostingerLayout) return null;
+
+  if (dirExists(publicHtml)) {
+    return path.join(publicHtml, "uploads");
   }
 
-  if (dirExists(path.join(domainRoot, "public_html")) && dirExists(path.join(domainRoot, "nodejs"))) {
-    return path.join(domainRoot, "uploads");
-  }
-
-  return null;
+  return path.join(domainRoot, "uploads");
 }
 
 function collectPublicHtmlCandidates() {
@@ -90,7 +93,7 @@ function ensureUploadsStructure(root) {
   if (!fs.existsSync(readme)) {
     fs.writeFileSync(
       readme,
-      "Urun ve menu resimleri bu klasorde saklanir.\nnodejs/ deploy ile silinmez.\n",
+      "Urun ve menu resimleri bu klasorde saklanir.\npublic_html/uploads — nodejs deploy ile silinmez.\n",
       "utf8"
     );
   }
@@ -133,6 +136,46 @@ export function inProjectUploadsDir() {
 
 export function domainSiblingUploadsDir() {
   return path.join(path.dirname(PROJECT_ROOT), "uploads");
+}
+
+function countFilesRecursive(dir) {
+  if (!fs.existsSync(dir)) return 0;
+  let count = 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) count += countFilesRecursive(full);
+    else count += 1;
+  }
+  return count;
+}
+
+export function getUploadsStats() {
+  const root = resolveUploadsRoot();
+  const productsDir = path.join(root, "products");
+  const branches = [];
+
+  if (fs.existsSync(productsDir)) {
+    for (const entry of fs.readdirSync(productsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const branchDir = path.join(productsDir, entry.name);
+      branches.push({
+        branchId: entry.name,
+        files: countFilesRecursive(branchDir),
+      });
+    }
+  }
+
+  return {
+    root,
+    persistent: isPersistentUploadsRoot(root),
+    exists: fs.existsSync(root),
+    readme: fs.existsSync(path.join(root, "README.txt")),
+    productFiles: countFilesRecursive(productsDir),
+    seedFiles: countFilesRecursive(path.join(root, "seed")),
+    menuWebFiles: countFilesRecursive(path.join(root, "menu-web")),
+    menuLogoFiles: countFilesRecursive(path.join(root, "menu-logos")),
+    branches,
+  };
 }
 
 export function isPersistentUploadsRoot(root = resolveUploadsRoot()) {

@@ -31,8 +31,8 @@ function collectMigrationSources(dataDir) {
   const sources = [
     legacyUploadsRoot(dataDir),
     inProjectUploadsDir(),
-    path.join(PROJECT_ROOT, "..", "public_html", "uploads"),
     domainSiblingUploadsDir(),
+    path.join(PROJECT_ROOT, "..", "public_html", "uploads"),
   ];
 
   const seen = new Set();
