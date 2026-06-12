@@ -36,17 +36,32 @@ export function resolveSeedImageFile(stockCode, barcode) {
   return null;
 }
 
-/** Seed resimlerini public_html/uploads/seed altina kopyalar (deploy sonrasi da calisir). */
+/** Seed resimlerini kalici public_html/uploads/seed altina kopyalar. */
 export function publishCigkofteSeedImages() {
   const destDir = path.join(resolveUploadsRoot(), "seed");
   fs.mkdirSync(destDir, { recursive: true });
   let copied = 0;
+  let missing = 0;
+
   for (const product of CIGKOFTA_PRODUCTS) {
     const src = path.join(SEED_IMAGE_DIR, product.image);
     const dest = path.join(destDir, product.image);
-    if (!fs.existsSync(src)) continue;
-    fs.copyFileSync(src, dest);
+    if (!fs.existsSync(src)) {
+      missing += 1;
+      continue;
+    }
+    if (!fs.existsSync(dest) || fs.statSync(src).mtimeMs > fs.statSync(dest).mtimeMs) {
+      fs.copyFileSync(src, dest);
+    }
     copied += 1;
   }
+
+  if (missing > 0) {
+    console.warn(`[uploads] Seed kaynak resim eksik: ${missing} dosya (${SEED_IMAGE_DIR})`);
+  }
+  if (copied > 0) {
+    console.log(`[uploads] Seed resimleri yayinlandi: ${copied} dosya → ${destDir}`);
+  }
+
   return copied;
 }
