@@ -3,6 +3,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getDb, getDbDriver } from "./db/index.js";
+import { isPersistentUploadsRoot, resolveUploadsRoot } from "./utils/uploadsDir.js";
 import { authMiddleware } from "./middleware/auth.js";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
@@ -20,7 +21,15 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "5mb" }));
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "ugurpos-api", mode: "fullstack", db: getDbDriver() });
+  const uploadsDir = resolveUploadsRoot();
+  res.json({
+    ok: true,
+    service: "ugurpos-api",
+    mode: "fullstack",
+    db: getDbDriver(),
+    uploadsDir,
+    uploadsPersistent: isPersistentUploadsRoot(uploadsDir),
+  });
 });
 
 app.use("/api/public", publicRoutes);

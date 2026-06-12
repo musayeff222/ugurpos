@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { legacyUploadsRoot, resolveUploadsRoot } from "./uploadsDir.js";
+import { inProjectUploadsDir, legacyUploadsRoot, PROJECT_ROOT, resolveUploadsRoot } from "./uploadsDir.js";
 
 function copyDir(src, dest) {
   if (!fs.existsSync(src)) return 0;
@@ -21,16 +21,35 @@ function copyDir(src, dest) {
   return copied;
 }
 
+function collectMigrationSources(dataDir) {
+  const sources = [
+    legacyUploadsRoot(dataDir),
+    inProjectUploadsDir(),
+    path.join(PROJECT_ROOT, "..", "public_html", "uploads"),
+  ];
+
+  const seen = new Set();
+  return sources.filter((dir) => {
+    const key = path.resolve(dir);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return fs.existsSync(dir);
+  });
+}
+
 export function migrateUploadsFromDataDir(dataDir) {
-  const legacyRoot = legacyUploadsRoot(dataDir);
-  const newRoot = resolveUploadsRoot();
+  const target = resolveUploadsRoot();
+  const targetKey = path.resolve(target);
+  let copied = 0;
 
-  if (path.resolve(legacyRoot) === path.resolve(newRoot)) return 0;
-  if (!fs.existsSync(legacyRoot)) return 0;
-
-  const copied = copyDir(legacyRoot, newRoot);
-  if (copied > 0) {
-    console.log(`[uploads] ${copied} dosya public_html/uploads icine tasindi`);
+  for (const src of collectMigrationSources(dataDir)) {
+    if (path.resolve(src) === targetKey) continue;
+    copied += copyDir(src, target);
   }
+
+  if (copied > 0) {
+    console.log(`[uploads] ${copied} dosya kalici dizine tasindi: ${target}`);
+  }
+
   return copied;
 }

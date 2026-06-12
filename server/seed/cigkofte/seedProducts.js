@@ -107,6 +107,11 @@ function attachProductImage(db, branchId, productId, imageFile) {
   const fileOk = row?.image_path && fs.existsSync(path.join(dir, row.image_path));
   if (fileOk) return true;
 
+  const seedFilename = `${productId}.jpg`;
+  if (row?.image_path && row.image_path !== seedFilename) {
+    return false;
+  }
+
   fs.copyFileSync(src, dest);
   db.prepare("UPDATE products SET image_path = ? WHERE id = ? AND branch_id = ?").run(
     filename,

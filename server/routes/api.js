@@ -30,6 +30,14 @@ function applyProductImage(db, branchId, productId, body, existingPath = null) {
   return existingPath;
 }
 
+function handleProductImageError(res, err) {
+  const message = err?.message || "Resim kaydedilemedi";
+  if (message.includes("Resim") || message.includes("format") || message.includes("Geçersiz")) {
+    return res.status(400).json({ error: message });
+  }
+  throw err;
+}
+
 function generateSaleCode() {
   const now = new Date();
   const pad = (n) => String(n).padStart(2, "0");
@@ -139,7 +147,12 @@ router.post("/products", (req, res) => {
     p.onSalePage ? 1 : 0,
     req.branchId
   );
-  applyProductImage(db, req.branchId, id, p);
+  try {
+    applyProductImage(db, req.branchId, id, p);
+  } catch (err) {
+    db.prepare("DELETE FROM products WHERE id = ? AND branch_id = ?").run(id, req.branchId);
+    return handleProductImageError(res, err);
+  }
   res.status(201).json(rowToProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(id)));
 });
 
@@ -167,7 +180,11 @@ router.patch("/products/:id", (req, res) => {
     p.active !== false ? 1 : 0,
     req.params.id
   );
-  applyProductImage(db, req.branchId, req.params.id, req.body, existing.image_path);
+  try {
+    applyProductImage(db, req.branchId, req.params.id, req.body, existing.image_path);
+  } catch (err) {
+    return handleProductImageError(res, err);
+  }
   res.json(rowToProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
 });
 
