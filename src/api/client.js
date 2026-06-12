@@ -82,6 +82,21 @@ export const api = {
 
   createProduct: (product) => request("/products", { method: "POST", body: JSON.stringify(product) }),
   updateProduct: (id, patch) => request(`/products/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  uploadProductImage: async (id, file) => {
+    const form = new FormData();
+    form.append("image", file);
+    const headers = {};
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`/api/products/${id}/image-file`, { method: "POST", headers, body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || res.statusText || "Resim yuklenemedi");
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  },
   deleteProducts: (ids) => request("/products", { method: "DELETE", body: JSON.stringify({ ids }) }),
 
   getGroups: () => request("/groups"),

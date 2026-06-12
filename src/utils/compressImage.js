@@ -21,10 +21,13 @@ export function compressImageFile(file, maxSize = 800, quality = 0.82) {
         ctx.drawImage(img, 0, 0, width, height);
         const dataUrl = canvas.toDataURL("image/jpeg", quality);
         const base64 = dataUrl.split(",")[1];
+        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+        const imageFile = new File([bytes], "product.jpg", { type: "image/jpeg" });
         resolve({
           mime: "image/jpeg",
           data: base64,
           previewUrl: dataUrl,
+          file: imageFile,
         });
       };
       img.src = reader.result;

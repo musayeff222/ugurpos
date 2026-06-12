@@ -41,13 +41,21 @@ export function StoreProvider({ children }) {
       resetDemoData: refresh,
 
       addProduct: async (product) => {
-        await api.createProduct(product);
-        return refresh();
+        const created = await api.createProduct(product);
+        await refresh();
+        return created;
       },
 
       updateProduct: async (id, patch) => {
-        await api.updateProduct(id, patch);
-        return refresh();
+        const updated = await api.updateProduct(id, patch);
+        await refresh();
+        return updated;
+      },
+
+      uploadProductImage: async (id, file) => {
+        const product = await api.uploadProductImage(id, file);
+        await refresh();
+        return product;
       },
 
       deleteProducts: async (ids) => {

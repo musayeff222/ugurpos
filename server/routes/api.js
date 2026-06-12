@@ -1,3 +1,4 @@
+import fs from "fs";
 import { Router } from "express";
 import { getDb, getAllState, getSaleWithItems, uid, rowToProduct, rowToCustomer } from "../db/index.js";
 import { generateProductBarcode, generateStockCode } from "../utils/barcode.js";
@@ -33,7 +34,8 @@ function applyProductImage(db, branchId, productId, body, existingPath = null) {
 
 function handleProductImageError(res, err) {
   const message = err?.message || "Resim kaydedilemedi";
-  if (/resim|format|gecersiz|geçersiz|desteklenen|dosya|logo|gorsel|görsel|2mb/i.test(message)) {
+  console.error("[uploads] Urun resmi hatasi:", message);
+  if (/resim|format|gecersiz|geçersiz|desteklenen|dosya|logo|gorsel|görsel|2mb|kaydedilemedi|permission|eacces/i.test(message)) {
     return res.status(400).json({ error: message });
   }
   throw err;
@@ -170,11 +172,15 @@ router.post("/products/:id/image-file", (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Resim dosyasi gerekli" });
 
     try {
+      if (!req.file.path || !fs.existsSync(req.file.path)) {
+        return res.status(500).json({ error: "Resim dosyasi diske yazilamadi" });
+      }
       db.prepare("UPDATE products SET image_path = ? WHERE id = ? AND branch_id = ?").run(
         req.file.filename,
         req.params.id,
         req.branchId
       );
+      console.log(`[uploads] Urun resmi kaydedildi: ${req.file.path}`);
       res.json(rowToProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
     } catch (saveErr) {
       return handleProductImageError(res, saveErr);

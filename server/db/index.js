@@ -12,6 +12,7 @@ import { publishCigkofteSeedImages } from "../utils/cigkofteImages.js";
 import { migrateUploadsFromDataDir } from "../utils/migrateUploads.js";
 import { productImagePublicUrl } from "../utils/uploadsDir.js";
 import { seedImagePublicUrl } from "../utils/cigkofteImages.js";
+import { resolveProductImageFile } from "../utils/productImage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -203,6 +204,17 @@ export function rowToProduct(row) {
   if (!row) return null;
   const uploadUrl = row.image_path ? productImagePublicUrl(row.branch_id, row.image_path) : null;
   const seedUrl = seedImagePublicUrl(row.stock_code);
+  let imageUrl = uploadUrl || seedUrl;
+  if (uploadUrl && row.image_path) {
+    const filePath = resolveProductImageFile(row.branch_id, row.image_path);
+    if (filePath) {
+      try {
+        imageUrl = `${uploadUrl}?v=${fs.statSync(filePath).mtimeMs}`;
+      } catch {
+        imageUrl = uploadUrl;
+      }
+    }
+  }
   return {
     id: row.id,
     barcode: row.barcode,
@@ -219,7 +231,7 @@ export function rowToProduct(row) {
     onSalePage: !!row.on_sale_page,
     active: !!row.active,
     hasImage: !!(uploadUrl || seedUrl),
-    imageUrl: uploadUrl || seedUrl,
+    imageUrl,
   };
 }
 

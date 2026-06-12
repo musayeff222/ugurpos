@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
+import { api } from "../api/client";
 import PageHeader from "../components/ui/PageHeader";
 import ProductImageField from "../components/ProductImageField";
 import { DEFAULT_PRODUCT_UNIT, PRODUCT_UNITS } from "../data/productUnits";
@@ -20,7 +21,7 @@ const emptyForm = {
 };
 
 export default function ProductForm() {
-  const { state, addProduct, updateProduct } = useStore();
+  const { state, addProduct, updateProduct, uploadProductImage } = useStore();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const editId = params.get("id");
@@ -28,6 +29,7 @@ export default function ProductForm() {
   const [form, setForm] = useState(emptyForm);
   const [imageValue, setImageValue] = useState(undefined);
   const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (existing) {
@@ -41,10 +43,38 @@ export default function ProductForm() {
 
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  const buildImagePayload = () => {
-    if (imageValue === undefined) return {};
-    if (imageValue === null) return { removeImage: true };
-    return { imageData: imageValue.data, imageMime: imageValue.mime };
+  const buildProductPayload = () => ({
+    name: form.name.trim(),
+    groupId: form.groupId || state.groups[0]?.id,
+    stock: Number(form.stock),
+    criticalStock: Number(form.criticalStock),
+    vat: Number(form.vat),
+    buyPrice: Number(form.buyPrice),
+    price1: Number(form.price1),
+    price2: Number(form.price2),
+    unit: form.unit || DEFAULT_PRODUCT_UNIT,
+    onSalePage: !!form.onSalePage,
+  });
+
+  const persistProductImage = async (productId) => {
+    if (imageValue === undefined) return;
+
+    if (imageValue === null) {
+      await api.updateProduct(productId, { removeImage: true });
+      return;
+    }
+
+    if (imageValue.file) {
+      await uploadProductImage(productId, imageValue.file);
+      return;
+    }
+
+    if (imageValue.data && imageValue.mime) {
+      await api.updateProduct(productId, {
+        imageData: imageValue.data,
+        imageMime: imageValue.mime,
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -53,32 +83,35 @@ export default function ProductForm() {
       setMessage("Ürün adı zorunludur.");
       return;
     }
-    const payload = {
-      ...form,
-      stock: Number(form.stock),
-      criticalStock: Number(form.criticalStock),
-      vat: Number(form.vat),
-      buyPrice: Number(form.buyPrice),
-      price1: Number(form.price1),
-      price2: Number(form.price2),
-      groupId: form.groupId || state.groups[0]?.id,
-      ...buildImagePayload(),
-    };
+    if (imageValue && imageValue !== null && !imageValue.file && !imageValue.data) {
+      setMessage("Resim hazırlanamadı. Lütfen tekrar seçin.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
     try {
+      const payload = buildProductPayload();
+
       if (existing) {
         await updateProduct(existing.id, {
           ...payload,
           barcode: existing.barcode,
           stockCode: form.stockCode || existing.stockCode,
         });
+        await persistProductImage(existing.id);
         setImageValue(undefined);
         setMessage("Ürün güncellendi.");
       } else {
-        await addProduct(payload);
+        const created = await addProduct(payload);
+        await persistProductImage(created.id);
         navigate("/products");
       }
     } catch (err) {
       setMessage(err.message || "Kayıt başarısız.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -156,8 +189,8 @@ export default function ProductForm() {
         </label>
 
         <div className="form-actions">
-          <button type="submit" className="btn btn-success">
-            {existing ? "Güncelle" : "Kaydet"}
+          <button type="submit" className="btn btn-success" disabled={saving}>
+            {saving ? "Kaydediliyor..." : existing ? "Güncelle" : "Kaydet"}
           </button>
         </div>
       </form>

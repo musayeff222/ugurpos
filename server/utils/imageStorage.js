@@ -81,9 +81,16 @@ export function ensureUploadSubdir(...segments) {
 }
 
 export function writeImageFile(absoluteFilePath, buffer) {
-  const dir = path.dirname(absoluteFilePath);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(absoluteFilePath, buffer);
+  try {
+    const dir = path.dirname(absoluteFilePath);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(absoluteFilePath, buffer);
+    if (!fs.existsSync(absoluteFilePath)) {
+      throw new Error("Dosya yazildi ama dogrulanamadi");
+    }
+  } catch (err) {
+    throw new Error(`Resim kaydedilemedi (${absoluteFilePath}): ${err.message}`);
+  }
 }
 
 export function removeFilesWithPrefix(dir, prefix) {
