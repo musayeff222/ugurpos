@@ -21,6 +21,22 @@ function dirExists(dir) {
   }
 }
 
+/** Hostinger: domains/site.az/nodejs + public_html yaninda kalici uploads/ */
+export function resolveHostingerDomainUploads() {
+  const domainRoot = path.dirname(PROJECT_ROOT);
+  const appFolder = path.basename(PROJECT_ROOT).toLowerCase();
+
+  if (appFolder === "nodejs" || appFolder === "node") {
+    return path.join(domainRoot, "uploads");
+  }
+
+  if (dirExists(path.join(domainRoot, "public_html")) && dirExists(path.join(domainRoot, "nodejs"))) {
+    return path.join(domainRoot, "uploads");
+  }
+
+  return null;
+}
+
 function collectPublicHtmlCandidates() {
   const candidates = [];
 
@@ -66,24 +82,46 @@ function findPublicHtmlDir() {
   return null;
 }
 
+function ensureUploadsStructure(root) {
+  fs.mkdirSync(path.join(root, "products"), { recursive: true });
+  fs.mkdirSync(path.join(root, "menu-logos"), { recursive: true });
+
+  const readme = path.join(root, "README.txt");
+  if (!fs.existsSync(readme)) {
+    fs.writeFileSync(
+      readme,
+      "Urun ve menu resimleri bu klasorde saklanir.\nnodejs/ deploy ile silinmez.\n",
+      "utf8"
+    );
+  }
+}
+
 export function resolveUploadsRoot() {
   if (uploadsRoot) return uploadsRoot;
 
   if (process.env.UPLOADS_DIR) {
     uploadsRoot = path.resolve(process.env.UPLOADS_DIR);
   } else {
-    const publicHtml = findPublicHtmlDir();
-    uploadsRoot = publicHtml
-      ? path.join(publicHtml, "uploads")
-      : path.join(PROJECT_ROOT, "public_html", "uploads");
+    const hostingerUploads = resolveHostingerDomainUploads();
+    if (hostingerUploads) {
+      uploadsRoot = path.resolve(hostingerUploads);
+    } else {
+      const publicHtml = findPublicHtmlDir();
+      uploadsRoot = publicHtml
+        ? path.join(publicHtml, "uploads")
+        : path.join(PROJECT_ROOT, "public_html", "uploads");
+    }
   }
 
   fs.mkdirSync(uploadsRoot, { recursive: true });
+  ensureUploadsStructure(uploadsRoot);
 
   if (isInsideProject(uploadsRoot) && process.env.NODE_ENV === "production") {
     console.warn(
-      "[uploads] UYARI: Resimler proje klasorunde — deploy sonrasi silinebilir. Hostinger'da UPLOADS_DIR veya PUBLIC_HTML ayarlayin."
+      "[uploads] UYARI: Resimler nodejs klasorunun icinde — deploy sonrasi silinebilir."
     );
+  } else if (!process.env.UPLOADS_DIR) {
+    console.log(`[uploads] Kalici klasor: ${uploadsRoot}`);
   }
 
   return uploadsRoot;
@@ -91,6 +129,10 @@ export function resolveUploadsRoot() {
 
 export function inProjectUploadsDir() {
   return path.join(PROJECT_ROOT, "public_html", "uploads");
+}
+
+export function domainSiblingUploadsDir() {
+  return path.join(path.dirname(PROJECT_ROOT), "uploads");
 }
 
 export function isPersistentUploadsRoot(root = resolveUploadsRoot()) {

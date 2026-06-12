@@ -1,6 +1,12 @@
 import fs from "fs";
 import path from "path";
-import { inProjectUploadsDir, legacyUploadsRoot, PROJECT_ROOT, resolveUploadsRoot } from "./uploadsDir.js";
+import {
+  domainSiblingUploadsDir,
+  inProjectUploadsDir,
+  legacyUploadsRoot,
+  PROJECT_ROOT,
+  resolveUploadsRoot,
+} from "./uploadsDir.js";
 
 function copyDir(src, dest) {
   if (!fs.existsSync(src)) return 0;
@@ -26,6 +32,7 @@ function collectMigrationSources(dataDir) {
     legacyUploadsRoot(dataDir),
     inProjectUploadsDir(),
     path.join(PROJECT_ROOT, "..", "public_html", "uploads"),
+    domainSiblingUploadsDir(),
   ];
 
   const seen = new Set();
