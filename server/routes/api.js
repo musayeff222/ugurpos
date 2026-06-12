@@ -8,6 +8,7 @@ import {
   resolveProductImageFile,
   contentTypeForImagePath,
 } from "../utils/productImage.js";
+import { productImageUpload } from "../middleware/imageUpload.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 import { sql as SQL } from "../db/dialect.js";
 
@@ -32,7 +33,7 @@ function applyProductImage(db, branchId, productId, body, existingPath = null) {
 
 function handleProductImageError(res, err) {
   const message = err?.message || "Resim kaydedilemedi";
-  if (message.includes("Resim") || message.includes("format") || message.includes("Geçersiz")) {
+  if (/resim|format|gecersiz|geçersiz|desteklenen|dosya|logo|gorsel|görsel|2mb/i.test(message)) {
     return res.status(400).json({ error: message });
   }
   throw err;
@@ -154,6 +155,31 @@ router.post("/products", (req, res) => {
     return handleProductImageError(res, err);
   }
   res.status(201).json(rowToProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(id)));
+});
+
+/** Multipart urun resmi (Multer) — kalici public_html/uploads/products/ */
+router.post("/products/:id/image-file", (req, res) => {
+  productImageUpload.single("image")(req, res, (err) => {
+    if (err) return handleProductImageError(res, err);
+
+    const db = getDb();
+    const existing = db
+      .prepare("SELECT id FROM products WHERE id = ? AND branch_id = ?")
+      .get(req.params.id, req.branchId);
+    if (!existing) return res.status(404).json({ error: "Not found" });
+    if (!req.file) return res.status(400).json({ error: "Resim dosyasi gerekli" });
+
+    try {
+      db.prepare("UPDATE products SET image_path = ? WHERE id = ? AND branch_id = ?").run(
+        req.file.filename,
+        req.params.id,
+        req.branchId
+      );
+      res.json(rowToProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
+    } catch (saveErr) {
+      return handleProductImageError(res, saveErr);
+    }
+  });
 });
 
 router.patch("/products/:id", (req, res) => {

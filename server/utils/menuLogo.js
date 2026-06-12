@@ -1,21 +1,19 @@
 import fs from "fs";
 import path from "path";
-import { legacyUploadsRoot, resolveLegacyDataDir, resolveUploadsRoot } from "./uploadsDir.js";
+import { legacyUploadsRoot, resolveLegacyDataDir } from "./uploadsDir.js";
+import {
+  contentTypeForImagePath,
+  extensionForMime,
+  ensureUploadSubdir,
+  resolveAbsoluteUploadPath,
+  resolveStoredImageFile,
+  saveBase64Image,
+} from "./imageStorage.js";
 
-const MAX_BYTES = 2 * 1024 * 1024;
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-
-const MIME_EXT = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp",
-  "image/gif": ".gif",
-};
+export { contentTypeForImagePath };
 
 export function getMenuLogoDir(firmId) {
-  const dir = path.join(resolveUploadsRoot(), "menu-logos", firmId);
-  fs.mkdirSync(dir, { recursive: true });
-  return dir;
+  return ensureUploadSubdir("menu-logos", firmId);
 }
 
 function clearLogoDir(dir) {
@@ -27,18 +25,17 @@ function clearLogoDir(dir) {
 
 export function saveMenuLogo(firmId, base64Data, mime) {
   if (!base64Data || !mime) throw new Error("Logo verisi gerekli");
-  if (!ALLOWED_MIME.has(mime)) throw new Error("Desteklenen formatlar: JPG, PNG, WEBP, GIF");
 
-  const buffer = Buffer.from(base64Data, "base64");
-  if (!buffer.length) throw new Error("Geçersiz logo dosyası");
-  if (buffer.length > MAX_BYTES) throw new Error("Logo 2MB'dan küçük olmalı");
-
-  const ext = MIME_EXT[mime] || ".jpg";
+  const ext = extensionForMime(mime);
   const filename = `logo-${Date.now()}${ext}`;
   const dir = getMenuLogoDir(firmId);
   clearLogoDir(dir);
-  fs.writeFileSync(path.join(dir, filename), buffer);
-  return filename;
+  return saveBase64Image({
+    segments: ["menu-logos", firmId],
+    filename,
+    base64Data,
+    mime,
+  });
 }
 
 export function deleteMenuLogo(firmId) {
@@ -46,18 +43,10 @@ export function deleteMenuLogo(firmId) {
 }
 
 export function resolveMenuLogoFile(firmId, logoPath) {
-  if (!logoPath) return null;
-
-  const primary = path.join(getMenuLogoDir(firmId), logoPath);
-  if (fs.existsSync(primary)) return primary;
-
-  const legacy = path.join(legacyUploadsRoot(resolveLegacyDataDir()), "menu-logos", firmId, logoPath);
-  if (fs.existsSync(legacy)) return legacy;
-
-  return null;
+  const legacyDir = path.join(legacyUploadsRoot(resolveLegacyDataDir()), "menu-logos", firmId);
+  return resolveStoredImageFile(["menu-logos", firmId], logoPath, legacyDir);
 }
 
-/** Tarayici onbellegini kirmak icin dosya degisim zamanini ekler. */
 export function menuLogoPublicUrlWithVersion(firmId, logoPath) {
   if (!firmId || !logoPath) return null;
   const base = `/uploads/menu-logos/${encodeURIComponent(firmId)}/${encodeURIComponent(logoPath)}`;
@@ -69,5 +58,3 @@ export function menuLogoPublicUrlWithVersion(firmId, logoPath) {
     return base;
   }
 }
-
-export { contentTypeForImagePath } from "./productImage.js";

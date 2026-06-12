@@ -61,7 +61,7 @@ export default function ProductImageField({ product, value, onChange }) {
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
+          accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
           hidden
           onChange={(e) => handleFile(e.target.files?.[0])}
         />
@@ -75,7 +75,7 @@ export default function ProductImageField({ product, value, onChange }) {
         )}
       </div>
 
-      <p className="product-image-field__hint">Opsiyonel. JPG, PNG, WEBP veya GIF — en fazla 2MB.</p>
+      <p className="product-image-field__hint">Opsiyonel. JPG, JPEG, PNG veya WEBP — en fazla 2MB.</p>
       {error && <p className="product-image-field__error">{error}</p>}
     </div>
   );

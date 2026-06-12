@@ -28,10 +28,13 @@ function copyDir(src, dest) {
 }
 
 function collectMigrationSources(dataDir) {
+  const domainRoot = path.dirname(PROJECT_ROOT);
   const sources = [
     legacyUploadsRoot(dataDir),
     inProjectUploadsDir(),
+    path.join(PROJECT_ROOT, "data", "uploads"),
     domainSiblingUploadsDir(),
+    path.join(domainRoot, "public_html", "uploads"),
     path.join(PROJECT_ROOT, "..", "public_html", "uploads"),
   ];
 

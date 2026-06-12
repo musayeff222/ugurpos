@@ -86,8 +86,9 @@ function findPublicHtmlDir() {
 }
 
 function ensureUploadsStructure(root) {
-  fs.mkdirSync(path.join(root, "products"), { recursive: true });
-  fs.mkdirSync(path.join(root, "menu-logos"), { recursive: true });
+  for (const sub of ["products", "menu-logos", "menu-web", "seed"]) {
+    fs.mkdirSync(path.join(root, sub), { recursive: true });
+  }
 
   const readme = path.join(root, "README.txt");
   if (!fs.existsSync(readme)) {
@@ -104,15 +105,22 @@ export function resolveUploadsRoot() {
 
   if (process.env.UPLOADS_DIR) {
     uploadsRoot = path.resolve(process.env.UPLOADS_DIR);
+  } else if (process.env.PUBLIC_HTML) {
+    uploadsRoot = path.resolve(process.env.PUBLIC_HTML, "uploads");
   } else {
     const hostingerUploads = resolveHostingerDomainUploads();
     if (hostingerUploads) {
       uploadsRoot = path.resolve(hostingerUploads);
     } else {
       const publicHtml = findPublicHtmlDir();
-      uploadsRoot = publicHtml
-        ? path.join(publicHtml, "uploads")
-        : path.join(PROJECT_ROOT, "public_html", "uploads");
+      const externalHtml = publicHtml && !isInsideProject(publicHtml) ? publicHtml : null;
+      if (externalHtml) {
+        uploadsRoot = path.resolve(externalHtml, "uploads");
+      } else if (process.env.NODE_ENV === "production") {
+        uploadsRoot = path.resolve(path.join(path.dirname(PROJECT_ROOT), "public_html", "uploads"));
+      } else {
+        uploadsRoot = path.resolve(path.join(PROJECT_ROOT, "public_html", "uploads"));
+      }
     }
   }
 
