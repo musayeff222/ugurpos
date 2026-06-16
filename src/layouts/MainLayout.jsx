@@ -15,6 +15,12 @@ export default function MainLayout() {
   const { latestOrder, clearLatest } = useWebOrders();
   const location = useLocation();
   const isDesktop = useIsDesktop();
+  const isMobileFullScreen =
+    !isDesktop &&
+    (location.pathname === "/preport" ||
+      location.pathname === "/update" ||
+      location.pathname === "/updatevariants");
+  const hideMobileTopbar = !isDesktop && (location.pathname === "/menu" || isMobileFullScreen);
   const [menuOpen, setMenuOpen] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia("(min-width: 992px)").matches : true
   );
@@ -49,13 +55,17 @@ export default function MainLayout() {
       )}
       <div className="rightbar">
         {isImpersonating && <ImpersonationBanner />}
-        {isDesktop || (location.pathname !== "/menu" && location.pathname !== "/preport") ? (
+        {isDesktop || !hideMobileTopbar ? (
           <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
         ) : null}
         <div
           className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""} ${
             location.pathname === "/sales" && !isDesktop ? "contentbar-sales-mobile" : ""
-          } ${location.pathname === "/preport" && !isDesktop ? "contentbar-report-mobile" : ""}`}
+          } ${location.pathname === "/preport" && !isDesktop ? "contentbar-report-mobile" : ""} ${
+            (location.pathname === "/update" || location.pathname === "/updatevariants") && !isDesktop
+              ? "contentbar-product-mobile"
+              : ""
+          }`}
         >
           {latestOrder && location.pathname !== "/web-orders" && (
             <Link to="/web-orders" className="web-order-toast" onClick={clearLatest}>
@@ -69,7 +79,7 @@ export default function MainLayout() {
           <Outlet />
         </div>
       </div>
-      {!isDesktop && location.pathname !== "/menu" && (
+      {!isDesktop && location.pathname !== "/menu" && !isMobileFullScreen && (
         <Link to="/menu" className="mobile-home-fab" aria-label="Ana menü">
           <i className="fa fa-th-large" />
         </Link>
