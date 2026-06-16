@@ -19,11 +19,103 @@
 .oses-site-body footer .social .qr-social-links__btn--fab:hover { color: #fff; }
 .oses-site-body .productList .nav-link { cursor: pointer; background: transparent; border: none; }
 .oses-site-body .navbar-nav .nav-link.active { color: #fff; text-decoration: underline; }
-.order-strip__row--top .img-fluid { margin-bottom: 1rem; }
-.order-strip__row--bottom .img-fluid { margin-bottom: 1rem; }
-@media (min-width: 992px) {
-  .order-strip__row--top { align-items: stretch; }
+
+/* Sipariş şeridi — oses.com.tr ana sayfa düzeni */
+.order-strip,
+.campaign-strip {
+  max-width: 1140px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 15px;
+  padding-right: 15px;
 }
+
+.order-strip__row {
+  margin-left: -10px;
+  margin-right: -10px;
+}
+
+.order-strip__row > [class*="col-"] {
+  padding-left: 10px;
+  padding-right: 10px;
+  margin-bottom: 20px;
+}
+
+.order-strip__link {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  text-decoration: none;
+  line-height: 0;
+}
+
+.order-strip__link--btn {
+  cursor: pointer;
+}
+
+.order-strip__link:focus {
+  outline: 2px solid rgba(122, 92, 0, 0.35);
+  outline-offset: 2px;
+}
+
+.order-strip__img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+}
+
+/* Üst sıra: Yemeksepeti + Getir (2 eşit sütun) */
+.order-strip__row--delivery .order-strip__img {
+  min-height: 120px;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Orta sıra: Hemen Sipariş / En Yakın / Kampanyalar (3 eşit sütun) */
+.order-strip__row--buttons .order-strip__img {
+  object-fit: contain;
+}
+
+/* Alt sıra: kampanya bannerları (2 eşit sütun) */
+.order-strip__row--campaigns .order-strip__img,
+.campaign-strip .order-strip__img {
+  object-fit: cover;
+  object-position: center;
+}
+
+.order-strip--fill {
+  margin-top: -4px;
+  margin-bottom: 4px;
+}
+
+.order-strip--fill .order-strip__img {
+  object-fit: cover;
+  object-position: center;
+}
+
+@media (min-width: 992px) {
+  .order-strip__row--delivery .order-strip__img {
+    aspect-ratio: 570 / 200;
+  }
+
+  .order-strip__row--campaigns .order-strip__img {
+    aspect-ratio: 570 / 280;
+  }
+}
+
 @media (max-width: 767.98px) {
   .promo.low, #promo li a, #promo li img { height: 250px; }
+
+  .order-strip__row > [class*="col-"] {
+    margin-bottom: 12px;
+  }
+
+  .order-strip__row--delivery .order-strip__img {
+    min-height: 100px;
+  }
 }

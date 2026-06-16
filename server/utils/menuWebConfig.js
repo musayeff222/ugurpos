@@ -23,7 +23,7 @@ export const DEFAULT_MENU_WEB_CONFIG = {
   showOrderStrip: true,
   showWhatsappFloat: true,
   whatsappFloatPhone: "",
-  showOrderStripFillImage: true,
+  showOrderStripFillImage: false,
   orderStripFillImageUrl: "/oses/assets/images/oses-lezzetleri.jpg",
   orderStripFillImageAlt: "İstanbul Çiğköfte",
   orderStripFillAction: "order",

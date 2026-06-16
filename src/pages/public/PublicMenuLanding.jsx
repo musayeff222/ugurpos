@@ -16,7 +16,8 @@ import { getWebConfig, isWebItemEnabled } from "../../utils/menuWebConfig";
 
 const LANG_KEY = "ugurpos_lang";
 const AUTO_RADIUS_KM = 80;
-const ORDER_STRIP_TOP_COUNT = 3;
+const ORDER_STRIP_DELIVERY_COUNT = 2;
+const ORDER_STRIP_BUTTON_COUNT = 3;
 
 function runOrderStripAction(action, goOrder) {
   if (action === "branches") {
@@ -32,23 +33,29 @@ function runOrderStripAction(action, goOrder) {
 
 function OrderStripImage({ item, goOrder }) {
   if (!item?.imageUrl) return null;
-  const content = <img src={item.imageUrl} className="img-fluid mb-4" alt={item.alt || ""} />;
+  const content = (
+    <img src={item.imageUrl} className="order-strip__img" alt={item.alt || ""} loading="lazy" />
+  );
   if (item.action === "branches") {
     return (
-      <a href="#subeler" className="d-block w-100">
+      <a href="#subeler" className="order-strip__link">
         {content}
       </a>
     );
   }
   if (item.action === "campaigns") {
     return (
-      <a href="#kampanyalar" className="d-block w-100">
+      <a href="#kampanyalar" className="order-strip__link">
         {content}
       </a>
     );
   }
   return (
-    <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={() => runOrderStripAction(item.action, goOrder)}>
+    <button
+      type="button"
+      className="order-strip__link order-strip__link--btn"
+      onClick={() => runOrderStripAction(item.action, goOrder)}
+    >
       {content}
     </button>
   );
@@ -126,11 +133,13 @@ export default function PublicMenuLanding() {
     () => (web.orderStrip || []).filter((item) => item.imageUrl && isWebItemEnabled(item)),
     [web.orderStrip]
   );
+  const orderStripDelivery = orderStripItems.slice(0, ORDER_STRIP_DELIVERY_COUNT);
+  const orderStripButtons = orderStripItems.slice(
+    ORDER_STRIP_DELIVERY_COUNT,
+    ORDER_STRIP_DELIVERY_COUNT + ORDER_STRIP_BUTTON_COUNT
+  );
   const showOrderStripFill =
     web.showOrderStripFillImage !== false && !!web.orderStripFillImageUrl;
-  const orderStripTop = orderStripItems.slice(0, ORDER_STRIP_TOP_COUNT);
-  const orderStripBottom = orderStripItems.slice(ORDER_STRIP_TOP_COUNT);
-  const orderStripTopCol = showOrderStripFill ? "col-12 col-md-6 col-lg-3" : "col-12 col-md-6 col-lg-4";
   const previewBranchId = preview?.branch?.id;
   const money = (v) => formatPublicMoney(v);
 
@@ -163,50 +172,55 @@ export default function PublicMenuLanding() {
         <OsesPromoSlider slides={web.promoSlides} onSlideClick={goOrder} />
       )}
 
-      {web.showOrderStrip && (orderStripItems.length > 0 || showOrderStripFill) && (
-        <div className="container mt-4 order-strip">
-          {orderStripTop.length > 0 || showOrderStripFill ? (
-            <div className="row order-strip__row order-strip__row--top">
-              {orderStripTop.map((item, i) => (
-                <div key={item.id || `strip-top-${i}`} className={orderStripTopCol}>
-                  <OrderStripImage item={item} goOrder={goOrder} />
-                </div>
-              ))}
-              {showOrderStripFill && (
-                <div className={orderStripTopCol}>
-                  <OrderStripImage
-                    item={{
-                      imageUrl: web.orderStripFillImageUrl,
-                      alt: web.orderStripFillImageAlt || "",
-                      action: web.orderStripFillAction || "order",
-                    }}
-                    goOrder={goOrder}
-                  />
-                </div>
-              )}
-            </div>
-          ) : null}
-          {orderStripBottom.length > 0 ? (
-            <div className="row order-strip__row order-strip__row--bottom">
-              {orderStripBottom.map((item, i) => (
-                <div key={item.id || `strip-bottom-${i}`} className="col-12 col-md-6 col-lg-4">
+      {web.showOrderStrip && orderStripItems.length > 0 && (
+        <div className="container order-strip">
+          {orderStripDelivery.length > 0 && (
+            <div className="row order-strip__row order-strip__row--delivery">
+              {orderStripDelivery.map((item, i) => (
+                <div key={item.id || `strip-delivery-${i}`} className="col-12 col-md-6">
                   <OrderStripImage item={item} goOrder={goOrder} />
                 </div>
               ))}
             </div>
-          ) : null}
+          )}
+          {orderStripButtons.length > 0 && (
+            <div className="row order-strip__row order-strip__row--buttons">
+              {orderStripButtons.map((item, i) => (
+                <div key={item.id || `strip-btn-${i}`} className="col-12 col-md-4">
+                  <OrderStripImage item={item} goOrder={goOrder} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showOrderStripFill && (
+        <div className="container order-strip order-strip--fill">
+          <div className="row">
+            <div className="col-12">
+              <OrderStripImage
+                item={{
+                  imageUrl: web.orderStripFillImageUrl,
+                  alt: web.orderStripFillImageAlt || "",
+                  action: web.orderStripFillAction || "order",
+                }}
+                goOrder={goOrder}
+              />
+            </div>
+          </div>
         </div>
       )}
 
       {web.showCampaigns !== false &&
         web.campaignBanners.some((banner) => banner.imageUrl && isWebItemEnabled(banner)) && (
-        <div className="container" id="kampanyalar">
-          <div className="row">
+        <div className="container campaign-strip" id="kampanyalar">
+          <div className="row order-strip__row order-strip__row--campaigns">
             {web.campaignBanners.map((banner, i) =>
               banner.imageUrl && isWebItemEnabled(banner) ? (
-                <div key={banner.id || `${banner.imageUrl}-${i}`} className="col-12 col-md-6 col-lg-4">
-                  <button type="button" className="p-0 border-0 bg-transparent w-100" onClick={goOrder}>
-                    <img src={banner.imageUrl} className="img-fluid mb-4" alt={banner.alt || ""} />
+                <div key={banner.id || `${banner.imageUrl}-${i}`} className="col-12 col-md-6">
+                  <button type="button" className="order-strip__link order-strip__link--btn" onClick={goOrder}>
+                    <img src={banner.imageUrl} className="order-strip__img" alt={banner.alt || ""} loading="lazy" />
                   </button>
                 </div>
               ) : null
