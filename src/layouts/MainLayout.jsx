@@ -49,13 +49,13 @@ export default function MainLayout() {
       )}
       <div className="rightbar">
         {isImpersonating && <ImpersonationBanner />}
-        {isDesktop || location.pathname !== "/menu" ? (
+        {isDesktop || (location.pathname !== "/menu" && location.pathname !== "/preport") ? (
           <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
         ) : null}
         <div
           className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""} ${
             location.pathname === "/sales" && !isDesktop ? "contentbar-sales-mobile" : ""
-          }`}
+          } ${location.pathname === "/preport" && !isDesktop ? "contentbar-report-mobile" : ""}`}
         >
           {latestOrder && location.pathname !== "/web-orders" && (
             <Link to="/web-orders" className="web-order-toast" onClick={clearLatest}>
