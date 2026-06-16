@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useStore } from "../store/StoreContext";
 import Modal from "../components/ui/Modal";
+import SalesMobileNotice from "../components/SalesMobileNotice";
+import useIsDesktop from "../hooks/useIsDesktop";
 import { calcCartTotal, formatMoney, uid } from "../utils/format";
 import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
@@ -16,6 +18,7 @@ function emptyCarts() {
 }
 
 export default function Sales() {
+  const isDesktop = useIsDesktop();
   const { user } = useAuth();
   const { state, completeSale } = useStore();
   const [activeTab, setActiveTab] = useState(0);
@@ -332,6 +335,10 @@ export default function Sales() {
   const priceProduct = state.products.find(
     (p) => p.barcode === priceLookup.trim() || p.stockCode === priceLookup.trim()
   );
+
+  if (!isDesktop) {
+    return <SalesMobileNotice />;
+  }
 
   return (
     <div className="sales-page bp-sales">

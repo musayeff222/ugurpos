@@ -1,5 +1,5 @@
 export const mobileMenuItems = [
-  { labelKey: "nav.sales", path: "/sales", icon: "fa-calculator" },
+  { labelKey: "nav.sales", path: "/sales", icon: "fa-calculator", desktopOnly: true },
   { labelKey: "nav.webOrders", path: "/web-orders", icon: "fa-shopping-bag", badge: "webOrders" },
   { labelKey: "nav.productsList", path: "/products", icon: "fa-tag" },
   { labelKey: "nav.productForm", path: "/update", icon: "fa-plus-circle" },

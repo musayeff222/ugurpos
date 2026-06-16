@@ -51,7 +51,9 @@ export default function MobileMenu({ overlay = false, onClose }) {
 
       <div className="mobile-menu-body">
         <div className="mobile-menu-grid">
-          {mobileMenuItems.map((item) => (
+          {mobileMenuItems
+            .filter((item) => !item.desktopOnly)
+            .map((item) => (
             <button
               key={item.path + item.label}
               type="button"

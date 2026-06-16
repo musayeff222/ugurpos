@@ -584,18 +584,69 @@
     border-right: none;
     border-bottom: 1px solid #ebebeb;
   }
-
-  .bp-sales .sales-pay-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 @media (max-width: 768px) {
   .bp-sales .sales-top-right {
     grid-template-columns: 1fr;
   }
+}
 
-  .bp-sales .sales-pay-row {
-    grid-template-columns: 1fr;
-  }
+/* Mobil: satış ekranı engeli */
+.sales-mobile-notice {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.sales-mobile-notice__card {
+  max-width: 420px;
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(48, 62, 103, 0.12);
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.sales-mobile-notice__icon {
+  font-size: 48px;
+  color: #0080ff;
+  margin-bottom: 16px;
+}
+
+.sales-mobile-notice__card h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  color: #303e67;
+}
+
+.sales-mobile-notice__card p {
+  margin: 0 0 24px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #8a98ac;
+}
+
+.sales-mobile-notice__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sales-mobile-notice__actions .btn {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.contentbar-sales-mobile {
+  padding: 0;
+  background: #f2f3f7;
 }

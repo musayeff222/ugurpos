@@ -6,23 +6,9 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import MobileMenu from "../components/MobileMenu";
 import ImpersonationBanner from "../components/ImpersonationBanner";
+import useIsDesktop from "../hooks/useIsDesktop";
 import "../styles/layout.css";
 import "../styles/mobile-menu.css";
-
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(min-width: 992px)").matches
-  );
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 992px)");
-    const onChange = (e) => setIsDesktop(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-
-  return isDesktop;
-}
 
 export default function MainLayout() {
   const { isAuthenticated, isAdmin, isBranchUser, isImpersonating } = useAuth();
@@ -66,7 +52,11 @@ export default function MainLayout() {
         {isDesktop || location.pathname !== "/menu" ? (
           <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
         ) : null}
-        <div className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""}`}>
+        <div
+          className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""} ${
+            location.pathname === "/sales" && !isDesktop ? "contentbar-sales-mobile" : ""
+          }`}
+        >
           {latestOrder && location.pathname !== "/web-orders" && (
             <Link to="/web-orders" className="web-order-toast" onClick={clearLatest}>
               <strong>Yeni web siparişi:</strong> {latestOrder.code} — {latestOrder.customerName} (
