@@ -95,6 +95,32 @@
   margin-top: -8px;
 }
 
+.mobile-menu-sales-cta {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #3b7ec9, #2f6eb8);
+  color: #fff;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(47, 110, 184, 0.35);
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.mobile-menu-sales-cta i {
+  font-size: 18px;
+}
+
+.mobile-menu-sales-cta:active {
+  transform: scale(0.99);
+}
+
 .mobile-menu-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

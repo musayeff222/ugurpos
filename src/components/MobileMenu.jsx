@@ -50,10 +50,16 @@ export default function MobileMenu({ overlay = false, onClose }) {
       </div>
 
       <div className="mobile-menu-body">
+        <button
+          type="button"
+          className="mobile-menu-sales-cta"
+          onClick={() => handleItem("/sales")}
+        >
+          <i className="fa fa-calculator" />
+          <span>{t("nav.sales")}</span>
+        </button>
         <div className="mobile-menu-grid">
-          {mobileMenuItems
-            .filter((item) => !item.desktopOnly)
-            .map((item) => (
+          {mobileMenuItems.filter((item) => item.path !== "/sales").map((item) => (
             <button
               key={item.path + item.label}
               type="button"

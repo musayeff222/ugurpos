@@ -36,14 +36,12 @@ export default function MainLayout() {
     return <Navigate to="/admin" replace />;
   }
 
-  const isSalesMobile = !isDesktop && location.pathname === "/sales";
-
   return (
     <div
       id="containerbar"
       className={`app-shell ${isDesktop && menuOpen ? "sidebar-open" : "sidebar-closed"} ${
         !isDesktop && location.pathname === "/menu" ? "mobile-menu-shell" : ""
-      } ${isSalesMobile ? "sales-mobile-shell" : ""}`}
+      }`}
     >
       {isDesktop && <Sidebar onNavigate={() => setMenuOpen(false)} />}
       {!isDesktop && menuOpen && location.pathname !== "/menu" && (
@@ -51,14 +49,10 @@ export default function MainLayout() {
       )}
       <div className="rightbar">
         {isImpersonating && <ImpersonationBanner />}
-        {isDesktop || (location.pathname !== "/menu" && !isSalesMobile) ? (
+        {isDesktop || location.pathname !== "/menu" ? (
           <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
         ) : null}
-        <div
-          className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""} ${
-            isSalesMobile ? "contentbar-sales-mobile" : ""
-          }`}
-        >
+        <div className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""}`}>
           {latestOrder && location.pathname !== "/web-orders" && (
             <Link to="/web-orders" className="web-order-toast" onClick={clearLatest}>
               <strong>Yeni web siparişi:</strong> {latestOrder.code} — {latestOrder.customerName} (
@@ -71,7 +65,7 @@ export default function MainLayout() {
           <Outlet />
         </div>
       </div>
-      {!isDesktop && location.pathname !== "/menu" && !isSalesMobile && (
+      {!isDesktop && location.pathname !== "/menu" && (
         <Link to="/menu" className="mobile-home-fab" aria-label="Ana menü">
           <i className="fa fa-th-large" />
         </Link>

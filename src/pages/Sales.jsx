@@ -2,14 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useStore } from "../store/StoreContext";
 import Modal from "../components/ui/Modal";
-import SalesMobile from "../components/sales/SalesMobile";
-import useIsDesktop from "../hooks/useIsDesktop";
 import { calcCartTotal, formatMoney, uid } from "../utils/format";
 import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
 import { playPosItemAddedSound, playPosPaymentSound } from "../utils/posSounds";
 import "../styles/sales.css";
-import "../styles/sales-mobile.css";
 
 const TAB_COUNT = 5;
 const QUICK_LISTS = ["ANA", "Liste 1", "Liste 2", "Liste 3", "Liste 4"];
@@ -19,7 +16,6 @@ function emptyCarts() {
 }
 
 export default function Sales() {
-  const isDesktop = useIsDesktop();
   const { user } = useAuth();
   const { state, completeSale } = useStore();
   const [activeTab, setActiveTab] = useState(0);
@@ -42,8 +38,6 @@ export default function Sales() {
   const [printOpen, setPrintOpen] = useState(false);
   const [otherOpen, setOtherOpen] = useState(false);
   const [fastListTab, setFastListTab] = useState(0);
-  const [showPrice, setShowPrice] = useState(false);
-  const [returnMode, setReturnMode] = useState(false);
   const [message, setMessage] = useState("");
   const [lastSale, setLastSale] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -344,100 +338,6 @@ export default function Sales() {
   const priceProduct = state.products.find(
     (p) => p.barcode === priceLookup.trim() || p.stockCode === priceLookup.trim()
   );
-
-  if (!isDesktop) {
-    return (
-      <div className="sales-page sales-page--mobile">
-        {message && (
-          <div className="alert alert-info sales-alert">
-            {message}
-            <button type="button" onClick={() => setMessage("")}>
-              ×
-            </button>
-          </div>
-        )}
-        <SalesMobile
-          barcodeRef={barcodeRef}
-          barcode={barcode}
-          onBarcodeChange={handleBarcodeInput}
-          onBarcodeSubmit={submitBarcode}
-          priceType={priceType}
-          onPriceTypeChange={setPriceType}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          tabTotals={tabTotals}
-          cart={cart}
-          gross={gross}
-          discountAmount={discountAmount}
-          total={total}
-          itemCount={itemCount}
-          onUpdateQty={updateQty}
-          onRemoveLine={removeLine}
-          selectedCustomer={selectedCustomer}
-          onOpenCustomer={() => setCustomerModal(true)}
-          onClearCustomer={() => setCustomerForTab("")}
-          note={note}
-          onNoteChange={setNote}
-          showPrice={showPrice}
-          onShowPriceChange={setShowPrice}
-          returnMode={returnMode}
-          onReturnModeChange={setReturnMode}
-          onFinalize={finalize}
-          onPrintToggle={() => setPrintOpen((open) => !open)}
-          onPriceModal={() => setPriceModal(true)}
-          onQuickCash={adjustPaid}
-          fastListTab={fastListTab}
-          onFastListTabChange={setFastListTab}
-          fastProducts={fastProducts}
-          onAddProduct={addProductToCart}
-          searchResults={searchResults}
-        />
-        <Modal open={customerModal} title="Müşteri Seç" onClose={() => setCustomerModal(false)}>
-          <input
-            className="form-control"
-            placeholder="Müşteri ara..."
-            value={customerSearch}
-            onChange={(e) => setCustomerSearch(e.target.value)}
-          />
-          <div className="customer-list-modal">
-            {filteredCustomers.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className="customer-option"
-                onClick={() => {
-                  setCustomerForTab(c.id);
-                  setCustomerModal(false);
-                }}
-              >
-                <strong>{c.name}</strong>
-                <span>Borç: {formatMoney(c.debt)}</span>
-              </button>
-            ))}
-          </div>
-        </Modal>
-        <Modal open={priceModal} title="Fiyat Gör" onClose={() => setPriceModal(false)}>
-          <input
-            className="form-control"
-            placeholder="Barkod okutun..."
-            value={priceLookup}
-            onChange={(e) => setPriceLookup(e.target.value)}
-          />
-          {priceProduct ? (
-            <div className="sales-price-result">
-              <p>
-                <strong>{priceProduct.name}</strong>
-              </p>
-              <p>Fiyat 1: {formatMoney(priceProduct.price1)}</p>
-              <p>Fiyat 2: {formatMoney(priceProduct.price2)}</p>
-            </div>
-          ) : (
-            priceLookup && <p>Ürün bulunamadı.</p>
-          )}
-        </Modal>
-      </div>
-    );
-  }
 
   return (
     <div className="sales-page bp-sales">

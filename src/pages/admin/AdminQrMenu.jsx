@@ -162,6 +162,9 @@ export default function AdminQrMenu() {
     facebook: firmDraft.socialFacebook || "",
   };
 
+  const imageHint = (size, baseHint = t("admin.qr.imageUploadHint")) =>
+    `${baseHint} ${t("admin.qr.imageSizeHint", { size })}`;
+
   const patchWeb = (key, value) => {
     setWebConfigDraft((prev) => ({ ...prev, [key]: value }));
   };
@@ -467,6 +470,7 @@ export default function AdminQrMenu() {
                   value={logoValue}
                   onChange={setLogoValue}
                 />
+                <p className="hint-text">{imageHint("1200 x 400 px", t("admin.qr.menuLogoHint"))}</p>
               </div>
               <div className="admin-qr-design-preview">
                 {logoPreviewSrc ? (
@@ -514,7 +518,7 @@ export default function AdminQrMenu() {
                 />
                 <WebImageField
                   label={t("admin.qr.imageUrl")}
-                  hint={t("admin.qr.imageUploadHint")}
+                  hint={imageHint("1920 x 550 px")}
                   imageKey={`promoSlide-${slide.id || i}`}
                   url={slide.imageUrl || ""}
                   onUrlChange={(value) => patchWebSlide(i, "imageUrl", value)}
@@ -563,7 +567,7 @@ export default function AdminQrMenu() {
                 />
                 <WebImageField
                   label={t("admin.qr.imageUrl")}
-                  hint={t("admin.qr.imageUploadHint")}
+                  hint={imageHint("570 x 200 px")}
                   imageKey={`orderStrip-${item.id || i}`}
                   url={item.imageUrl || ""}
                   onUrlChange={(value) => patchWebOrderStrip(i, "imageUrl", value)}
@@ -598,7 +602,7 @@ export default function AdminQrMenu() {
               </label>
               <WebImageField
                 label={t("admin.qr.orderStripFillImageUrl")}
-                hint={t("admin.qr.imageUploadHint")}
+                hint={imageHint("1140 x 280 px")}
                 imageKey="orderStripFillImageUrl"
                 url={webConfigDraft.orderStripFillImageUrl || ""}
                 onUrlChange={(value) => patchWeb("orderStripFillImageUrl", value)}
@@ -656,7 +660,7 @@ export default function AdminQrMenu() {
                 />
                 <WebImageField
                   label={t("admin.qr.imageUrl")}
-                  hint={t("admin.qr.imageUploadHint")}
+                  hint={imageHint("570 x 280 px")}
                   imageKey={`campaign-${banner.id || i}`}
                   url={banner.imageUrl || ""}
                   onUrlChange={(value) => patchWebCampaign(i, "imageUrl", value)}
@@ -688,7 +692,7 @@ export default function AdminQrMenu() {
             </label>
             <WebImageField
               label={t("admin.qr.franchiseBackgroundUrl")}
-              hint={t("admin.qr.imageUploadHint")}
+              hint={imageHint("1920 x 700 px")}
               imageKey="franchiseBackgroundUrl"
               url={webConfigDraft.franchiseBackgroundUrl || ""}
               onUrlChange={(value) => patchWeb("franchiseBackgroundUrl", value)}
@@ -697,7 +701,7 @@ export default function AdminQrMenu() {
             />
             <WebImageField
               label={t("admin.qr.franchiseIconUrl")}
-              hint={t("admin.qr.imageUploadHint")}
+              hint={imageHint("512 x 512 px")}
               imageKey="franchiseIconUrl"
               url={webConfigDraft.franchiseIconUrl || ""}
               onUrlChange={(value) => patchWeb("franchiseIconUrl", value)}
@@ -759,7 +763,7 @@ export default function AdminQrMenu() {
                 />
                 <WebImageField
                   label={t("admin.qr.featureIconUrl")}
-                  hint={t("admin.qr.imageUploadHint")}
+                  hint={imageHint("256 x 256 px")}
                   imageKey={`feature-${i}`}
                   url={feature.iconUrl || ""}
                   onUrlChange={(value) => patchWebFeature(i, "iconUrl", value)}
@@ -798,7 +802,7 @@ export default function AdminQrMenu() {
             </label>
             <WebImageField
               label={t("admin.qr.lezzetlerImageUrl")}
-              hint={t("admin.qr.imageUploadHint")}
+              hint={imageHint("1140 x 280 px")}
               imageKey="lezzetlerImageUrl"
               url={webConfigDraft.lezzetlerImageUrl || ""}
               onUrlChange={(value) => patchWeb("lezzetlerImageUrl", value)}
@@ -830,7 +834,7 @@ export default function AdminQrMenu() {
               </WebConfigField>
               <WebImageField
                 label={t("admin.qr.footerBadgeUrl")}
-                hint={t("admin.qr.imageUploadHint")}
+                hint={imageHint("400 x 120 px")}
                 imageKey="footerBadgeUrl"
                 url={webConfigDraft.footerBadgeUrl || ""}
                 onUrlChange={(value) => patchWeb("footerBadgeUrl", value)}

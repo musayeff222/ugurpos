@@ -21,7 +21,7 @@ function dirExists(dir) {
   }
 }
 
-/** Hostinger: public_html/uploads (nodejs disinda, File Manager'da gorunur) */
+/** Hostinger: domain kokunde uploads (public_html disinda) */
 export function resolveHostingerDomainUploads() {
   const domainRoot = path.dirname(PROJECT_ROOT);
   const appFolder = path.basename(PROJECT_ROOT).toLowerCase();
@@ -32,11 +32,6 @@ export function resolveHostingerDomainUploads() {
     (dirExists(publicHtml) && dirExists(path.join(domainRoot, "nodejs")));
 
   if (!isHostingerLayout) return null;
-
-  if (dirExists(publicHtml)) {
-    return path.join(publicHtml, "uploads");
-  }
-
   return path.join(domainRoot, "uploads");
 }
 
@@ -94,7 +89,7 @@ function ensureUploadsStructure(root) {
   if (!fs.existsSync(readme)) {
     fs.writeFileSync(
       readme,
-      "Urun ve menu resimleri bu klasorde saklanir.\npublic_html/uploads — nodejs deploy ile silinmez.\n",
+      "Urun ve menu resimleri bu klasorde saklanir.\nDomain kokundeki uploads klasoru deploy ile silinmez.\n",
       "utf8"
     );
   }
@@ -105,12 +100,12 @@ export function resolveUploadsRoot() {
 
   if (process.env.UPLOADS_DIR) {
     uploadsRoot = path.resolve(process.env.UPLOADS_DIR);
-  } else if (process.env.PUBLIC_HTML) {
-    uploadsRoot = path.resolve(process.env.PUBLIC_HTML, "uploads");
   } else {
     const hostingerUploads = resolveHostingerDomainUploads();
     if (hostingerUploads) {
       uploadsRoot = path.resolve(hostingerUploads);
+    } else if (process.env.PUBLIC_HTML) {
+      uploadsRoot = path.resolve(process.env.PUBLIC_HTML, "uploads");
     } else {
       const publicHtml = findPublicHtmlDir();
       const externalHtml = publicHtml && !isInsideProject(publicHtml) ? publicHtml : null;
@@ -122,6 +117,15 @@ export function resolveUploadsRoot() {
         uploadsRoot = path.resolve(path.join(PROJECT_ROOT, "public_html", "uploads"));
       }
     }
+  }
+
+  const hostingerUploads = resolveHostingerDomainUploads();
+  if (process.env.NODE_ENV === "production" && hostingerUploads) {
+    const forced = path.resolve(hostingerUploads);
+    if (uploadsRoot !== forced) {
+      console.log(`[uploads] Hostinger production yolu zorlandi: ${forced}`);
+    }
+    uploadsRoot = forced;
   }
 
   fs.mkdirSync(uploadsRoot, { recursive: true });
