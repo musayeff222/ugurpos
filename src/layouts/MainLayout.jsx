@@ -15,12 +15,6 @@ export default function MainLayout() {
   const { latestOrder, clearLatest } = useWebOrders();
   const location = useLocation();
   const isDesktop = useIsDesktop();
-  const isMobileFullScreen =
-    !isDesktop &&
-    (location.pathname === "/preport" ||
-      location.pathname === "/update" ||
-      location.pathname === "/updatevariants");
-  const hideMobileTopbar = !isDesktop && (location.pathname === "/menu" || isMobileFullScreen);
   const [menuOpen, setMenuOpen] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia("(min-width: 992px)").matches : true
   );
@@ -42,12 +36,14 @@ export default function MainLayout() {
     return <Navigate to="/admin" replace />;
   }
 
+  const isSalesMobile = !isDesktop && location.pathname === "/sales";
+
   return (
     <div
       id="containerbar"
       className={`app-shell ${isDesktop && menuOpen ? "sidebar-open" : "sidebar-closed"} ${
         !isDesktop && location.pathname === "/menu" ? "mobile-menu-shell" : ""
-      }`}
+      } ${isSalesMobile ? "sales-mobile-shell" : ""}`}
     >
       {isDesktop && <Sidebar onNavigate={() => setMenuOpen(false)} />}
       {!isDesktop && menuOpen && location.pathname !== "/menu" && (
@@ -55,16 +51,12 @@ export default function MainLayout() {
       )}
       <div className="rightbar">
         {isImpersonating && <ImpersonationBanner />}
-        {isDesktop || !hideMobileTopbar ? (
+        {isDesktop || (location.pathname !== "/menu" && !isSalesMobile) ? (
           <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
         ) : null}
         <div
           className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""} ${
-            location.pathname === "/sales" && !isDesktop ? "contentbar-sales-mobile" : ""
-          } ${location.pathname === "/preport" && !isDesktop ? "contentbar-report-mobile" : ""} ${
-            (location.pathname === "/update" || location.pathname === "/updatevariants") && !isDesktop
-              ? "contentbar-product-mobile"
-              : ""
+            isSalesMobile ? "contentbar-sales-mobile" : ""
           }`}
         >
           {latestOrder && location.pathname !== "/web-orders" && (
@@ -79,7 +71,7 @@ export default function MainLayout() {
           <Outlet />
         </div>
       </div>
-      {!isDesktop && location.pathname !== "/menu" && !isMobileFullScreen && (
+      {!isDesktop && location.pathname !== "/menu" && !isSalesMobile && (
         <Link to="/menu" className="mobile-home-fab" aria-label="Ana menü">
           <i className="fa fa-th-large" />
         </Link>
