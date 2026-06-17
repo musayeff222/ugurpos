@@ -25,6 +25,10 @@
 .oses-site-body .productList .nav-link { cursor: pointer; background: transparent; border: none; }
 .oses-site-body .navbar-nav .nav-link.active { color: #fff; text-decoration: underline; }
 
+.oses-site-body #mainContent .promo + .order-strip {
+  margin-top: 24px;
+}
+
 /* Sipariş şeridi — oses.com.tr ana sayfa düzeni */
 .order-strip,
 .campaign-strip {
