@@ -1,6 +1,11 @@
 
 /* React promo slider — oses.com.tr lightslider yerine */
-.promo.low { height: 550px; overflow: hidden; position: relative; }
+.promo.low {
+  height: 550px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 28px;
+}
 #promo { list-style: none; padding: 0; margin: 0; height: 100%; position: relative; }
 #promo li { position: absolute; inset: 0; opacity: 0; transition: opacity .6s ease; pointer-events: none; }
 #promo li.is-active { opacity: 1; z-index: 1; pointer-events: auto; }
@@ -28,6 +33,15 @@
   margin-right: auto;
   padding-left: 15px;
   padding-right: 15px;
+  padding-top: 4px;
+}
+
+.order-strip__row--delivery {
+  margin-bottom: 4px;
+}
+
+.order-strip__row--buttons {
+  margin-top: 8px;
 }
 
 .order-strip__row {
@@ -88,9 +102,13 @@
   object-position: center;
 }
 
+.campaign-strip {
+  padding-top: 12px;
+}
+
 .order-strip--fill {
-  margin-top: -4px;
-  margin-bottom: 4px;
+  margin-top: 16px;
+  margin-bottom: 8px;
 }
 
 .order-strip--fill .order-strip__img {
@@ -109,6 +127,10 @@
 }
 
 @media (max-width: 767.98px) {
+  .promo.low {
+    margin-bottom: 20px;
+  }
+
   .promo.low, #promo li a, #promo li img { height: 250px; }
 
   .order-strip__row > [class*="col-"] {
