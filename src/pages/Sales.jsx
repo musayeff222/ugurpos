@@ -24,7 +24,7 @@ export default function Sales() {
   const [priceType, setPriceType] = useState("price1");
   const [paid, setPaid] = useState("0");
   const [discount, setDiscount] = useState("");
-  const [discountType, setDiscountType] = useState("TL");
+  const [discountType, setDiscountType] = useState("AZN");
   const [miscAmount, setMiscAmount] = useState("");
   const [customerIds, setCustomerIds] = useState(Array(TAB_COUNT).fill(""));
   const [note, setNote] = useState("");
@@ -36,6 +36,10 @@ export default function Sales() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [showDetails, setShowDetails] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("posAutoPrintEnabled") === "1";
+  });
   const [otherOpen, setOtherOpen] = useState(false);
   const [fastListTab, setFastListTab] = useState(0);
   const [message, setMessage] = useState("");
@@ -60,6 +64,7 @@ export default function Sales() {
   }, [discount, discountType, gross]);
   const change = Math.max(0, (Number(paid) || 0) - total);
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
+  const money = (value) => formatMoney(value, "az");
 
   const buildReceiptData = useCallback(
     (saleOverride = null) => {
@@ -68,7 +73,7 @@ export default function Sales() {
 
       const items = source.items;
       const disc = saleOverride?.discount ?? (cart.length ? Number(discount) || 0 : lastSale?.discount ?? 0);
-      const discType = saleOverride?.discountType ?? (cart.length ? discountType : lastSale?.discountType ?? "TL");
+      const discType = saleOverride?.discountType ?? (cart.length ? discountType : lastSale?.discountType ?? "AZN");
       const tot = saleOverride?.total ?? (cart.length ? total : lastSale?.total ?? 0);
       const paidAmt =
         saleOverride?.paidAmount ?? (cart.length ? Number(paid) || 0 : lastSale?.paidAmount ?? 0);
@@ -138,6 +143,11 @@ export default function Sales() {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("posAutoPrintEnabled", autoPrint ? "1" : "0");
+  }, [autoPrint]);
 
   const setCartForTab = (updater) => {
     setCarts((prev) => {
@@ -285,28 +295,30 @@ export default function Sales() {
       setDiscount("");
       setCustomerForTab("");
 
-      printSaleReceipt(
-        {
-          storeName: user?.firmName || "Mağaza",
-          code: sale.code,
-          createdAt: sale.createdAt,
-          items: sale.items,
-          discount: sale.discount,
-          discountType: sale.discountType,
-          total: sale.total,
-          paidAmount: sale.paidAmount,
-          change: Math.max(0, sale.paidAmount - sale.total),
-          paymentType: sale.paymentType,
-          customerName: selectedCustomer?.name || "",
-          staffName: sale.staffName,
-          note: sale.note,
-        },
-        { paper: "thermal", copyLabel: "SATIŞ FİŞİ" }
-      );
+      if (autoPrint) {
+        printSaleReceipt(
+          {
+            storeName: user?.firmName || "Mağaza",
+            code: sale.code,
+            createdAt: sale.createdAt,
+            items: sale.items,
+            discount: sale.discount,
+            discountType: sale.discountType,
+            total: sale.total,
+            paidAmount: sale.paidAmount,
+            change: Math.max(0, sale.paidAmount - sale.total),
+            paymentType: sale.paymentType,
+            customerName: selectedCustomer?.name || "",
+            staffName: sale.staffName,
+            note: sale.note,
+          },
+          { paper: "thermal", copyLabel: "SATIŞ FİŞİ" }
+        );
+      }
     } catch (err) {
       setMessage(err.message || "Satış kaydedilemedi.");
     }
-  }, [cart, completeSale, customerId, discount, discountType, note, paid, total, selectedCustomer, user?.firmName]);
+  }, [autoPrint, cart, completeSale, customerId, discount, discountType, note, paid, total, selectedCustomer, user?.firmName]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -333,7 +345,7 @@ export default function Sales() {
 
   const fastProducts = state.products.filter((p) => p.active && p.onSalePage);
 
-  const tabTotals = carts.map((c) => calcCartTotal(c, 0, "TL"));
+  const tabTotals = carts.map((c) => calcCartTotal(c, 0, "AZN"));
 
   const priceProduct = state.products.find(
     (p) => p.barcode === priceLookup.trim() || p.stockCode === priceLookup.trim()
@@ -398,6 +410,9 @@ export default function Sales() {
                     <button type="button" onClick={handleWhatsApp}>
                       WhatsApp İle Gönder
                     </button>
+                    <button type="button" onClick={() => setAutoPrint((prev) => !prev)}>
+                      Auto Print: {autoPrint ? "ON" : "OFF"}
+                    </button>
                   </div>
                 )}
               </div>
@@ -425,8 +440,8 @@ export default function Sales() {
                         <td>{p.stockCode}</td>
                         <td>{p.name}</td>
                         <td>{p.stock}</td>
-                        <td>{formatMoney(p.price1)}</td>
-                        <td>{formatMoney(p.price2)}</td>
+                        <td>{money(p.price1)}</td>
+                        <td>{money(p.price2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -480,7 +495,7 @@ export default function Sales() {
                   onChange={(e) => setDiscount(e.target.value.replace(",", "."))}
                 />
                 <select value={discountType} onChange={(e) => setDiscountType(e.target.value)}>
-                  <option value="TL">TRY</option>
+                  <option value="AZN">AZN</option>
                   <option value="Yüzde">Yüzde</option>
                 </select>
               </div>
@@ -634,7 +649,7 @@ export default function Sales() {
             <div className="sales-pay-row">
               <button type="button" className="btn btn-success sales-pay-btn" onClick={() => finalize("cash")}>
                 <b>
-                  ₺ (F8)
+                  ₼ (F8)
                   <br />
                   NAKİT
                 </b>
@@ -688,7 +703,7 @@ export default function Sales() {
                     </span>
                   )}
                   <span>{p.name}</span>
-                  <strong>{formatMoney(p.price1)}</strong>
+                  <strong>{money(p.price1)}</strong>
                 </button>
               ))}
             </div>
@@ -715,7 +730,7 @@ export default function Sales() {
               }}
             >
               <strong>{c.name}</strong>
-              <span>Borç: {formatMoney(c.debt)}</span>
+              <span>Borç: {money(c.debt)}</span>
             </button>
           ))}
         </div>
@@ -734,8 +749,8 @@ export default function Sales() {
             <p>
               <strong>{priceProduct.name}</strong>
             </p>
-            <p>Fiyat 1: {formatMoney(priceProduct.price1)}</p>
-            <p>Fiyat 2: {formatMoney(priceProduct.price2)}</p>
+            <p>Fiyat 1: {money(priceProduct.price1)}</p>
+            <p>Fiyat 2: {money(priceProduct.price2)}</p>
             <p>Stok: {priceProduct.stock}</p>
           </div>
         ) : (

@@ -22,10 +22,10 @@ export function buildReceiptText(data) {
         `${item.name}\n  ${item.qty} x ${Number(item.price).toFixed(2)} = ${(item.qty * item.price).toFixed(2)}`
     ),
     "",
-    `TOPLAM: ${Number(data.total).toFixed(2)} TL`,
+    `TOPLAM: ${Number(data.total).toFixed(2)} AZN`,
     `Ödeme: ${PAYMENT_LABELS[data.paymentType] || data.paymentType || "-"}`,
-    data.paidAmount != null ? `Ödenen: ${Number(data.paidAmount).toFixed(2)} TL` : null,
-    data.change > 0 ? `Para Üstü: ${Number(data.change).toFixed(2)} TL` : null,
+    data.paidAmount != null ? `Ödenen: ${Number(data.paidAmount).toFixed(2)} AZN` : null,
+    data.change > 0 ? `Para Üstü: ${Number(data.change).toFixed(2)} AZN` : null,
     data.note ? `Not: ${data.note}` : null,
     "",
     "Teşekkür ederiz.",
@@ -77,17 +77,17 @@ export default function SaleReceipt({ data, paper = "thermal", copyLabel = "" })
       <div className="sale-receipt__totals">
         <div className="sale-receipt__row">
           <span>Ara Toplam</span>
-          <span>{subtotal.toFixed(2)} TL</span>
+          <span>{subtotal.toFixed(2)} AZN</span>
         </div>
         {Number(data.discount) > 0 && (
           <div className="sale-receipt__row">
-            <span>İskonto ({data.discountType === "Yüzde" ? `%${data.discount}` : "TL"})</span>
+            <span>İskonto ({data.discountType === "Yüzde" ? `%${data.discount}` : "AZN"})</span>
             <span>-{Number(data.discount).toFixed(2)}</span>
           </div>
         )}
         <div className="sale-receipt__row sale-receipt__row--total">
           <span>TOPLAM</span>
-          <span>{formatMoney(data.total)}</span>
+          <span>{formatMoney(data.total, "az")}</span>
         </div>
         <div className="sale-receipt__row">
           <span>Ödeme</span>
@@ -96,13 +96,13 @@ export default function SaleReceipt({ data, paper = "thermal", copyLabel = "" })
         {data.paidAmount != null && (
           <div className="sale-receipt__row">
             <span>Ödenen</span>
-            <span>{Number(data.paidAmount).toFixed(2)} TL</span>
+            <span>{Number(data.paidAmount).toFixed(2)} AZN</span>
           </div>
         )}
         {Number(data.change) > 0 && (
           <div className="sale-receipt__row">
             <span>Para Üstü</span>
-            <span>{Number(data.change).toFixed(2)} TL</span>
+            <span>{Number(data.change).toFixed(2)} AZN</span>
           </div>
         )}
       </div>

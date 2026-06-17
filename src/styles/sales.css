@@ -36,7 +36,7 @@
 
 .bp-sales .sales-top-grid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(760px, 1fr) 340px;
   gap: 16px;
   align-items: start;
 }
@@ -186,7 +186,7 @@
 
 .bp-sales .sales-top-right {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(96px, 1fr));
   gap: 8px;
 }
 
@@ -227,7 +227,7 @@
 
 .bp-sales .sales-main-grid {
   display: grid;
-  grid-template-columns: 1fr 420px;
+  grid-template-columns: minmax(700px, 1fr) 420px;
   min-height: 520px;
 }
 
@@ -578,5 +578,18 @@
   padding: 12px;
   background: #f2f3f7;
   border-radius: 4px;
+}
+
+/* Keep desktop POS layout fixed on all viewport widths. */
+.bp-sales .sales-top-grid {
+  grid-template-columns: minmax(760px, 1fr) 340px !important;
+}
+
+.bp-sales .sales-main-grid {
+  grid-template-columns: minmax(700px, 1fr) 420px !important;
+}
+
+.bp-sales .sales-top-right {
+  grid-template-columns: repeat(3, minmax(96px, 1fr)) !important;
 }
 
