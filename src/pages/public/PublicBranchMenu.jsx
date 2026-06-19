@@ -90,11 +90,9 @@ export default function PublicBranchMenu() {
             <p className="mb-0">
               <strong>{getBranchLabel(branch)}</strong>
             </p>
-            {cartCount > 0 && (
-              <Link to={`/m/branch/${branchId}/cart`} className="btn_box_green btn_box">
-                {t("qr.myCart")} ({cartCount}) · {money(cartTotal)}
-              </Link>
-            )}
+            <Link to={`/m/branch/${branchId}/cart`} className="btn_box_green btn_box">
+              {t("qr.myCart")} ({cartCount}) · {money(cartTotal)}
+            </Link>
           </div>
         </div>
 
