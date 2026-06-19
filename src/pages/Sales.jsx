@@ -352,7 +352,7 @@ export default function Sales() {
   );
 
   return (
-    <div className="sales-page bp-sales">
+    <div className="sales-page bp-sales sales-terminal">
       {message && (
         <div className="alert alert-info sales-alert">
           {message}
@@ -362,343 +362,293 @@ export default function Sales() {
         </div>
       )}
 
-      {/* Top barcode row */}
-      <div className="card sales-card sales-card-top">
-        <div className="sales-top-grid">
-          <div className="sales-top-left">
-            <div className="sales-input-group">
-              <select className="sales-price-select" value={priceType} onChange={(e) => setPriceType(e.target.value)}>
-                <option value="price1">Fiyat 1</option>
-                <option value="price2">Fiyat 2</option>
-              </select>
-              <input
-                ref={barcodeRef}
-                className="sales-barcode-input"
-                placeholder="Ürün barkodunu okutunuz..."
-                value={barcode}
-                onChange={(e) => handleBarcodeInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitBarcode()}
-                autoFocus
-              />
-              <button type="button" className="sales-action-btn btn-primary-sales" onClick={submitBarcode}>
-                <i className="fa fa-search-plus" />
-                Ara
-              </button>
-              <button type="button" className="sales-action-btn btn-success-sales" onClick={() => setPriceModal(true)}>
-                <i className="fa fa-barcode" />
-                Fiyat Gör
-              </button>
-              <div className="sales-dropdown-wrap" ref={printWrapRef}>
-                <button type="button" className="sales-action-btn btn-warning-sales" onClick={() => setPrintOpen(!printOpen)}>
-                  <i className="fa fa-print" /> Yazdır
-                  <small>
-                    {lastSale?.code
-                      ? `Son fiş: ${lastSale.code}`
-                      : cart.length
-                        ? `${itemCount} ürün hazır`
-                        : "Satış bekleniyor."}
-                  </small>
+      <div className="sales-terminal__top card">
+        <div className="sales-terminal__search">
+          <select className="sales-price-select" value={priceType} onChange={(e) => setPriceType(e.target.value)}>
+            <option value="price1">Fiyat 1</option>
+            <option value="price2">Fiyat 2</option>
+          </select>
+          <input
+            ref={barcodeRef}
+            className="sales-barcode-input"
+            placeholder="Barkod okutun veya ürün arayın..."
+            value={barcode}
+            onChange={(e) => handleBarcodeInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitBarcode()}
+            autoFocus
+          />
+          <button type="button" className="sales-action-btn btn-primary-sales" onClick={submitBarcode}>
+            <i className="fa fa-search-plus" />
+            Ara
+          </button>
+          <button type="button" className="sales-action-btn btn-success-sales" onClick={() => setPriceModal(true)}>
+            <i className="fa fa-barcode" />
+            Fiyat
+          </button>
+          <div className="sales-dropdown-wrap" ref={printWrapRef}>
+            <button type="button" className="sales-action-btn btn-warning-sales" onClick={() => setPrintOpen(!printOpen)}>
+              <i className="fa fa-print" />
+              Yazdır
+            </button>
+            {printOpen && (
+              <div className="sales-dropdown-menu">
+                <button type="button" onClick={() => handlePrint("thermal", "SATIŞ FİŞİ")}>
+                  Termal Yazıcı İle Yazdır
                 </button>
-                {printOpen && (
-                  <div className="sales-dropdown-menu">
-                    <button type="button" onClick={() => handlePrint("thermal", "SATIŞ FİŞİ")}>
-                      Termal Yazıcı İle Yazdır
-                    </button>
-                    <button type="button" onClick={() => handlePrint("a4", "MÜŞTERİ NÜSHASI")}>
-                      A4 Yazıcı İle Yazdır
-                    </button>
-                    <button type="button" onClick={handleWhatsApp}>
-                      WhatsApp İle Gönder
-                    </button>
-                    <button type="button" onClick={() => setAutoPrint((prev) => !prev)}>
-                      Auto Print: {autoPrint ? "ON" : "OFF"}
-                    </button>
-                  </div>
-                )}
-              </div>
-              <button type="button" className="sales-action-btn btn-info-sales">
-                <i className="fa fa-plus-circle" /> Ödeme Ekle
-              </button>
-            </div>
-            {searchResults.length > 0 && (
-              <div className="sales-search-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Barkod</th>
-                      <th>Stok Kodu</th>
-                      <th>Ürün Adı</th>
-                      <th>Kalan Stok</th>
-                      <th>Fiyat 1</th>
-                      <th>Fiyat 2</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {searchResults.map((p) => (
-                      <tr key={p.id} onClick={() => addProductToCart(p)}>
-                        <td>{p.barcode}</td>
-                        <td>{p.stockCode}</td>
-                        <td>{p.name}</td>
-                        <td>{p.stock}</td>
-                        <td>{money(p.price1)}</td>
-                        <td>{money(p.price2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <button type="button" onClick={() => handlePrint("a4", "MÜŞTERİ NÜSHASI")}>
+                  A4 Yazıcı İle Yazdır
+                </button>
+                <button type="button" onClick={handleWhatsApp}>
+                  WhatsApp İle Gönder
+                </button>
+                <button type="button" onClick={() => setAutoPrint((prev) => !prev)}>
+                  Auto Print: {autoPrint ? "ON" : "OFF"}
+                </button>
               </div>
             )}
           </div>
-          <div className="sales-top-right">
-            <div className="sales-amount-box">
-              <label>Ödenen</label>
-              <input
-                className="sales-amount paid"
-                value={paid}
-                onChange={(e) => setPaid(e.target.value.replace(",", "."))}
-              />
-            </div>
-            <div className="sales-amount-box">
-              <label>Tutar</label>
-              <input className="sales-amount total" value={total.toFixed(2)} readOnly />
-            </div>
-            <div className="sales-amount-box">
-              <label>Para Üstü</label>
-              <input className="sales-amount change" value={change.toFixed(2)} readOnly />
-            </div>
-          </div>
+        </div>
+        <div className="sales-terminal__total">
+          <span>CƏMİ MƏBLƏĞ</span>
+          <strong>{money(total)}</strong>
         </div>
       </div>
 
-      {/* Main sales card */}
-      <div className="card sales-card sales-card-main">
-        <div className="sales-main-grid">
-          {/* Left: cart */}
-          <div className="sales-main-left">
-            <div className="sales-toolbar">
-              <div className="sales-toolbar-title">
-                <h5>
-                  Ürünler <i className="fa fa-info-circle" />
-                </h5>
-                <span className="sales-item-count">{itemCount}</span>
-              </div>
-              <div className="sales-toolbar-misc">
-                <input placeholder="Muhtelif Tutar" value={miscAmount} onChange={(e) => setMiscAmount(e.target.value)} />
-                <button type="button" className="btn btn-primary-rgba" onClick={addMisc}>
-                  Ekle
-                </button>
-              </div>
-              <div className="sales-toolbar-discount">
-                <input
-                  placeholder="İsk. Değeri"
-                  value={discount}
-                  onChange={(e) => setDiscount(e.target.value.replace(",", "."))}
-                />
-                <select value={discountType} onChange={(e) => setDiscountType(e.target.value)}>
-                  <option value="AZN">AZN</option>
-                  <option value="Yüzde">Yüzde</option>
-                </select>
-              </div>
-              <div className="sales-dropdown-wrap">
-                <button type="button" className="btn btn-dark-rgba" onClick={() => setOtherOpen(!otherOpen)}>
-                  <i className="fa fa-cog" /> Diğer
-                </button>
-                {otherOpen && (
-                  <div className="sales-dropdown-menu">
-                    <label>
-                      <input type="checkbox" /> Terazi Modu
-                    </label>
-                    <label>
-                      <input type="checkbox" /> İade Modu
-                    </label>
-                  </div>
-                )}
-              </div>
-            </div>
+      {searchResults.length > 0 && (
+        <div className="sales-terminal__search-results card">
+          {searchResults.map((p) => (
+            <button key={p.id} type="button" onClick={() => addProductToCart(p)}>
+              <span>{p.name}</span>
+              <strong>{money(p[priceType] ?? p.price1)}</strong>
+            </button>
+          ))}
+        </div>
+      )}
 
-            <ul className="sales-customer-tabs">
-              {tabTotals.map((tabTotal, idx) => (
-                <li key={idx}>
-                  <button
-                    type="button"
-                    className={activeTab === idx ? "active" : ""}
-                    onClick={() => setActiveTab(idx)}
-                  >
-                    Müşteri {idx + 1} ({tabTotal.toFixed(2)})
-                  </button>
-                </li>
-              ))}
-            </ul>
-
-            <div className="sales-cart-scroll">
-              <table className="sales-cart-table">
-                <thead>
+      <div className="sales-terminal__body card">
+        <aside className="sales-terminal__left">
+          <div className="sales-terminal__left-head">
+            <h5>Səbət ({itemCount})</h5>
+            <button type="button" className="sales-trash-all" onClick={clearAllLines}>
+              <i className="fa fa-trash" />
+            </button>
+          </div>
+          <ul className="sales-customer-tabs">
+            {tabTotals.map((tabTotal, idx) => (
+              <li key={idx}>
+                <button type="button" className={activeTab === idx ? "active" : ""} onClick={() => setActiveTab(idx)}>
+                  Müşteri {idx + 1} ({tabTotal.toFixed(2)})
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="sales-cart-scroll">
+            <table className="sales-cart-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 44 }} />
+                  <th>Ürün</th>
+                  <th style={{ width: 110 }}>Miktar</th>
+                  <th style={{ width: 74 }}>Fiyat</th>
+                  <th style={{ width: 84 }}>Tutar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cart.length === 0 ? (
                   <tr>
-                    <th style={{ width: 50 }}>
-                      <button type="button" className="sales-trash-all" onClick={clearAllLines}>
-                        <i className="fa fa-trash" />
-                      </button>
-                    </th>
-                    <th>Ürün</th>
-                    <th style={{ width: 120 }}>Miktar</th>
-                    <th style={{ width: 90 }}>Fiyat</th>
-                    <th style={{ width: 90 }}>Tutar</th>
+                    <td colSpan={5} className="sales-empty">
+                      Sepet boş.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {cart.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="sales-empty">
-                        &nbsp;
+                ) : (
+                  cart.map((line) => (
+                    <tr key={line.id}>
+                      <td>
+                        <button type="button" className="sales-trash-all" onClick={() => removeLine(line.id)}>
+                          <i className="fa fa-trash" />
+                        </button>
                       </td>
+                      <td>{line.name}</td>
+                      <td>
+                        <input
+                          type="number"
+                          min="1"
+                          className="sales-qty"
+                          value={line.qty}
+                          onChange={(e) => updateQty(line.id, Number(e.target.value))}
+                        />
+                      </td>
+                      <td>{line.price.toFixed(2)}</td>
+                      <td>{(line.qty * line.price).toFixed(2)}</td>
                     </tr>
-                  ) : (
-                    cart.map((line) => (
-                      <tr key={line.id}>
-                        <td>
-                          <button type="button" className="sales-trash-all" onClick={() => removeLine(line.id)}>
-                            <i className="fa fa-trash" />
-                          </button>
-                        </td>
-                        <td>{line.name}</td>
-                        <td>
-                          <input
-                            type="number"
-                            min="1"
-                            className="sales-qty"
-                            value={line.qty}
-                            onChange={(e) => updateQty(line.id, Number(e.target.value))}
-                          />
-                        </td>
-                        <td>{line.price.toFixed(2)}</td>
-                        <td>{(line.qty * line.price).toFixed(2)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </aside>
+
+        <section className="sales-terminal__right">
+          <div className="sales-terminal__customer-row">
+            <input value={selectedCustomer?.name || ""} placeholder="Müşteri seç" readOnly />
+            <button type="button" className="btn btn-info" onClick={() => setCustomerModal(true)}>
+              <i className="fa fa-plus-circle" />
+            </button>
+            {customerId && (
+              <button type="button" className="btn btn-danger btn-xs" onClick={() => setCustomerForTab("")}>
+                <i className="fa fa-times-circle" />
+              </button>
+            )}
+            <button type="button" className="btn btn-default btn-xs" onClick={() => setOtherOpen(!otherOpen)}>
+              <i className="fa fa-cog" />
+            </button>
+            {otherOpen && (
+              <div className="sales-dropdown-menu">
+                <label>
+                  <input type="checkbox" /> Terazi Modu
+                </label>
+                <label>
+                  <input type="checkbox" /> İade Modu
+                </label>
+              </div>
+            )}
+          </div>
+
+          <div className="sales-terminal__inline-tools">
+            <div className="sales-toolbar-misc">
+              <input placeholder="Muhtelif Tutar" value={miscAmount} onChange={(e) => setMiscAmount(e.target.value)} />
+              <button type="button" className="btn btn-primary-rgba" onClick={addMisc}>
+                Ekle
+              </button>
+            </div>
+            <div className="sales-toolbar-discount">
+              <input
+                placeholder="İsk. Değeri"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value.replace(",", "."))}
+              />
+              <select value={discountType} onChange={(e) => setDiscountType(e.target.value)}>
+                <option value="AZN">AZN</option>
+                <option value="Yüzde">Yüzde</option>
+              </select>
+            </div>
+            <input
+              className="sales-terminal__paid-input"
+              value={paid}
+              onChange={(e) => setPaid(e.target.value.replace(",", "."))}
+              placeholder="Ödənilən"
+            />
+            <div className="sales-terminal__meta">
+              <span>{now.toLocaleString("tr-TR")}</span>
+              <span>Para Üstü: {change.toFixed(2)}</span>
             </div>
           </div>
 
-          {/* Right: payment panel */}
-          <div className="sales-main-right">
-            <div className="sales-customer-row">
-              <input value={selectedCustomer?.name || ""} placeholder="Müşteri Seç" readOnly />
-              <button type="button" className="btn btn-info" onClick={() => setCustomerModal(true)}>
-                <i className="fa fa-plus-circle" /> Seç
-              </button>
-              {customerId && (
-                <button type="button" className="btn btn-danger btn-xs" onClick={() => setCustomerForTab("")}>
-                  <i className="fa fa-times-circle" />
-                </button>
-              )}
-              <button type="button" className="btn btn-warning btn-xs">
-                <i className="fa fa-bar-chart" />
-              </button>
-            </div>
-
-            <div className="sales-meta-row">
-              <div className="sales-datetime">{now.toLocaleString("tr-TR")}</div>
-              <div className="sales-limit">
-                <b>
-                  Limit: {(selectedCustomer?.creditLimit || 0).toFixed(2)} Kalan:{" "}
-                  {((selectedCustomer?.creditLimit || 0) - (selectedCustomer?.debt || 0)).toFixed(2)}
-                </b>
-                <button type="button" className="sales-details-toggle" onClick={() => setShowDetails(!showDetails)}>
-                  <i className={`fa fa-chevron-${showDetails ? "up" : "down"}`} /> Diğer Detaylar
-                </button>
-              </div>
-            </div>
-
+          <div className="sales-terminal__detail-toggle">
+            <button type="button" className="sales-details-toggle" onClick={() => setShowDetails(!showDetails)}>
+              <i className={`fa fa-chevron-${showDetails ? "up" : "down"}`} /> Diğer Detaylar
+            </button>
             {showDetails && (
               <div className="sales-details-panel">
                 <input placeholder="Satışa dair notlar" value={note} onChange={(e) => setNote(e.target.value)} />
                 <input placeholder="Telefon (5xxxxxxxxxx)" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                <label className="sales-sms-label">
-                  SMS Gönder <input type="checkbox" />
-                </label>
-                <div className="sales-details-grid">
-                  <div>
-                    <label>İşlem Tarihi</label>
-                    <input value={now.toLocaleDateString("tr-TR")} disabled />
-                  </div>
-                  <div>
-                    <label>Personel Seçimi</label>
-                    <select disabled defaultValue="0">
-                      <option value="0">Yönetici</option>
-                    </select>
-                  </div>
-                </div>
               </div>
             )}
+          </div>
 
-            <div className="sales-quick-cash">
-              {[20, 50, 100, 200].map((n) => (
-                <button key={n} type="button" className="btn btn-primary-rgba" onClick={() => adjustPaid(n)}>
-                  {n}
+          <ul className="sales-fast-tabs">
+            {QUICK_LISTS.map((label, idx) => (
+              <li key={label}>
+                <button type="button" className={fastListTab === idx ? "active" : ""} onClick={() => setFastListTab(idx)}>
+                  {label}
                 </button>
-              ))}
-              <button type="button" className="btn btn-primary-rgba" onClick={() => adjustPaid(Number(paid || 0) + 20)}>
-                +20
+              </li>
+            ))}
+          </ul>
+          <div className="sales-fast-grid">
+            {fastListTab === 0 && fastProducts.length === 0 && (
+              <p className="sales-fast-empty">
+                Bu listeye henüz ürün eklememişsiniz. Ürün kartından &quot;Satış sayfasında göster&quot; seçeneği ile
+                ekleyebilirsiniz.
+              </p>
+            )}
+            {fastProducts.map((p) => (
+              <button key={p.id} type="button" className="sales-fast-item" onClick={() => addProductToCart(p)}>
+                {p.hasImage ? (
+                  <img className="sales-fast-item__img" src={getProductImageSrc(p)} alt="" loading="lazy" />
+                ) : (
+                  <span className="sales-fast-item__icon">
+                    <i className="fa fa-cube" />
+                  </span>
+                )}
+                <span>{p.name}</span>
+                <strong>{money(p.price1)}</strong>
               </button>
-              <button type="button" className="btn btn-primary-rgba" onClick={() => adjustPaid(Math.max(0, Number(paid || 0) - 20))}>
-                -20
-              </button>
-            </div>
+            ))}
+          </div>
 
-            <div className="sales-pay-row">
-              <button type="button" className="btn btn-success sales-pay-btn" onClick={() => finalize("cash")}>
-                <b>
-                  ₼ (F8)
-                  <br />
-                  NAKİT
-                </b>
-              </button>
-              <button type="button" className="btn btn-info sales-pay-btn" onClick={() => finalize("pos")}>
-                <b>
-                  <i className="fa fa-credit-card" /> (F9)
-                  <br />
-                  POS
-                </b>
-              </button>
-              <button type="button" className="btn btn-warning sales-pay-btn" onClick={() => finalize("open")}>
-                <b>
-                  <i className="fa fa-book" /> (F10)
-                  <br />
-                  AÇIK HESAP
-                </b>
-              </button>
-            </div>
+          <div className="sales-pay-row">
+            <button type="button" className="btn btn-success sales-pay-btn" onClick={() => finalize("cash")}>
+              <b>
+                ₼ (F8)
+                <br />
+                NAKİT
+              </b>
+            </button>
+            <button type="button" className="btn btn-info sales-pay-btn" onClick={() => finalize("pos")}>
+              <b>
+                <i className="fa fa-credit-card" /> (F9)
+                <br />
+                POS
+              </b>
+            </button>
+            <button type="button" className="btn btn-warning sales-pay-btn" onClick={() => finalize("open")}>
+              <b>
+                <i className="fa fa-book" /> (F10)
+                <br />
+                AÇIK HESAP
+              </b>
+            </button>
+          </div>
+        </section>
+      </div>
 
-            <ul className="sales-fast-tabs">
-              {QUICK_LISTS.map((label, idx) => (
-                <li key={label}>
-                  <button type="button" className={fastListTab === idx ? "active" : ""} onClick={() => setFastListTab(idx)}>
-                    {label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="sales-fast-grid">
-              {fastListTab === 0 && fastProducts.length === 0 && (
-                <p className="sales-fast-empty">
-                  Bu listeye henüz ürün eklememişsiniz. Ürün kartından &quot;Satış sayfasında göster&quot; seçeneği ile
-                  ekleyebilirsiniz.
-                </p>
-              )}
-              {fastProducts.map((p) => (
-                <button key={p.id} type="button" className="sales-fast-item" onClick={() => addProductToCart(p)}>
-                  {p.hasImage ? (
-                    <img className="sales-fast-item__img" src={getProductImageSrc(p)} alt="" loading="lazy" />
-                  ) : (
-                    <span className="sales-fast-item__icon">
-                      <i className="fa fa-cube" />
-                    </span>
-                  )}
-                  <span>{p.name}</span>
-                  <strong>{money(p.price1)}</strong>
-                </button>
-              ))}
+      {/* keep legacy elements mounted for compatibility */}
+      <div style={{ display: "none" }}>
+        <div className="sales-main-right">
+          <div className="sales-meta-row" />
+          <div className="sales-quick-cash">
+            {[20, 50, 100, 200].map((n) => (
+              <button key={n} type="button" onClick={() => adjustPaid(n)}>
+                {n}
+              </button>
+            ))}
+            <button type="button" onClick={() => adjustPaid(Number(paid || 0) + 20)}>
+              +20
+            </button>
+            <button type="button" onClick={() => adjustPaid(Math.max(0, Number(paid || 0) - 20))}>
+              -20
+            </button>
+          </div>
+          <div className="sales-limit">
+            <b>
+              Limit: {(selectedCustomer?.creditLimit || 0).toFixed(2)} Kalan:{" "}
+              {((selectedCustomer?.creditLimit || 0) - (selectedCustomer?.debt || 0)).toFixed(2)}
+            </b>
+          </div>
+          <label className="sales-sms-label">
+            SMS Gönder <input type="checkbox" />
+          </label>
+          <div className="sales-details-grid">
+            <div>
+              <label>İşlem Tarihi</label>
+              <input value={now.toLocaleDateString("tr-TR")} disabled />
+            </div>
+            <div>
+              <label>Personel Seçimi</label>
+              <select disabled defaultValue="0">
+                <option value="0">Yönetici</option>
+              </select>
             </div>
           </div>
         </div>
