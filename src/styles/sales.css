@@ -1497,13 +1497,19 @@
   background: var(--dzy-bg);
   color: var(--dzy-text);
   display: grid;
+  grid-template-areas:
+    "dzy-top"
+    "dzy-workspace"
+    "dzy-paybar";
   grid-template-rows: 48px 1fr 60px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   overflow: hidden !important;
   font-family: Inter, "Segoe UI", Tahoma, sans-serif;
 }
 
 .dzy-sales__top {
+  grid-area: dzy-top;
   display: grid;
   grid-template-columns: 230px minmax(280px, 1fr) 250px;
   align-items: center;
@@ -1634,6 +1640,7 @@
 }
 
 .dzy-sales__workspace {
+  grid-area: dzy-workspace;
   min-height: 0;
   display: grid;
   grid-template-columns: 34% minmax(0, 66%);
@@ -1942,15 +1949,21 @@
 }
 
 .dzy-paybar {
+  grid-area: dzy-paybar;
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 70px;
   gap: 12px;
+  height: 60px;
+  align-self: stretch;
+  min-width: 0;
 }
 
 .dzy-paybar__btn,
 .dzy-paybar__print {
   min-width: 0;
+  width: 100%;
+  height: 100%;
   border: none;
   border-radius: 10px;
   color: #fff;
@@ -1993,6 +2006,11 @@
 @media (max-width: 1024px) {
   .dzy-sales {
     grid-template-rows: 46px 1fr 58px;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas:
+      "dzy-top"
+      "dzy-workspace"
+      "dzy-paybar";
     gap: 6px;
     padding: 5px;
   }
@@ -2032,7 +2050,10 @@
   }
 
   .dzy-paybar {
+    grid-area: dzy-paybar;
+    grid-template-columns: 1fr 1fr 1fr 58px !important;
     gap: 10px;
+    height: 58px;
   }
 }
 
@@ -2045,9 +2066,12 @@
   }
 
   .dzy-sales__top,
-  .dzy-sales__workspace,
-  .dzy-paybar {
+  .dzy-sales__workspace {
     grid-template-columns: 1fr;
+  }
+
+  .dzy-paybar {
+    grid-template-columns: 1fr 1fr 1fr 58px !important;
   }
 
   .dzy-products__grid {
