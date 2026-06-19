@@ -1499,9 +1499,10 @@
   display: grid;
   grid-template-areas:
     "dzy-top"
+    "dzy-payment"
     "dzy-workspace"
     "dzy-paybar";
-  grid-template-rows: 48px 1fr 60px;
+  grid-template-rows: 48px 46px 1fr 60px;
   grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   overflow: hidden !important;
@@ -1526,8 +1527,103 @@
   min-width: 0;
 }
 
+.dzy-sales__menu-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #24608e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.dzy-sales__menu-btn i,
 .dzy-sales__terminal i {
   font-size: 18px;
+}
+
+.dzy-terminal-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+}
+
+.dzy-terminal-menu__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(24, 28, 35, 0.28);
+  backdrop-filter: blur(8px);
+}
+
+.dzy-terminal-menu__panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(320px, 86vw);
+  padding: 12px;
+  background: #fff;
+  border-right: 1px solid var(--dzy-line);
+  box-shadow: 12px 0 32px rgba(24, 28, 35, 0.18);
+  overflow-y: auto;
+}
+
+.dzy-terminal-menu__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 4px 14px;
+  border-bottom: 1px solid #e8eaf4;
+  margin-bottom: 8px;
+}
+
+.dzy-terminal-menu__head button {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  background: #eef0fa;
+  color: #414755;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.dzy-terminal-menu__link,
+.dzy-terminal-menu__group span,
+.dzy-terminal-menu__group a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  border-radius: 10px;
+  color: #181c23;
+  text-decoration: none;
+}
+
+.dzy-terminal-menu__link,
+.dzy-terminal-menu__group span {
+  padding: 0 10px;
+  font-weight: 700;
+}
+
+.dzy-terminal-menu__link:hover,
+.dzy-terminal-menu__group a:hover {
+  background: #eef0fa;
+}
+
+.dzy-terminal-menu__group {
+  margin: 4px 0;
+}
+
+.dzy-terminal-menu__group a {
+  margin-left: 28px;
+  padding: 0 10px;
+  color: #5b6472;
+  font-size: 13px;
 }
 
 .dzy-sales__search {
@@ -1637,6 +1733,70 @@
   border-bottom: 1px solid #edf0f8;
   background: transparent;
   cursor: pointer;
+}
+
+.dzy-payment-panel {
+  grid-area: dzy-payment;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 220px auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--dzy-line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.dzy-payment-panel label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.dzy-payment-panel label span {
+  color: #414755;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dzy-payment-panel input {
+  width: 120px;
+  height: 32px;
+  border: 1px solid #d8d9e5;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-weight: 800;
+  color: var(--dzy-primary);
+  background: #eef0fa;
+}
+
+.dzy-payment-panel__quick {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dzy-payment-panel__quick button {
+  min-width: 48px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: #e6eefc;
+  color: var(--dzy-primary);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dzy-payment-panel__change {
+  justify-self: end;
+  color: #0f8a4b;
+  font-size: 15px;
+  white-space: nowrap;
 }
 
 .dzy-sales__workspace {
@@ -1999,16 +2159,21 @@
   border: 1px solid var(--dzy-line);
 }
 
+.dzy-mobile-nav {
+  display: none;
+}
+
 .dzy-sales__hidden-tools {
   display: none;
 }
 
 @media (max-width: 1024px) {
   .dzy-sales {
-    grid-template-rows: 46px 1fr 58px;
+    grid-template-rows: 46px 44px 1fr 58px;
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-areas:
       "dzy-top"
+      "dzy-payment"
       "dzy-workspace"
       "dzy-paybar";
     gap: 6px;
@@ -2062,7 +2227,14 @@
     height: auto !important;
     min-height: 100dvh;
     overflow: auto !important;
-    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "dzy-top"
+      "dzy-payment"
+      "dzy-workspace"
+      "dzy-paybar"
+      "dzy-mobile-nav";
+    grid-template-rows: auto auto minmax(0, 1fr) auto 58px;
+    padding-bottom: 0;
   }
 
   .dzy-sales__top,
@@ -2070,13 +2242,100 @@
     grid-template-columns: 1fr;
   }
 
+  .dzy-sales__workspace {
+    overflow: visible;
+  }
+
+  .dzy-sales--products .dzy-cart,
+  .dzy-sales--cart .dzy-products {
+    display: none;
+  }
+
+  .dzy-sales--cart .dzy-cart,
+  .dzy-sales--products .dzy-products {
+    display: grid;
+  }
+
   .dzy-paybar {
     grid-template-columns: 1fr 1fr 1fr 58px !important;
+    height: 54px;
+    gap: 6px;
+  }
+
+  .dzy-payment-panel {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .dzy-payment-panel label {
+    justify-content: space-between;
+  }
+
+  .dzy-payment-panel input {
+    width: min(150px, 45vw);
+  }
+
+  .dzy-payment-panel__quick {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .dzy-payment-panel__quick button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dzy-payment-panel__change {
+    justify-self: stretch;
+    text-align: center;
+  }
+
+  .dzy-paybar__btn,
+  .dzy-paybar__print {
+    border-radius: 9px;
+    font-size: 11px;
+    gap: 5px;
   }
 
   .dzy-products__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow: visible;
+  }
+
+  .dzy-cart {
+    min-height: 52dvh;
+  }
+
+  .dzy-mobile-nav {
+    grid-area: dzy-mobile-nav;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    min-height: 54px;
+    padding: 4px;
+    border-top: 1px solid var(--dzy-line);
+    background: #fff;
+  }
+
+  .dzy-mobile-nav button {
+    border: none;
+    border-radius: 12px;
+    background: #eef0fa;
+    color: #414755;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .dzy-mobile-nav button.active {
+    background: var(--dzy-primary);
+    color: #fff;
   }
 }
 

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import { useStore } from "../store/StoreContext";
 import Modal from "../components/ui/Modal";
+import { navigation } from "../data/navigation";
 import { calcCartTotal, formatMoney, uid } from "../utils/format";
 import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
@@ -17,6 +20,7 @@ function emptyCarts() {
 
 export default function Sales() {
   const { user } = useAuth();
+  const { t } = useLocale();
   const { state, completeSale } = useStore();
   const [activeTab, setActiveTab] = useState(0);
   const [carts, setCarts] = useState(emptyCarts);
@@ -42,6 +46,8 @@ export default function Sales() {
   });
   const [otherOpen, setOtherOpen] = useState(false);
   const [fastListTab, setFastListTab] = useState(0);
+  const [mobileView, setMobileView] = useState("products");
+  const [terminalMenuOpen, setTerminalMenuOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [lastSale, setLastSale] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -136,6 +142,12 @@ export default function Sales() {
   }, [printOpen]);
 
   useEffect(() => {
+    if (!message) return undefined;
+    const timer = window.setTimeout(() => setMessage(""), 3500);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
+  useEffect(() => {
     setPaid(cart.length ? String(total) : "0");
   }, [total, activeTab, cart.length]);
 
@@ -187,6 +199,7 @@ export default function Sales() {
     });
     setBarcode("");
     setSearchResults([]);
+    setMobileView("cart");
     barcodeRef.current?.focus();
     playPosItemAddedSound();
   };
@@ -355,7 +368,7 @@ export default function Sales() {
   const emptySlots = Math.max(0, 12 - visibleProducts.length);
 
   return (
-    <div className="sales-page bp-sales sales-terminal dzy-sales">
+    <div className={`sales-page bp-sales sales-terminal dzy-sales dzy-sales--${mobileView}`}>
       {message && (
         <div className="alert alert-info sales-alert">
           {message}
@@ -367,7 +380,15 @@ export default function Sales() {
 
       <header className="dzy-sales__top">
         <div className="dzy-sales__terminal">
-          <i className="fa fa-bars" />
+          <button
+            type="button"
+            className="dzy-sales__menu-btn"
+            onClick={() => setTerminalMenuOpen((open) => !open)}
+            aria-label="Menünü aç"
+            aria-expanded={terminalMenuOpen}
+          >
+            <i className="fa fa-bars" />
+          </button>
           <strong>Terminal 01</strong>
         </div>
         <div className="dzy-sales__search">
@@ -418,6 +439,65 @@ export default function Sales() {
           <strong>{money(total)}</strong>
         </div>
       </header>
+
+      <section className="dzy-payment-panel" aria-label="Ödəniş məlumatı">
+        <label>
+          <span>Ödənilən</span>
+          <input
+            value={paid}
+            onChange={(e) => setPaid(e.target.value.replace(",", "."))}
+            inputMode="decimal"
+            placeholder="0.00"
+          />
+        </label>
+        <div className="dzy-payment-panel__quick">
+          {[10, 20, 50, 100].map((n) => (
+            <button key={n} type="button" onClick={() => adjustPaid(n)}>
+              {n}
+            </button>
+          ))}
+        </div>
+        <strong className="dzy-payment-panel__change">Para üstü: {money(change)}</strong>
+      </section>
+
+      {terminalMenuOpen && (
+        <div className="dzy-terminal-menu">
+          <div className="dzy-terminal-menu__backdrop" onClick={() => setTerminalMenuOpen(false)} />
+          <nav className="dzy-terminal-menu__panel" aria-label="POS menü">
+            <div className="dzy-terminal-menu__head">
+              <strong>BenimPOS</strong>
+              <button type="button" onClick={() => setTerminalMenuOpen(false)} aria-label="Menünü bağla">
+                ×
+              </button>
+            </div>
+            {navigation.map((item) =>
+              item.children?.length ? (
+                <div className="dzy-terminal-menu__group" key={item.labelKey || item.label}>
+                  <span>
+                    <i className={`fa ${item.icon}`} />
+                    {item.labelKey ? t(item.labelKey) : item.label}
+                  </span>
+                  {item.children.map((child) => (
+                    <Link key={child.path} to={child.path} onClick={() => setTerminalMenuOpen(false)}>
+                      {child.labelKey ? t(child.labelKey) : child.label}
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <Link
+                  key={item.path}
+                  className="dzy-terminal-menu__link"
+                  to={item.path}
+                  onClick={() => setTerminalMenuOpen(false)}
+                >
+                  <i className={`fa ${item.icon}`} />
+                  {item.labelKey ? t(item.labelKey) : item.label}
+                </Link>
+              )
+            )}
+          </nav>
+        </div>
+      )}
 
       {searchResults.length > 0 && (
         <div className="dzy-sales__search-results">
@@ -598,6 +678,25 @@ export default function Sales() {
           <i className="fa fa-print" />
         </button>
       </footer>
+
+      <nav className="dzy-mobile-nav" aria-label="Mobil satış bölmələri">
+        <button
+          type="button"
+          className={mobileView === "products" ? "active" : ""}
+          onClick={() => setMobileView("products")}
+        >
+          <i className="fa fa-th-large" />
+          <span>Məhsullar</span>
+        </button>
+        <button
+          type="button"
+          className={mobileView === "cart" ? "active" : ""}
+          onClick={() => setMobileView("cart")}
+        >
+          <i className="fa fa-shopping-cart" />
+          <span>Səbət ({itemCount})</span>
+        </button>
+      </nav>
 
       <div className="dzy-sales__hidden-tools">
         <input
