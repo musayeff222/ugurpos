@@ -1,6 +1,8 @@
 .app-shell {
   display: flex;
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .leftbar {
@@ -322,6 +324,8 @@
 .contentbar {
   padding: 24px;
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .contentbar-menu {
@@ -417,8 +421,81 @@
   color: #856404;
   text-decoration: none;
   font-size: 14px;
+  word-break: break-word;
 }
 
 .topbar .lang-switcher {
   flex-shrink: 0;
+}
+
+@media (max-width: 1200px) and (min-width: 992px) {
+  .leftbar {
+    width: 76px;
+  }
+
+  .rightbar {
+    margin-left: 76px;
+  }
+
+  .logobar {
+    padding: 14px 8px;
+  }
+
+  .navigationbar {
+    padding: 8px 0 14px;
+  }
+
+  .vertical-menu a,
+  .nav-parent {
+    justify-content: center;
+    padding: 11px 8px;
+  }
+
+  .vertical-menu a > span:not(.nav-badge),
+  .nav-parent > span {
+    display: none;
+  }
+
+  .vertical-submenu {
+    display: none;
+  }
+
+  .nav-chevron {
+    display: none;
+  }
+
+  .vertical-menu .nav-badge {
+    margin-left: 0;
+    position: absolute;
+    top: 4px;
+    right: 4px;
+  }
+
+  .topbar-inner {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .togglebar {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .topbar-search {
+    max-width: 220px;
+  }
+
+  .infobar {
+    gap: 10px;
+  }
+
+  .top-link,
+  .icon-btn,
+  .firm-label {
+    font-size: 12px;
+  }
+
+  .contentbar {
+    padding: 14px;
+  }
 }

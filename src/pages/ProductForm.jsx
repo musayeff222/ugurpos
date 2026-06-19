@@ -1,54 +1,119 @@
-import { Link } from "react-router-dom";
-import useIsDesktop from "../hooks/useIsDesktop";
-import useProductForm from "../hooks/useProductForm";
-import MobileProductForm from "../components/products/MobileProductForm";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useStore } from "../store/StoreContext";
+import { api } from "../api/client";
 import PageHeader from "../components/ui/PageHeader";
 import ProductImageField from "../components/ProductImageField";
-import { PRODUCT_UNITS } from "../data/productUnits";
+import { DEFAULT_PRODUCT_UNIT, PRODUCT_UNITS } from "../data/productUnits";
+
+const emptyForm = {
+  stockCode: "",
+  name: "",
+  groupId: "",
+  unit: DEFAULT_PRODUCT_UNIT,
+  stock: 0,
+  criticalStock: 5,
+  vat: 20,
+  buyPrice: 0,
+  price1: 0,
+  price2: 0,
+  onSalePage: true,
+};
 
 export default function ProductForm() {
-  const isDesktop = useIsDesktop();
-  const formApi = useProductForm();
-  const {
-    state,
-    existing,
-    form,
-    setField,
-    imageValue,
-    setImageValue,
-    message,
-    setMessage,
-    saving,
-    saveProduct,
-    lookupBarcode,
-    profitPercent,
-    setProfitPercent,
-    adjustStock,
-    navigate,
-  } = formApi;
+  const { state, addProduct, updateProduct, uploadProductImage } = useStore();
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const editId = params.get("id");
+  const existing = state.products.find((p) => p.id === editId);
+  const [form, setForm] = useState(emptyForm);
+  const [imageValue, setImageValue] = useState(undefined);
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  if (!isDesktop) {
-    return (
-      <MobileProductForm
-        existing={existing}
-        form={form}
-        setField={setField}
-        imageValue={imageValue}
-        setImageValue={setImageValue}
-        message={message}
-        setMessage={setMessage}
-        saving={saving}
-        saveProduct={saveProduct}
-        removeProduct={formApi.removeProduct}
-        lookupBarcode={lookupBarcode}
-        profitPercent={profitPercent}
-        setProfitPercent={setProfitPercent}
-        adjustStock={adjustStock}
-        navigate={navigate}
-        groups={state.groups}
-      />
-    );
-  }
+  useEffect(() => {
+    if (existing) {
+      setForm({ ...emptyForm, ...existing });
+      setImageValue(undefined);
+    } else {
+      setForm(emptyForm);
+      setImageValue(undefined);
+    }
+  }, [existing?.id]);
+
+  const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const buildProductPayload = () => ({
+    name: form.name.trim(),
+    groupId: form.groupId || state.groups[0]?.id,
+    stock: Number(form.stock),
+    criticalStock: Number(form.criticalStock),
+    vat: Number(form.vat),
+    buyPrice: Number(form.buyPrice),
+    price1: Number(form.price1),
+    price2: Number(form.price2),
+    unit: form.unit || DEFAULT_PRODUCT_UNIT,
+    onSalePage: !!form.onSalePage,
+  });
+
+  const persistProductImage = async (productId) => {
+    if (imageValue === undefined) return;
+
+    if (imageValue === null) {
+      await api.updateProduct(productId, { removeImage: true });
+      return;
+    }
+
+    if (imageValue.file) {
+      await uploadProductImage(productId, imageValue.file);
+      return;
+    }
+
+    if (imageValue.data && imageValue.mime) {
+      await api.updateProduct(productId, {
+        imageData: imageValue.data,
+        imageMime: imageValue.mime,
+      });
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) {
+      setMessage("Ürün adı zorunludur.");
+      return;
+    }
+    if (imageValue && imageValue !== null && !imageValue.file && !imageValue.data) {
+      setMessage("Resim hazırlanamadı. Lütfen tekrar seçin.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const payload = buildProductPayload();
+
+      if (existing) {
+        await updateProduct(existing.id, {
+          ...payload,
+          barcode: existing.barcode,
+          stockCode: form.stockCode || existing.stockCode,
+        });
+        await persistProductImage(existing.id);
+        setImageValue(undefined);
+        setMessage("Ürün güncellendi.");
+      } else {
+        const created = await addProduct(payload);
+        await persistProductImage(created.id);
+        navigate("/products");
+      }
+    } catch (err) {
+      setMessage(err.message || "Kayıt başarısız.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -66,13 +131,7 @@ export default function ProductForm() {
           Barkod ve stok kodu kayıt sırasında otomatik oluşturulur.
         </p>
       )}
-      <form
-        className="card form-grid"
-        onSubmit={(e) => {
-          e.preventDefault();
-          saveProduct();
-        }}
-      >
+      <form className="card form-grid" onSubmit={handleSubmit}>
         {existing && (
           <>
             <label>Barkod</label>

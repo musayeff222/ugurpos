@@ -9,6 +9,8 @@ body,
 #root {
   margin: 0;
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -69,6 +71,8 @@ img {
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   margin-bottom: 24px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .card-header {
@@ -85,6 +89,8 @@ img {
 
 .card-body {
   padding: 20px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .badge {
@@ -229,12 +235,14 @@ img {
 
 .table-wrap {
   overflow-x: auto;
+  max-width: 100%;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+  max-width: 100%;
 }
 
 th,
@@ -259,4 +267,66 @@ th {
   margin-top: 12px;
   color: #8a98ac;
   font-size: 12px;
+}
+
+@media (max-width: 1024px) {
+  body {
+    font-size: 13px;
+  }
+
+  .row {
+    margin: 0 -8px 16px;
+  }
+
+  .col,
+  .stat-col,
+  .half-col,
+  .full-col {
+    padding: 0 8px;
+    min-width: 0;
+  }
+
+  .card {
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    padding: 12px 14px;
+  }
+
+  .card-body {
+    padding: 12px;
+  }
+
+  .table-toolbar {
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .table-search input,
+  .table-toolbar select {
+    padding: 5px 8px;
+    margin-left: 4px;
+  }
+
+  table {
+    font-size: 11px;
+    table-layout: auto;
+  }
+
+  th,
+  td {
+    padding: 7px 8px;
+    word-break: break-word;
+  }
+
+  .table-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+  }
 }

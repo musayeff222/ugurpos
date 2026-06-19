@@ -221,9 +221,6 @@ export default function SalesMobile({
           <button type="button" className="sales-mobile__pay sales-mobile__pay--open" onClick={() => onFinalize("open")}>
             Açık Hesap
           </button>
-          <button type="button" className="sales-mobile__pay sales-mobile__pay--partial" onClick={() => onFinalize("partial")}>
-            Parçalı
-          </button>
         </div>
 
         <ul className="sales-mobile__fast-tabs">

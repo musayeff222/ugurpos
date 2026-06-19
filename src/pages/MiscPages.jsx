@@ -76,7 +76,7 @@ export function VariantsPage() {
   return (
     <SimpleToolPage title="Ürün Varyantları" description="Renk, beden gibi varyant tanımları.">
       {message && <div className="alert alert-info">{message}</div>}
-      <form className="form-inline mb-3" onSubmit={handleAdd}>
+      <form className="form-inline-bar mb-3" onSubmit={handleAdd}>
         <select value={form.productId} onChange={(e) => setForm({ ...form, productId: e.target.value })} required>
           <option value="">Ana ürün seçin</option>
           {state.products.map((p) => (
@@ -139,7 +139,7 @@ export function SubProductsPage() {
   return (
     <SimpleToolPage title="Alt Ürün Tanımları" description="Set / combo ürün tanımları.">
       {message && <div className="alert alert-info">{message}</div>}
-      <form className="form-inline mb-3" onSubmit={handleAdd}>
+      <form className="form-inline-bar mb-3" onSubmit={handleAdd}>
         <select
           value={form.parentProductId}
           onChange={(e) => setForm({ ...form, parentProductId: e.target.value })}

@@ -86,8 +86,8 @@ export default function LabelPrintPage({ designer = false }) {
             </button>
           </div>
 
-          <div style={{ maxHeight: 220, overflow: "auto", marginBottom: 16, border: "1px solid #ebebeb", borderRadius: 6 }}>
-            <table style={{ width: "100%", fontSize: 13 }}>
+          <div className="table-wrap" style={{ maxHeight: 220, marginBottom: 16, border: "1px solid #ebebeb", borderRadius: 6 }}>
+            <table style={{ fontSize: 13 }}>
               <thead>
                 <tr>
                   <th style={{ width: 40 }} />

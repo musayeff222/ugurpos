@@ -47,26 +47,28 @@ export default function Refund() {
       </div>
       <div className="card">
         <div className="card-body">
-          <table>
-            <thead>
-              <tr>
-                <th>Ürün</th>
-                <th>Adet</th>
-                <th>Fiyat</th>
-                <th>Tutar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, idx) => (
-                <tr key={idx}>
-                  <td>{item.name}</td>
-                  <td>{item.qty}</td>
-                  <td>{formatMoney(item.price)}</td>
-                  <td>{formatMoney(item.qty * item.price)}</td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ürün</th>
+                  <th>Adet</th>
+                  <th>Fiyat</th>
+                  <th>Tutar</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map((item, idx) => (
+                  <tr key={idx}>
+                    <td>{item.name}</td>
+                    <td>{item.qty}</td>
+                    <td>{formatMoney(item.price)}</td>
+                    <td>{formatMoney(item.qty * item.price)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <input placeholder="İade notu" value={note} onChange={(e) => setNote(e.target.value)} style={{ marginTop: 12, width: "100%" }} />
           <button type="button" className="btn btn-warning" style={{ marginTop: 12 }} onClick={submit}>
             İadeyi Tamamla

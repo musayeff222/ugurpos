@@ -271,7 +271,7 @@ export default function Sales() {
     let paidAmount = Number(paid) || 0;
     if (paymentType === "cash") {
       paidAmount = Math.max(paidAmount, total);
-    } else if (paymentType === "pos" || paymentType === "partial") {
+    } else if (paymentType === "pos") {
       paidAmount = total;
     }
 
@@ -666,13 +666,6 @@ export default function Sales() {
                   <i className="fa fa-book" /> (F10)
                   <br />
                   AÇIK HESAP
-                </b>
-              </button>
-              <button type="button" className="btn btn-primary sales-pay-btn" onClick={() => finalize("partial")}>
-                <b>
-                  <i className="fa fa-random" />
-                  <br />
-                  PARÇALI
                 </b>
               </button>
             </div>
