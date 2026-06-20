@@ -293,7 +293,7 @@ export default function Sales() {
         items: cart,
         paymentType,
         customerId: customerId || null,
-        staffName: "Admin",
+        staffName: user?.staffName || "Admin",
         note,
         discount: Number(discount) || 0,
         discountType,

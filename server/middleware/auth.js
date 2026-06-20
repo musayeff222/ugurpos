@@ -34,6 +34,23 @@ export function signBranchToken(branch, firmName) {
   });
 }
 
+export function signStaffToken(staff, branch, firmName) {
+  return signToken({
+    id: `staff_${staff.id}`,
+    email: staff.login,
+    firmId: branch.firm_id,
+    firmName,
+    branchId: branch.id,
+    branchName: branch.name,
+    branchNo: branch.code ? String(parseInt(branch.code, 10) || branch.code) : "",
+    staffId: staff.id,
+    staffName: `${staff.name || ""} ${staff.surname || ""}`.trim() || staff.name,
+    staffRole: staff.role || "Kasiyer",
+    role: "staff",
+    loginType: "staff",
+  });
+}
+
 function readAuthToken(req) {
   const header = req.headers.authorization;
   if (header?.startsWith("Bearer ")) return header.slice(7);

@@ -11,6 +11,7 @@ import {
 } from "../utils/productImage.js";
 import { productImageUpload } from "../middleware/imageUpload.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
+import { hashBranchPassword } from "../utils/branchAuth.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -322,6 +323,7 @@ router.get("/sales", (req, res) => {
 router.post("/sales", (req, res) => {
   const db = getDb();
   const { items, paymentType, customerId, staffName, note, discount, discountType, paidAmount } = req.body;
+  const resolvedStaffName = req.user?.loginType === "staff" ? req.user.staffName : staffName || "Admin";
 
   let subtotal = items.reduce((s, i) => s + i.qty * i.price - (i.discount || 0), 0);
   const disc = Number(discount) || 0;
@@ -336,7 +338,7 @@ router.post("/sales", (req, res) => {
     db.prepare(`
       INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total, branch_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(saleId, code, now, paymentType, customerId || null, staffName || "Admin", note || "", disc, discountType || "TL", Number(paidAmount) || 0, subtotal, req.branchId);
+    `).run(saleId, code, now, paymentType, customerId || null, resolvedStaffName, note || "", disc, discountType || "TL", Number(paidAmount) || 0, subtotal, req.branchId);
 
     const insItem = db.prepare(`
       INSERT INTO sale_items (id, sale_id, product_id, name, qty, price, discount, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -406,27 +408,44 @@ router.get("/staff", (req, res) => {
     getDb()
       .prepare("SELECT * FROM staff WHERE branch_id = ? ORDER BY name")
       .all(req.branchId)
-      .map((r) => ({ id: r.id, name: r.name, code: r.code, role: r.role, active: !!r.active }))
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        surname: r.surname || "",
+        login: r.login || "",
+        hasPassword: !!r.password_hash,
+        code: r.code,
+        role: r.role,
+        active: !!r.active,
+      }))
   );
 });
 
 router.post("/staff", (req, res) => {
   const id = uid("s");
-  const { name, code, role } = req.body;
+  const { name, surname, login, password, code, role } = req.body;
+  const normalizedLogin = login?.trim().toLowerCase() || "";
+  const passwordHash = password?.trim() ? hashBranchPassword(password) : null;
   getDb()
-    .prepare("INSERT INTO staff (id, name, code, role, active, branch_id) VALUES (?, ?, ?, ?, 1, ?)")
-    .run(id, name, code || "", role || "", req.branchId);
-  res.status(201).json({ id, name, code, role, active: true });
+    .prepare("INSERT INTO staff (id, name, surname, login, password_hash, code, role, active, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)")
+    .run(id, name, surname || "", normalizedLogin, passwordHash, code || "", role || "Kasiyer", req.branchId);
+  res.status(201).json({ id, name, surname: surname || "", login: normalizedLogin, code, role, active: true });
 });
 
 router.patch("/staff/:id", (req, res) => {
   const db = getDb();
   const s = req.body;
-  db.prepare("UPDATE staff SET name=?, code=?, role=?, active=? WHERE id=? AND branch_id=?").run(
+  const existing = db.prepare("SELECT * FROM staff WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
+  if (!existing) return res.status(404).json({ error: "Not found" });
+  const passwordHash = s.password?.trim() ? hashBranchPassword(s.password) : existing.password_hash;
+  db.prepare("UPDATE staff SET name=?, surname=?, login=?, password_hash=?, code=?, role=?, active=? WHERE id=? AND branch_id=?").run(
     s.name,
+    s.surname || "",
+    s.login?.trim().toLowerCase() || "",
+    passwordHash,
     s.code,
-    s.role,
-    s.active ? 1 : 0,
+    s.role || "Kasiyer",
+    s.active !== false ? 1 : 0,
     req.params.id,
     req.branchId
   );

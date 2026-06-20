@@ -42,6 +42,18 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const loginStaff = async (login, password) => {
+    setLoading(true);
+    try {
+      const { token, user: account } = await api.staffLogin(login, password);
+      sessionStorage.removeItem(ADMIN_BACKUP_KEY);
+      persistUser(account, token);
+      return account;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const enterBranchAsAdmin = async (branchId) => {
     const backup = {
       token: getToken(),
@@ -98,6 +110,7 @@ export function AuthProvider({ children }) {
         user,
         login,
         loginBranch,
+        loginStaff,
         enterBranchAsAdmin,
         returnToAdminPanel,
         logout,
@@ -106,10 +119,14 @@ export function AuthProvider({ children }) {
         loading,
         isAuthenticated: !!user && !!getToken(),
         isAdmin: user?.role === "admin",
-        isBranchUser: user?.role === "branch" || user?.loginType === "branch",
+        isBranchUser: user?.role === "branch" || user?.loginType === "branch" || user?.role === "staff" || user?.loginType === "staff",
+        isStaffUser: user?.role === "staff" || user?.loginType === "staff",
         isImpersonating: !!user?.impersonating,
         activeBranchId: user?.branchId,
         activeBranchName: user?.branchName,
+        activeStaffId: user?.staffId,
+        activeStaffName: user?.staffName,
+        activeStaffRole: user?.staffRole,
         branches: user?.branches || [],
       }}
     >

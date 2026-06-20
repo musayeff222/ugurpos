@@ -75,6 +75,9 @@ export function initMysqlSchema(db) {
     CREATE TABLE IF NOT EXISTS staff (
       id VARCHAR(64) PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
+      surname VARCHAR(255),
+      login VARCHAR(255),
+      password_hash VARCHAR(255),
       code VARCHAR(64),
       role VARCHAR(64),
       active TINYINT(1) DEFAULT 1,

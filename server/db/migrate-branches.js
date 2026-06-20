@@ -99,12 +99,20 @@ export function migrateBranches(db) {
       addColumnIfMissing(db, table, "branch_id", "TEXT");
     });
 
+    addColumnIfMissing(db, "staff", "surname", "TEXT");
+    addColumnIfMissing(db, "staff", "login", "TEXT");
+    addColumnIfMissing(db, "staff", "password_hash", "TEXT");
+
     try {
       db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_login_code ON branches(login_code)");
       db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_email ON branches(email)");
     } catch {
       /* index may exist */
     }
+  } else {
+    addColumnIfMissing(db, "staff", "surname", "VARCHAR(255)");
+    addColumnIfMissing(db, "staff", "login", "VARCHAR(255)");
+    addColumnIfMissing(db, "staff", "password_hash", "VARCHAR(255)");
   }
 
   const users = db.prepare("SELECT id, firm_id, firm_name, branch, branch_id FROM users").all();

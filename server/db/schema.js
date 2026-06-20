@@ -68,6 +68,9 @@ function initSqliteSchema(db) {
     CREATE TABLE IF NOT EXISTS staff (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      surname TEXT,
+      login TEXT,
+      password_hash TEXT,
       code TEXT,
       role TEXT,
       active INTEGER DEFAULT 1

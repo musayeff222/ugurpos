@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { getDb } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
-import { signAdminToken, signBranchToken, authMiddleware } from "../middleware/auth.js";
+import { signAdminToken, signBranchToken, signStaffToken, authMiddleware } from "../middleware/auth.js";
 import { getBranchesForFirm } from "../middleware/branch.js";
 import { verifyBranchPassword, normalizeBranchEmail } from "../utils/branchAuth.js";
 import { logActivity } from "../utils/activityLog.js";
@@ -44,6 +44,26 @@ function buildBranchResponse(db, branch) {
     email: branch.email,
     role: "branch",
     loginType: "branch",
+    branches: [rowToBranch(branch)],
+  };
+}
+
+function buildStaffResponse(db, staff, branch) {
+  const firmName = getFirmName(db, branch.firm_id);
+  const staffName = `${staff.name || ""} ${staff.surname || ""}`.trim() || staff.name;
+  return {
+    email: staff.login || "",
+    firmId: branch.firm_id,
+    firmName,
+    branchId: branch.id,
+    branchName: branch.name,
+    branchNo: branch.code ? String(parseInt(branch.code, 10) || branch.code) : "",
+    branchEmail: branch.email || "",
+    staffId: staff.id,
+    staffName,
+    staffRole: staff.role || "Kasiyer",
+    role: "staff",
+    loginType: "staff",
     branches: [rowToBranch(branch)],
   };
 }
@@ -108,8 +128,50 @@ router.post("/branch-login", (req, res) => {
   });
 });
 
+router.post("/staff-login", (req, res) => {
+  const { login, password } = req.body;
+  if (!login?.trim() || !password) {
+    return res.status(400).json({ error: "Login ve parola gerekli" });
+  }
+
+  const db = getDb();
+  const normalizedLogin = login.trim().toLowerCase();
+  const staff = db
+    .prepare("SELECT * FROM staff WHERE login = ? AND active = 1 LIMIT 1")
+    .get(normalizedLogin);
+
+  if (!staff || !staff.password_hash || !bcrypt.compareSync(password, staff.password_hash)) {
+    return res.status(401).json({ error: "Invalid credentials" });
+  }
+
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ? AND active = 1").get(staff.branch_id);
+  if (!branch) return res.status(403).json({ error: "Şube aktif değil" });
+
+  const firmName = getFirmName(db, branch.firm_id);
+  const token = signStaffToken(staff, branch, firmName);
+  logActivity(db, {
+    firmId: branch.firm_id,
+    branchId: branch.id,
+    branchName: branch.name,
+    type: "staff_login",
+    title: `${staff.name} giriş yaptı`,
+    detail: normalizedLogin,
+  });
+  res.json({
+    token,
+    user: buildStaffResponse(db, staff, branch),
+  });
+});
+
 router.get("/me", authMiddleware, (req, res) => {
   const db = getDb();
+
+  if (req.user.loginType === "staff" || req.user.role === "staff") {
+    const staff = db.prepare("SELECT * FROM staff WHERE id = ?").get(req.user.staffId);
+    const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.user.branchId);
+    if (!staff || !branch) return res.status(404).json({ error: "Staff not found" });
+    return res.json({ user: buildStaffResponse(db, staff, branch) });
+  }
 
   if (req.user.loginType === "branch" || req.user.role === "branch") {
     const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.user.branchId);
@@ -125,7 +187,7 @@ router.get("/me", authMiddleware, (req, res) => {
 router.get("/branches", authMiddleware, (req, res) => {
   const db = getDb();
 
-  if (req.user.role === "branch" || req.user.impersonating) {
+  if (req.user.role === "branch" || req.user.role === "staff" || req.user.impersonating) {
     const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.user.branchId);
     return res.json(branch ? [rowToBranch(branch)] : []);
   }

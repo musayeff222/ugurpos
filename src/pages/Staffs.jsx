@@ -6,7 +6,7 @@ import { runAsync } from "../utils/runAsync";
 
 export default function Staffs() {
   const { state, addStaff, deleteStaff } = useStore();
-  const [form, setForm] = useState({ name: "", code: "", role: "Kasiyer" });
+  const [form, setForm] = useState({ name: "", surname: "", login: "", password: "", role: "Kasiyer" });
   const [message, setMessage] = useState("");
 
   return (
@@ -17,16 +17,27 @@ export default function Staffs() {
         className="card form-inline-bar"
         onSubmit={async (e) => {
           e.preventDefault();
-          if (!form.name.trim()) return;
+          if (!form.name.trim() || !form.login.trim() || !form.password.trim()) {
+            setMessage("Ad, login ve giriş şifresi gerekli.");
+            return;
+          }
           const ok = await runAsync(() => addStaff(form), setMessage);
-          if (ok) setForm({ name: "", code: "", role: "Kasiyer" });
+          if (ok) setForm({ name: "", surname: "", login: "", password: "", role: "Kasiyer" });
         }}
       >
         <input placeholder="Ad" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <input placeholder="Kod" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+        <input placeholder="Soyad" value={form.surname} onChange={(e) => setForm({ ...form, surname: e.target.value })} />
+        <input placeholder="Login" value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} />
+        <input
+          type="password"
+          placeholder="Giriş şifresi"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+        />
         <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
           <option>Kasiyer</option>
-          <option>Yönetici</option>
+          <option>Garson</option>
+          <option>Admin</option>
         </select>
         <button type="submit" className="btn btn-success">
           Ekle
@@ -36,9 +47,11 @@ export default function Staffs() {
         <div className="card-body">
           <DataTable
             columns={[
-              { key: "name", label: "Personel" },
-              { key: "code", label: "Kod" },
-              { key: "role", label: "Rol" },
+              { key: "name", label: "Ad" },
+              { key: "surname", label: "Soyad" },
+              { key: "login", label: "Login" },
+              { key: "role", label: "Yetki" },
+              { key: "hasPassword", label: "Şifre", render: (r) => (r.hasPassword ? "Var" : "Yok") },
               {
                 key: "actions",
                 label: "İşlem",

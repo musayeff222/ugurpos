@@ -336,6 +336,9 @@ export function getAllState(database, branchId) {
     .map((r) => ({
       id: r.id,
       name: r.name,
+      surname: r.surname || "",
+      login: r.login || "",
+      hasPassword: !!r.password_hash,
       code: r.code || "",
       role: r.role || "",
       active: !!r.active,

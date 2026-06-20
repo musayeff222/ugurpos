@@ -6,12 +6,13 @@ import { useLocale } from "../context/LocaleContext";
 import "../styles/login.css";
 
 export default function Login() {
-  const { loginBranch, isAuthenticated, isAdmin, isBranchUser } = useAuth();
+  const { loginBranch, loginStaff, isAuthenticated, isAdmin, isBranchUser } = useAuth();
   const { t } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginType, setLoginType] = useState("branch");
   const [error, setError] = useState("");
 
   if (isAuthenticated && isBranchUser) {
@@ -34,7 +35,8 @@ export default function Login() {
     }
 
     try {
-      await loginBranch(email.trim(), password);
+      if (loginType === "staff") await loginStaff(email.trim(), password);
+      else await loginBranch(email.trim(), password);
       const isMobile = window.matchMedia("(max-width: 991px)").matches;
       navigate(location.state?.from?.pathname || (isMobile ? "/menu" : "/dashboard"), { replace: true });
     } catch (err) {
@@ -54,10 +56,27 @@ export default function Login() {
               <h4>{t("login.title")}</h4>
               <p className="login-hint">{t("login.hint")}</p>
 
+              <div className="login-type-toggle">
+                <button
+                  type="button"
+                  className={loginType === "branch" ? "active" : ""}
+                  onClick={() => setLoginType("branch")}
+                >
+                  Şube
+                </button>
+                <button
+                  type="button"
+                  className={loginType === "staff" ? "active" : ""}
+                  onClick={() => setLoginType("staff")}
+                >
+                  Personel
+                </button>
+              </div>
+
               <div className="form-group">
                 <input
-                  type="email"
-                  placeholder={t("login.email")}
+                  type={loginType === "staff" ? "text" : "email"}
+                  placeholder={loginType === "staff" ? "Personel login" : t("login.email")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="username"

@@ -71,6 +71,31 @@
   cursor: pointer;
 }
 
+.login-type-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #eef1f6;
+}
+
+.login-type-toggle button {
+  min-height: 36px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #303e67;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.login-type-toggle button.active {
+  background: #0080ff;
+  color: #fff;
+}
+
 .form-group {
   margin-bottom: 16px;
 }
