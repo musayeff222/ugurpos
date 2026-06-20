@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { navigation } from "../data/navigation";
 import { useWebOrders } from "../context/WebOrdersContext";
 import { useLocale } from "../context/LocaleContext";
+import { useAuth } from "../context/AuthContext";
 
 function navLabel(item, t) {
   return item.labelKey ? t(item.labelKey) : item.label;
@@ -65,13 +66,16 @@ function NavItem({ item, onNavigate, pendingWebOrders, t }) {
 export default function Sidebar({ onNavigate }) {
   const { pendingCount } = useWebOrders();
   const { t } = useLocale();
+  const { isStaffUser, activeStaffRole } = useAuth();
+  const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
+  const items = isCashier ? navigation.filter((item) => item.path === "/sales") : navigation;
 
   return (
     <div className="leftbar">
       <div className="sidebar">
         <nav className="navigationbar">
           <ul className="vertical-menu">
-            {navigation.map((item) => (
+            {items.map((item) => (
               <NavItem
                 key={(item.labelKey || item.label) + (item.path || "")}
                 item={item}

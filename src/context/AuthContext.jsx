@@ -47,8 +47,9 @@ export function AuthProvider({ children }) {
     try {
       const { token, user: account } = await api.staffLogin(login, password);
       sessionStorage.removeItem(ADMIN_BACKUP_KEY);
-      persistUser(account, token);
-      return account;
+      const accountWithShift = { ...account, shiftStartedAt: new Date().toISOString() };
+      persistUser(accountWithShift, token);
+      return accountWithShift;
     } finally {
       setLoading(false);
     }

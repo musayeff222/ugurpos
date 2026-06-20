@@ -11,7 +11,7 @@ import "../styles/layout.css";
 import "../styles/mobile-menu.css";
 
 export default function MainLayout() {
-  const { isAuthenticated, isAdmin, isBranchUser, isImpersonating } = useAuth();
+  const { isAuthenticated, isAdmin, isBranchUser, isImpersonating, isStaffUser, activeStaffRole } = useAuth();
   const { latestOrder, clearLatest } = useWebOrders();
   const location = useLocation();
   const isDesktop = useIsDesktop();
@@ -34,6 +34,11 @@ export default function MainLayout() {
 
   if (isAdmin && !isBranchUser && !isImpersonating) {
     return <Navigate to="/admin" replace />;
+  }
+
+  const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
+  if (isCashier && location.pathname !== "/sales") {
+    return <Navigate to="/sales" replace />;
   }
 
   return (

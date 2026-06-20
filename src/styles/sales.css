@@ -1545,6 +1545,22 @@
   font-size: 18px;
 }
 
+.dzy-shift-end-btn,
+.dzy-terminal-menu__shift {
+  border: none;
+  border-radius: 10px;
+  background: #ba1a1a;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dzy-shift-end-btn {
+  min-height: 34px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
 .dzy-terminal-menu {
   position: fixed;
   inset: 0;
@@ -1624,6 +1640,17 @@
   padding: 0 10px;
   color: #5b6472;
   font-size: 13px;
+}
+
+.dzy-terminal-menu__shift {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  margin-top: 12px;
+  text-align: left;
 }
 
 .dzy-sales__search {
@@ -2167,6 +2194,70 @@
   display: none;
 }
 
+.cashier-shift-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cashier-shift-summary__hero {
+  padding: 14px;
+  border-radius: 12px;
+  background: #eef0fa;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cashier-shift-summary__hero span,
+.cashier-shift-summary__grid span {
+  font-size: 12px;
+  color: #717786;
+  font-weight: 700;
+}
+
+.cashier-shift-summary__hero strong {
+  font-size: 22px;
+  color: #0058bc;
+}
+
+.cashier-shift-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cashier-shift-summary__grid div {
+  padding: 12px;
+  border: 1px solid #d8d9e5;
+  border-radius: 12px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cashier-shift-summary__grid strong {
+  font-size: 18px;
+  color: #181c23;
+}
+
+.cashier-shift-summary__notice {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fff4e5;
+  color: #9e3d00;
+  font-weight: 800;
+  text-align: center;
+}
+
+.cashier-shift-summary__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 @media (max-width: 1024px) {
   .dzy-sales {
     grid-template-rows: 46px 44px 1fr 58px;
@@ -2181,7 +2272,7 @@
   }
 
   .dzy-sales__top {
-    grid-template-columns: 210px minmax(260px, 1fr) 230px;
+    grid-template-columns: 250px minmax(260px, 1fr) 230px;
     gap: 8px;
   }
 

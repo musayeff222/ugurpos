@@ -7,9 +7,10 @@ import "../styles/mobile-menu.css";
 
 export default function MobileMenu({ overlay = false, onClose }) {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isStaffUser, activeStaffRole } = useAuth();
   const { pendingCount } = useWebOrders();
   const { t } = useLocale();
+  const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
 
   const handleItem = (path) => {
     navigate(path);
@@ -46,7 +47,7 @@ export default function MobileMenu({ overlay = false, onClose }) {
           </div>
         </div>
         <p className="mobile-hero-firm">{user?.firmName || "Firma"}</p>
-        <p className="mobile-hero-role">Yönetici</p>
+        <p className="mobile-hero-role">{user?.staffRole || "Yönetici"}</p>
       </div>
 
       <div className="mobile-menu-body">
@@ -58,8 +59,9 @@ export default function MobileMenu({ overlay = false, onClose }) {
           <i className="fa fa-calculator" />
           <span>{t("nav.sales")}</span>
         </button>
-        <div className="mobile-menu-grid">
-          {mobileMenuItems.filter((item) => item.path !== "/sales").map((item) => (
+        {!isCashier && (
+          <div className="mobile-menu-grid">
+            {mobileMenuItems.filter((item) => item.path !== "/sales").map((item) => (
             <button
               key={item.path + item.label}
               type="button"
@@ -72,8 +74,9 @@ export default function MobileMenu({ overlay = false, onClose }) {
                 <span className="mobile-menu-badge">{pendingCount}</span>
               )}
             </button>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

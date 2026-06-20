@@ -19,7 +19,7 @@ function emptyCarts() {
 }
 
 export default function Sales() {
-  const { user } = useAuth();
+  const { user, logout, isStaffUser, activeStaffRole, activeStaffName } = useAuth();
   const { t } = useLocale();
   const { state, completeSale } = useStore();
   const [activeTab, setActiveTab] = useState(0);
@@ -48,6 +48,7 @@ export default function Sales() {
   const [fastListTab, setFastListTab] = useState(0);
   const [mobileView, setMobileView] = useState("products");
   const [terminalMenuOpen, setTerminalMenuOpen] = useState(false);
+  const [shiftSummaryOpen, setShiftSummaryOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [lastSale, setLastSale] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -68,6 +69,30 @@ export default function Sales() {
     if (discountType === "Yüzde") return (gross * value) / 100;
     return value;
   }, [discount, discountType, gross]);
+  const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
+  const cashierName = activeStaffName || user?.staffName || "Kasiyer";
+  const shiftStartedAt = user?.shiftStartedAt || new Date().toISOString().slice(0, 10);
+  const shiftSales = useMemo(
+    () =>
+      state.sales.filter(
+        (sale) =>
+          sale.paymentType !== "refund" &&
+          sale.staffName === cashierName &&
+          (!shiftStartedAt || sale.createdAt >= shiftStartedAt)
+      ),
+    [cashierName, shiftStartedAt, state.sales]
+  );
+  const shiftSummary = useMemo(() => {
+    const sumByType = (type) =>
+      shiftSales.filter((sale) => sale.paymentType === type).reduce((sum, sale) => sum + (sale.total || 0), 0);
+    return {
+      count: shiftSales.length,
+      total: shiftSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
+      cash: sumByType("cash"),
+      pos: sumByType("pos"),
+      open: sumByType("open"),
+    };
+  }, [shiftSales]);
   const change = Math.max(0, (Number(paid) || 0) - total);
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
   const money = (value) => formatMoney(value, "az");
@@ -331,7 +356,7 @@ export default function Sales() {
     } catch (err) {
       setMessage(err.message || "Satış kaydedilemedi.");
     }
-  }, [autoPrint, cart, completeSale, customerId, discount, discountType, note, paid, total, selectedCustomer, user?.firmName]);
+  }, [autoPrint, cart, completeSale, customerId, discount, discountType, note, paid, total, selectedCustomer, user?.firmName, user?.staffName]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -366,6 +391,7 @@ export default function Sales() {
 
   const visibleProducts = fastProducts.length ? fastProducts : state.products.filter((p) => p.active).slice(0, 12);
   const emptySlots = Math.max(0, 12 - visibleProducts.length);
+  const terminalNavigation = isCashier ? navigation.filter((item) => item.path === "/sales") : navigation;
 
   return (
     <div className={`sales-page bp-sales sales-terminal dzy-sales dzy-sales--${mobileView}`}>
@@ -390,6 +416,11 @@ export default function Sales() {
             <i className="fa fa-bars" />
           </button>
           <strong>Terminal 01</strong>
+          {isCashier && (
+            <button type="button" className="dzy-shift-end-btn" onClick={() => setShiftSummaryOpen(true)}>
+              Nöbeti Bitir
+            </button>
+          )}
         </div>
         <div className="dzy-sales__search">
           <i className="fa fa-barcode" />
@@ -470,7 +501,7 @@ export default function Sales() {
                 ×
               </button>
             </div>
-            {navigation.map((item) =>
+            {terminalNavigation.map((item) =>
               item.children?.length ? (
                 <div className="dzy-terminal-menu__group" key={item.labelKey || item.label}>
                   <span>
@@ -494,6 +525,12 @@ export default function Sales() {
                   {item.labelKey ? t(item.labelKey) : item.label}
                 </Link>
               )
+            )}
+            {isCashier && (
+              <button type="button" className="dzy-terminal-menu__shift" onClick={() => setShiftSummaryOpen(true)}>
+                <i className="fa fa-sign-out" />
+                Nöbeti Bitir
+              </button>
             )}
           </nav>
         </div>
@@ -738,6 +775,49 @@ export default function Sales() {
           )}
         </div>
       </div>
+
+      <Modal open={shiftSummaryOpen} title="Nöbet Çıkış Özeti" onClose={() => setShiftSummaryOpen(false)}>
+        <div className="cashier-shift-summary">
+          <div className="cashier-shift-summary__hero">
+            <span>Kasiyer</span>
+            <strong>{cashierName}</strong>
+            <small>Giriş: {shiftStartedAt ? new Date(shiftStartedAt).toLocaleString("tr-TR") : "—"}</small>
+          </div>
+          <div className="cashier-shift-summary__grid">
+            <div>
+              <span>Satış adedi</span>
+              <strong>{shiftSummary.count}</strong>
+            </div>
+            <div>
+              <span>Toplam satış</span>
+              <strong>{money(shiftSummary.total)}</strong>
+            </div>
+            <div>
+              <span>Nakit</span>
+              <strong>{money(shiftSummary.cash)}</strong>
+            </div>
+            <div>
+              <span>POS</span>
+              <strong>{money(shiftSummary.pos)}</strong>
+            </div>
+            <div>
+              <span>Açık hesap</span>
+              <strong>{money(shiftSummary.open)}</strong>
+            </div>
+          </div>
+          <p className="cashier-shift-summary__notice">
+            Resim çek ve patrona gönder.
+          </p>
+          <div className="cashier-shift-summary__actions">
+            <button type="button" className="btn btn-default" onClick={() => setShiftSummaryOpen(false)}>
+              Geri dön
+            </button>
+            <button type="button" className="btn btn-danger" onClick={logout}>
+              Çıkış yap
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={customerModal} title="Müşteri Seç" onClose={() => setCustomerModal(false)}>
         <input
