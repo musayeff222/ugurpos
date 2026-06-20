@@ -29,7 +29,7 @@ html:has(.oses-site-body),
 
 .oses-site-body header,
 .oses-site-body header.sticky-top {
-  background-color: #111 !important;
+  background-color: #000 !important;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
   height: auto;
 }
@@ -115,7 +115,7 @@ html:has(.oses-site-body),
 
 @media (max-width: 991.98px) {
   .oses-site-body .navbar-nav {
-    background-color: #111 !important;
+    background-color: #000 !important;
   }
 
   .oses-site-body .navbar-expand-lg .navbar-nav .nav-link {
