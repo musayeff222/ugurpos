@@ -3,7 +3,7 @@ export function seedBranchDefaults(db, branchId) {
     groups: ["Gıda", "İçecek", "Temizlik", "Diğer"],
     paymentMethods: ["Nakit", "POS / Kredi Kartı", "Açık Hesap", "Parçalı Ödeme"],
     incomeTypes: ["Ek Satış Geliri", "Faiz Geliri"],
-    expenseTypes: ["Kira", "Elektrik", "Personel Maaşı"],
+    expenseTypes: ["Kira", "Elektrik", "Personel Maaşı", "Masraf"],
     integrations: [
       ["E-Fatura", "E-fatura entegrasyonu"],
       ["Yazarkasa", "ÖKC entegrasyonu"],

@@ -50,6 +50,7 @@ export function getDb() {
     seedIfEmpty(db);
     normalizeFirmBranding(db);
     ensureCigkofteCatalog(db);
+    ensureDefaultExpenseTypes(db);
   }
   return db;
 }
@@ -110,6 +111,24 @@ function ensureCigkofteCatalog(database) {
     }
   } catch (err) {
     console.warn("[DB] Cigkofte urun seed atlandi:", err.message);
+  }
+}
+
+function ensureDefaultExpenseTypes(database) {
+  try {
+    const required = ["Kira", "Elektrik", "Personel Maaşı", "Masraf"];
+    const branches = database.prepare("SELECT id FROM branches").all();
+    const hasType = database.prepare("SELECT id FROM expense_types WHERE branch_id = ? AND name = ? LIMIT 1");
+    const insertType = database.prepare("INSERT INTO expense_types (id, name, branch_id) VALUES (?, ?, ?)");
+    branches.forEach((branch) => {
+      required.forEach((name) => {
+        if (!hasType.get(branch.id, name)) {
+          insertType.run(uid("et"), name, branch.id);
+        }
+      });
+    });
+  } catch (err) {
+    console.warn("[DB] Varsayilan gider turleri kontrolu atlandi:", err.message);
   }
 }
 
@@ -175,8 +194,8 @@ function seedIfEmpty(database) {
     INSERT INTO income_types (id, name, branch_id) VALUES ('it1', 'Ek Satış Geliri', ?), ('it2', 'Faiz Geliri', ?)
   `).run(branchId, branchId);
   database.prepare(`
-    INSERT INTO expense_types (id, name, branch_id) VALUES ('et1', 'Kira', ?), ('et2', 'Elektrik', ?), ('et3', 'Personel Maaşı', ?)
-  `).run(branchId, branchId, branchId);
+    INSERT INTO expense_types (id, name, branch_id) VALUES ('et1', 'Kira', ?), ('et2', 'Elektrik', ?), ('et3', 'Personel Maaşı', ?), ('et4', 'Masraf', ?)
+  `).run(branchId, branchId, branchId, branchId);
 
   database.prepare(`
     INSERT INTO tasks (id, title, status, assignee, due_date, branch_id) VALUES

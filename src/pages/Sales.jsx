@@ -390,7 +390,6 @@ export default function Sales() {
   );
 
   const visibleProducts = fastProducts.length ? fastProducts : state.products.filter((p) => p.active).slice(0, 12);
-  const emptySlots = Math.max(0, 12 - visibleProducts.length);
   const terminalNavigation = isCashier ? navigation.filter((item) => item.path === "/sales") : navigation;
 
   return (
@@ -657,15 +656,6 @@ export default function Sales() {
                 <span>{p.name}</span>
                 <strong>{money(p.price1)}</strong>
               </button>
-            ))}
-            {Array.from({ length: emptySlots }).map((_, idx) => (
-              <div key={`empty-${idx}`} className="dzy-product-card dzy-product-card--empty">
-                <span className="dzy-product-card__placeholder">
-                  <i className="fa fa-shopping-bag" />
-                </span>
-                <span>Məhsul {visibleProducts.length + idx + 1}</span>
-                <strong>{money(0)}</strong>
-              </div>
             ))}
           </div>
         </section>

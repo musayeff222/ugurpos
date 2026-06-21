@@ -288,8 +288,46 @@ router.delete("/branches/:id", (req, res) => {
     return res.status(400).json({ error: "Son aktif şube silinemez" });
   }
 
-  db.prepare("UPDATE branches SET active = 0, menu_enabled = 0 WHERE id = ?").run(req.params.id);
-  res.json({ ok: true, message: "Şube silindi (pasifleştirildi)." });
+  const branchId = req.params.id;
+  const branchTables = [
+    "products",
+    "customers",
+    "staff",
+    "firms",
+    "payment_methods",
+    "income_types",
+    "expense_types",
+    "income_entries",
+    "expense_entries",
+    "stock_counts",
+    "purchase_invoices",
+    "refund_requests",
+    "tasks",
+    "notices",
+    "integrations",
+    "variants",
+    "sub_products",
+    "e_invoices",
+    "qr_orders",
+    "groups",
+  ];
+
+  const tx = db.transaction(() => {
+    db.prepare("DELETE FROM sale_items WHERE sale_id IN (SELECT id FROM sales WHERE branch_id = ?)").run(branchId);
+    db.prepare("DELETE FROM sales WHERE branch_id = ?").run(branchId);
+    branchTables.forEach((table) => {
+      try {
+        db.prepare(`DELETE FROM ${table} WHERE branch_id = ?`).run(branchId);
+      } catch {
+        /* table may not exist in older installs */
+      }
+    });
+    db.prepare("UPDATE users SET branch_id = NULL WHERE branch_id = ?").run(branchId);
+    db.prepare("DELETE FROM branches WHERE id = ? AND firm_id = ?").run(branchId, req.user.firmId);
+  });
+
+  tx();
+  res.json({ ok: true, message: "Şube tamamen silindi." });
 });
 
 router.get("/qr-menu", (req, res) => {
