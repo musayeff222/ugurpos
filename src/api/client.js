@@ -118,6 +118,8 @@ export const api = {
     return request(`/sales${q ? `?${q}` : ""}`);
   },
   createSale: (sale) => request("/sales", { method: "POST", body: JSON.stringify(sale) }),
+  updateSale: (id, patch) => request(`/sales/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  deleteSale: (id) => request(`/sales/${id}`, { method: "DELETE" }),
   createRefund: (data) => request("/refunds", { method: "POST", body: JSON.stringify(data) }),
 
   getStaff: () => request("/staff"),

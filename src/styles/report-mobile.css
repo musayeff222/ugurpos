@@ -620,3 +620,99 @@
     display: none;
   }
 }
+
+.report-sale-row--clickable {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.report-sale-row--clickable:hover,
+.report-sale-row--clickable:focus-visible {
+  background: #f4f7fc;
+  outline: none;
+}
+
+.report-table-row--clickable {
+  cursor: pointer;
+}
+
+.report-table-row--clickable:hover {
+  background: #f4f7fc;
+}
+
+.report-sale-manage__code {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.report-sale-manage__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin: 0 0 16px;
+}
+
+.report-sale-manage__meta div {
+  min-width: 0;
+}
+
+.report-sale-manage__meta dt {
+  font-size: 11px;
+  color: var(--report-muted);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.report-sale-manage__meta dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--report-text);
+}
+
+.report-sale-manage__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.report-sale-manage__field span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--report-muted);
+}
+
+.report-sale-manage__field select {
+  min-height: 42px;
+  border: 1px solid var(--report-line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.report-sale-manage__items {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f6f8fc;
+  list-style: none;
+  font-size: 13px;
+  color: var(--report-text);
+}
+
+.report-sale-manage__items li + li {
+  margin-top: 6px;
+}
+
+.report-sale-manage__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.report-sale-manage__actions .btn-danger {
+  margin-right: auto;
+}

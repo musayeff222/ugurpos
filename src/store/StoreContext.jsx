@@ -89,6 +89,17 @@ export function StoreProvider({ children }) {
         return sale;
       },
 
+      updateSalePayment: async (id, paymentType) => {
+        const sale = await api.updateSale(id, { paymentType });
+        await refresh();
+        return sale;
+      },
+
+      deleteSale: async (id) => {
+        await api.deleteSale(id);
+        await refresh();
+      },
+
       addGroup: async (name) => {
         await api.createGroup(name);
         return refresh();

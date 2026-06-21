@@ -17,6 +17,18 @@ import { sql as SQL } from "../db/dialect.js";
 const router = Router();
 router.use(branchMiddleware);
 
+function canManageSales(req) {
+  return req.user?.loginType !== "staff" && req.user?.role !== "staff";
+}
+
+function rejectStaffSaleManage(req, res) {
+  if (!canManageSales(req)) {
+    res.status(403).json({ error: "Personel satış düzenleyemez veya silemez" });
+    return true;
+  }
+  return false;
+}
+
 function applyProductImage(db, branchId, productId, body, existingPath = null) {
   if (body.removeImage) {
     deleteProductImage(branchId, productId);
@@ -361,6 +373,99 @@ router.post("/sales", (req, res) => {
 
   tx();
   res.status(201).json(getSaleWithItems(db, saleId));
+});
+
+router.patch("/sales/:id", (req, res) => {
+  if (rejectStaffSaleManage(req, res)) return;
+
+  const { paymentType } = req.body;
+  const allowed = ["cash", "pos", "open"];
+  if (!allowed.includes(paymentType)) {
+    return res.status(400).json({ error: "Geçersiz ödeme tipi" });
+  }
+
+  const db = getDb();
+  const sale = db.prepare("SELECT * FROM sales WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
+  if (!sale) return res.status(404).json({ error: "Satış bulunamadı" });
+  if (sale.payment_type === "refund") {
+    return res.status(400).json({ error: "İade kaydı düzenlenemez" });
+  }
+
+  const oldType = sale.payment_type;
+  const newType = paymentType;
+  const total = Number(sale.total) || 0;
+  const customerId = sale.customer_id;
+
+  if (newType === "open" && !customerId) {
+    return res.status(400).json({ error: "Açık hesap için müşteri seçili olmalı" });
+  }
+
+  if (oldType === newType) {
+    return res.json(getSaleWithItems(db, sale.id));
+  }
+
+  const tx = db.transaction(() => {
+    if (customerId) {
+      if (oldType === "open" && newType !== "open") {
+        db.prepare("UPDATE customers SET debt = debt - ? WHERE id = ?").run(total, customerId);
+      } else if (oldType !== "open" && newType === "open") {
+        db.prepare("UPDATE customers SET debt = debt + ? WHERE id = ?").run(total, customerId);
+      }
+    }
+    db.prepare("UPDATE sales SET payment_type = ? WHERE id = ? AND branch_id = ?").run(newType, sale.id, req.branchId);
+  });
+
+  try {
+    tx();
+    res.json(getSaleWithItems(db, sale.id));
+  } catch (err) {
+    res.status(400).json({ error: err.message || "Ödeme tipi güncellenemedi" });
+  }
+});
+
+router.delete("/sales/:id", (req, res) => {
+  if (rejectStaffSaleManage(req, res)) return;
+
+  const db = getDb();
+  const sale = db.prepare("SELECT * FROM sales WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
+  if (!sale) return res.status(404).json({ error: "Satış bulunamadı" });
+
+  const items = db.prepare("SELECT * FROM sale_items WHERE sale_id = ?").all(sale.id);
+  const isRefund = sale.payment_type === "refund";
+  const total = Number(sale.total) || 0;
+  const customerId = sale.customer_id;
+
+  const tx = db.transaction(() => {
+    const updStock = db.prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND branch_id = ?");
+    const decStock = db.prepare(
+      "UPDATE products SET stock = CASE WHEN stock - ? < 0 THEN 0 ELSE stock - ? END WHERE id = ? AND branch_id = ?"
+    );
+
+    items.forEach((item) => {
+      if (!item.product_id) return;
+      const qty = Number(item.qty) || 0;
+      if (isRefund) {
+        decStock.run(qty, qty, item.product_id, req.branchId);
+      } else {
+        updStock.run(qty, item.product_id, req.branchId);
+      }
+    });
+
+    if (!isRefund && customerId) {
+      if (sale.payment_type === "open") {
+        db.prepare("UPDATE customers SET debt = debt - ? WHERE id = ?").run(total, customerId);
+      }
+      db.prepare("UPDATE customers SET purchase_count = CASE WHEN purchase_count > 0 THEN purchase_count - 1 ELSE 0 END WHERE id = ?").run(
+        customerId
+      );
+    }
+
+    db.prepare("DELETE FROM sale_items WHERE sale_id = ?").run(sale.id);
+    db.prepare("DELETE FROM sales WHERE id = ? AND branch_id = ?").run(sale.id, req.branchId);
+  });
+
+  tx();
+  res.json({ ok: true });
 });
 
 router.post("/refunds", (req, res) => {

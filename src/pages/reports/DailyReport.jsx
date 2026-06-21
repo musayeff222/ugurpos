@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import { useStore } from "../../store/StoreContext";
+import Modal from "../../components/ui/Modal";
 import { formatDateTime, formatMoney, todayISO } from "../../utils/format";
 import "../../styles/report-mobile.css";
 
@@ -49,7 +51,9 @@ function ReportSummaryGrid({ cards }) {
 
 export default function DailyReport() {
   const navigate = useNavigate();
-  const { state } = useStore();
+  const { isStaffUser } = useAuth();
+  const { state, updateSalePayment, deleteSale } = useStore();
+  const canManageSales = !isStaffUser;
   const [startDate, setStartDate] = useState(todayISO());
   const [endDate, setEndDate] = useState(todayISO());
   const [startTime, setStartTime] = useState("00:00");
@@ -57,6 +61,10 @@ export default function DailyReport() {
   const [showOtherFilters, setShowOtherFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [summarySheetOpen, setSummarySheetOpen] = useState(false);
+  const [selectedSale, setSelectedSale] = useState(null);
+  const [editPayment, setEditPayment] = useState("cash");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
   const [applied, setApplied] = useState({
     startDate: todayISO(),
     endDate: todayISO(),
@@ -167,6 +175,54 @@ export default function DailyReport() {
 
   const openSummarySheet = () => setSummarySheetOpen(true);
 
+  const openSaleEditor = (sale) => {
+    if (!canManageSales) return;
+    setSelectedSale(sale);
+    setEditPayment(sale.paymentType);
+    setActionMessage("");
+  };
+
+  const closeSaleEditor = () => {
+    if (actionLoading) return;
+    setSelectedSale(null);
+    setActionMessage("");
+  };
+
+  const handleSavePayment = async () => {
+    if (!selectedSale) return;
+    setActionLoading(true);
+    setActionMessage("");
+    try {
+      await updateSalePayment(selectedSale.id, editPayment);
+      setSelectedSale(null);
+    } catch (err) {
+      setActionMessage(err.message || "Ödeme tipi güncellenemedi");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteSale = async () => {
+    if (!selectedSale) return;
+    if (!window.confirm("Bu satış kalıcı olarak silinecek. Emin misiniz?")) return;
+    setActionLoading(true);
+    setActionMessage("");
+    try {
+      await deleteSale(selectedSale.id);
+      setSelectedSale(null);
+    } catch (err) {
+      setActionMessage(err.message || "Satış silinemedi");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const selectedCustomerName = selectedSale
+    ? state.customers.find((c) => c.id === selectedSale.customerId)?.name || "—"
+    : "—";
+
+  const saleRowClass = canManageSales ? "report-sale-row report-sale-row--clickable" : "report-sale-row";
+
   return (
     <div className="report-page report-page--daily">
       <header className="report-hero">
@@ -237,7 +293,19 @@ export default function DailyReport() {
             <>
               <div className="report-sale-list">
                 {pageRows.map((sale) => (
-                  <div key={sale.id} className="report-sale-row">
+                  <div
+                    key={sale.id}
+                    className={saleRowClass}
+                    onClick={() => openSaleEditor(sale)}
+                    role={canManageSales ? "button" : undefined}
+                    tabIndex={canManageSales ? 0 : undefined}
+                    onKeyDown={(e) => {
+                      if (canManageSales && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        openSaleEditor(sale);
+                      }
+                    }}
+                  >
                     <div className="report-sale-row__left">
                       <i className="fa fa-file-text-o" aria-hidden="true" />
                       <div>
@@ -278,7 +346,11 @@ export default function DailyReport() {
                   </thead>
                   <tbody>
                     {rows.map((sale) => (
-                      <tr key={sale.id}>
+                      <tr
+                        key={sale.id}
+                        className={canManageSales ? "report-table-row--clickable" : undefined}
+                        onClick={() => openSaleEditor(sale)}
+                      >
                         <td>
                           <strong>{sale.code}</strong>
                         </td>
@@ -351,6 +423,78 @@ export default function DailyReport() {
           </div>
         </div>
       )}
+
+      <Modal
+        open={!!selectedSale}
+        title="Satış düzenle"
+        onClose={closeSaleEditor}
+        footer={
+          <div className="report-sale-manage__actions">
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={handleDeleteSale}
+              disabled={actionLoading}
+            >
+              Satışı sil
+            </button>
+            <button type="button" className="btn btn-default" onClick={closeSaleEditor} disabled={actionLoading}>
+              İptal
+            </button>
+            <button type="button" className="btn btn-success" onClick={handleSavePayment} disabled={actionLoading}>
+              Kaydet
+            </button>
+          </div>
+        }
+      >
+        {selectedSale && (
+          <div className="report-sale-manage">
+            {actionMessage && <div className="alert alert-info">{actionMessage}</div>}
+            <p className="report-sale-manage__code">
+              <strong>{selectedSale.code}</strong>
+            </p>
+            <dl className="report-sale-manage__meta">
+              <div>
+                <dt>Tarih</dt>
+                <dd>{formatDateTime(selectedSale.createdAt)}</dd>
+              </div>
+              <div>
+                <dt>Personel</dt>
+                <dd>{selectedSale.staffName || "—"}</dd>
+              </div>
+              <div>
+                <dt>Müşteri</dt>
+                <dd>{selectedCustomerName}</dd>
+              </div>
+              <div>
+                <dt>Tutar</dt>
+                <dd>{formatMoney(selectedSale.total)}</dd>
+              </div>
+              <div>
+                <dt>Ürün adedi</dt>
+                <dd>{formatQty(selectedSale.itemCount)}</dd>
+              </div>
+            </dl>
+            <label className="report-sale-manage__field">
+              <span>Ödeme tipi</span>
+              <select value={editPayment} onChange={(e) => setEditPayment(e.target.value)} disabled={actionLoading}>
+                <option value="cash">Nakit</option>
+                <option value="pos">Pos</option>
+                <option value="open" disabled={!selectedSale.customerId}>
+                  Açık Hesap {!selectedSale.customerId ? "(müşteri yok)" : ""}
+                </option>
+              </select>
+            </label>
+            <ul className="report-sale-manage__items">
+              {selectedSale.items?.map((item) => (
+                <li key={item.id || `${item.productId}-${item.name}`}>
+                  {item.name} · {formatQty(item.qty)} × {formatMoney(item.price)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
