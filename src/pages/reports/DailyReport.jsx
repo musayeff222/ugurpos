@@ -1,12 +1,42 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "../../store/StoreContext";
 import DataTable from "../../components/ui/DataTable";
 import PageHeader from "../../components/ui/PageHeader";
 import { formatDateTime, formatMoney, isSameDay, todayISO } from "../../utils/format";
 
+function DailySummaryCards({ cashRegisterTotal, cardTotal, openTotal, refundTotal }) {
+  return (
+    <>
+      <article className="daily-report-card daily-report-card--cash">
+        <span>Kassada olan nakit</span>
+        <strong>{formatMoney(cashRegisterTotal)}</strong>
+        <small>Nakit satışlardan hesablanır</small>
+      </article>
+      <article className="daily-report-card daily-report-card--card">
+        <span>Kart / POS satış</span>
+        <strong>{formatMoney(cardTotal)}</strong>
+        <small>Kart terminal toplamı</small>
+      </article>
+      <article className="daily-report-card">
+        <span>Açık hesap</span>
+        <strong>{formatMoney(openTotal)}</strong>
+        <small>Müştəri borcuna yazılan</small>
+      </article>
+      <article className="daily-report-card daily-report-card--muted">
+        <span>İade</span>
+        <strong>{formatMoney(refundTotal)}</strong>
+        <small>Gün içi iade toplamı</small>
+      </article>
+    </>
+  );
+}
+
 export default function DailyReport() {
   const { state } = useStore();
   const [date, setDate] = useState(todayISO());
+  const [summarySheetOpen, setSummarySheetOpen] = useState(false);
+  const [cardsInView, setCardsInView] = useState(false);
+  const cardsRef = useRef(null);
 
   const rows = useMemo(
     () =>
@@ -28,6 +58,20 @@ export default function DailyReport() {
     .reduce((s, r) => s + Math.abs(r.total || 0), 0);
   const cashRegisterTotal = cashTotal;
 
+  useEffect(() => {
+    const node = cardsRef.current;
+    if (!node) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setCardsInView(entry.isIntersecting),
+      { root: null, threshold: 0.15 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [date, rows.length]);
+
+  const showSummaryFab = !summarySheetOpen && !cardsInView;
+
   return (
     <div className="daily-terminal-report">
       <PageHeader title="Günlük Rapor" subtitle={`${date} · ${rows.length} satış`} />
@@ -41,29 +85,6 @@ export default function DailyReport() {
           <span>GÜNLÜK CƏMİ</span>
           <strong>{formatMoney(total)}</strong>
         </div>
-      </section>
-
-      <section className="daily-terminal-report__cards">
-        <article className="daily-report-card daily-report-card--cash">
-          <span>Kassada olan nakit</span>
-          <strong>{formatMoney(cashRegisterTotal)}</strong>
-          <small>Nakit satışlardan hesablanır</small>
-        </article>
-        <article className="daily-report-card daily-report-card--card">
-          <span>Kart / POS satış</span>
-          <strong>{formatMoney(cardTotal)}</strong>
-          <small>Kart terminal toplamı</small>
-        </article>
-        <article className="daily-report-card">
-          <span>Açık hesap</span>
-          <strong>{formatMoney(openTotal)}</strong>
-          <small>Müştəri borcuna yazılan</small>
-        </article>
-        <article className="daily-report-card daily-report-card--muted">
-          <span>İade</span>
-          <strong>{formatMoney(refundTotal)}</strong>
-          <small>Gün içi iade toplamı</small>
-        </article>
       </section>
 
       <section className="daily-terminal-report__mobile-list">
@@ -87,6 +108,53 @@ export default function DailyReport() {
           ))
         )}
       </section>
+
+      <section ref={cardsRef} className="daily-terminal-report__cards" aria-label="Günlük özet kartları">
+        <DailySummaryCards
+          cashRegisterTotal={cashRegisterTotal}
+          cardTotal={cardTotal}
+          openTotal={openTotal}
+          refundTotal={refundTotal}
+        />
+      </section>
+
+      {showSummaryFab && (
+        <button
+          type="button"
+          className="daily-summary-fab"
+          onClick={() => setSummarySheetOpen(true)}
+          aria-label="Özet kartları göster"
+        >
+          <i className="fa fa-chevron-up" aria-hidden="true" />
+        </button>
+      )}
+
+      {summarySheetOpen && (
+        <div className="daily-summary-sheet" role="dialog" aria-modal="true" aria-label="Günlük özet">
+          <button
+            type="button"
+            className="daily-summary-sheet__backdrop"
+            onClick={() => setSummarySheetOpen(false)}
+            aria-label="Kapat"
+          />
+          <div className="daily-summary-sheet__panel">
+            <div className="daily-summary-sheet__head">
+              <strong>Günlük özet</strong>
+              <button type="button" onClick={() => setSummarySheetOpen(false)} aria-label="Kapat">
+                <i className="fa fa-times" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="daily-summary-sheet__cards">
+              <DailySummaryCards
+                cashRegisterTotal={cashRegisterTotal}
+                cardTotal={cardTotal}
+                openTotal={openTotal}
+                refundTotal={refundTotal}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card daily-terminal-report__table">
         <div className="card-body">
