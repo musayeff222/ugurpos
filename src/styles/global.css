@@ -269,8 +269,7 @@ th {
   font-size: 12px;
 }
 
-.daily-terminal-report,
-.product-terminal-report {
+.daily-terminal-report {
   --daily-bg: #f9f9ff;
   --daily-panel: #fff;
   --daily-line: #c1c6d7;
@@ -283,8 +282,7 @@ th {
   gap: 14px;
 }
 
-.daily-terminal-report .page-header,
-.product-terminal-report .page-header {
+.daily-terminal-report .page-header {
   margin-bottom: 0;
   border: 1px solid var(--daily-line);
   border-radius: 14px;
@@ -395,26 +393,6 @@ th {
   background: linear-gradient(180deg, #ffffff 0%, #f4f6ff 100%);
 }
 
-.product-terminal-report__cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.product-terminal-report__mobile-list {
-  display: none;
-}
-
-.product-terminal-report__table {
-  border: 1px solid var(--daily-line);
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.product-sale-card strong {
-  font-size: 14px;
-}
-
 .daily-terminal-report__mobile-list {
   display: none;
 }
@@ -503,21 +481,14 @@ th {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
-
-  .product-terminal-report__cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-  }
 }
 
 @media (max-width: 640px) {
-  .daily-terminal-report,
-  .product-terminal-report {
+  .daily-terminal-report {
     gap: 10px;
   }
 
-  .daily-terminal-report .page-header,
-  .product-terminal-report .page-header {
+  .daily-terminal-report .page-header {
     padding: 12px;
   }
 
@@ -545,31 +516,14 @@ th {
     font-size: 18px;
   }
 
-  .daily-terminal-report__table,
-  .product-terminal-report__table {
+  .daily-terminal-report__table {
     display: none;
   }
 
-  .daily-terminal-report__mobile-list,
-  .product-terminal-report__mobile-list {
+  .daily-terminal-report__mobile-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
-  }
-
-  .product-terminal-report__cards {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding-bottom: 8px;
-  }
-
-  .product-terminal-report__cards .daily-report-card {
-    min-height: 92px;
-    padding: 10px;
-  }
-
-  .product-terminal-report__cards .daily-report-card strong {
-    font-size: 22px;
   }
 
   .daily-sale-card {
