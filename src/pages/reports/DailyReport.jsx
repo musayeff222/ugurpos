@@ -33,6 +33,20 @@ function paymentLabel(type) {
   return type || "—";
 }
 
+function ReportSummaryGrid({ cards }) {
+  return (
+    <div className="report-summary__grid">
+      {cards.map((card) => (
+        <article key={card.label} className="report-summary-card">
+          <span>{card.label}</span>
+          <strong>{card.value}</strong>
+          {card.hint && <small>{card.hint}</small>}
+        </article>
+      ))}
+    </div>
+  );
+}
+
 export default function DailyReport() {
   const navigate = useNavigate();
   const { state } = useStore();
@@ -42,6 +56,7 @@ export default function DailyReport() {
   const [endTime, setEndTime] = useState("23:59");
   const [showOtherFilters, setShowOtherFilters] = useState(false);
   const [page, setPage] = useState(1);
+  const [summarySheetOpen, setSummarySheetOpen] = useState(false);
   const [applied, setApplied] = useState({
     startDate: todayISO(),
     endDate: todayISO(),
@@ -117,13 +132,12 @@ export default function DailyReport() {
   const profit = total - productCost;
   const profitPct = productCost > 0 ? (profit / productCost) * 100 : 0;
   const netProfit = profit + incomesTotal - expensesTotal - refundTotal;
-  const cashRegisterTotal = cashTotal;
+  const cashRegisterTotal = Math.max(0, cashTotal - expensesTotal);
+  const receivedPayments = 0;
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
-  const receivedPayments = 0;
 
   const summaryCards = [
     { label: "Nakit", value: formatMoney(cashTotal) },
@@ -134,7 +148,7 @@ export default function DailyReport() {
     { label: "Firma Ödemeleri", value: formatMoney(firmPayments) },
     { label: "Gelirler", value: formatMoney(incomesTotal) },
     { label: "Giderler", value: formatMoney(expensesTotal) },
-    { label: "Nakit Kasa", value: formatMoney(cashRegisterTotal) },
+    { label: "Nakit Kasa", value: formatMoney(cashRegisterTotal), hint: "Nakit − giderler" },
     {
       label: "Kâr",
       value: formatMoney(profit),
@@ -148,10 +162,13 @@ export default function DailyReport() {
   const applyFilters = () => {
     setApplied({ startDate, endDate, startTime, endTime });
     setPage(1);
+    setSummarySheetOpen(false);
   };
 
+  const openSummarySheet = () => setSummarySheetOpen(true);
+
   return (
-    <div className="report-page">
+    <div className="report-page report-page--daily">
       <header className="report-hero">
         <div className="report-hero__top">
           <button type="button" className="report-back" onClick={() => navigate(-1)} aria-label="Geri">
@@ -159,10 +176,10 @@ export default function DailyReport() {
           </button>
           <h1>Günlük Rapor</h1>
           <div className="report-actions">
-            <button type="button" aria-label="Özet" onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}>
+            <button type="button" aria-label="Özet kartları" onClick={openSummarySheet}>
               <i className="fa fa-eye" aria-hidden="true" />
             </button>
-            <button type="button" aria-label="Kasa" onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}>
+            <button type="button" aria-label="Kasa özeti" onClick={openSummarySheet}>
               <i className="fa fa-money" aria-hidden="true" />
             </button>
             <button type="button" aria-label="Yazdır" onClick={() => window.print()}>
@@ -297,18 +314,43 @@ export default function DailyReport() {
           </div>
         )}
 
-        <footer className="report-summary" aria-label="Günlük özet">
-          <div className="report-summary__grid">
-            {summaryCards.map((card) => (
-              <article key={card.label} className="report-summary-card">
-                <span>{card.label}</span>
-                <strong>{card.value}</strong>
-                {card.hint && <small>{card.hint}</small>}
-              </article>
-            ))}
-          </div>
+        <footer className="report-summary report-summary--dock" aria-label="Günlük özet">
+          <ReportSummaryGrid cards={summaryCards} />
         </footer>
       </div>
+
+      {!summarySheetOpen && (
+        <button
+          type="button"
+          className="report-summary-fab"
+          onClick={openSummarySheet}
+          aria-label="Özet kartlarını göster"
+        >
+          <i className="fa fa-chevron-up" aria-hidden="true" />
+        </button>
+      )}
+
+      {summarySheetOpen && (
+        <div className="report-summary-sheet" role="dialog" aria-modal="true" aria-label="Günlük özet">
+          <button
+            type="button"
+            className="report-summary-sheet__backdrop"
+            onClick={() => setSummarySheetOpen(false)}
+            aria-label="Kapat"
+          />
+          <div className="report-summary-sheet__panel">
+            <div className="report-summary-sheet__head">
+              <strong>Günlük Özet</strong>
+              <button type="button" onClick={() => setSummarySheetOpen(false)} aria-label="Kapat">
+                <i className="fa fa-times" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="report-summary-sheet__body">
+              <ReportSummaryGrid cards={summaryCards} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

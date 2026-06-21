@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
-import DataTable from "../components/ui/DataTable";
 import { formatDateTime, formatMoney, isSameDay, todayISO } from "../utils/format";
+import "../styles/report-mobile.css";
 
 function StatCard({ iconClass, badge, badgeVariant, title, value, help }) {
   return (
@@ -28,6 +28,21 @@ function StatCard({ iconClass, badge, badgeVariant, title, value, help }) {
   );
 }
 
+function formatQty(value) {
+  return Number(value || 0).toLocaleString("tr-TR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function paymentLabel(type) {
+  if (type === "cash") return "Nakit";
+  if (type === "pos") return "Pos";
+  if (type === "open") return "Açık Hesap";
+  if (type === "refund") return "İade";
+  return type || "—";
+}
+
 export default function Dashboard() {
   const { state } = useStore();
   const today = todayISO();
@@ -47,7 +62,18 @@ export default function Dashboard() {
     };
   }, [state.sales, today, monthPrefix]);
 
-  const recentSales = state.sales.slice(0, 10);
+  const recentSales = useMemo(
+    () =>
+      state.sales
+        .filter((sale) => sale.paymentType !== "refund")
+        .slice(0, 10)
+        .map((sale) => ({
+          ...sale,
+          itemCount: sale.items?.reduce((sum, item) => sum + item.qty, 0) || 0,
+          customerName: state.customers.find((c) => c.id === sale.customerId)?.name || "—",
+        })),
+    [state.sales, state.customers]
+  );
 
   return (
     <div className="dashboard">
@@ -105,26 +131,91 @@ export default function Dashboard() {
 
       <div className="row">
         <div className="col full-col">
-          <div className="card">
-            <div className="card-header">
-              <h5>Son satışlarınız</h5>
+          <section className="report-recent-block" aria-label="Son satışlarınız">
+            <header className="report-recent-block__hero">
+              <div>
+                <h2>Son satışlarınız</h2>
+                <p>Son 10 satış · günlük rapor düzeni</p>
+              </div>
+              <Link to="/dreport" className="report-recent-block__link">
+                Günlük rapor
+                <i className="fa fa-chevron-right" aria-hidden="true" />
+              </Link>
+            </header>
+
+            <div className="report-recent-block__body">
+              {recentSales.length === 0 ? (
+                <p className="report-empty">
+                  Henüz satış yok.{" "}
+                  <Link to="/sales">Satış Yap</Link> sayfasından satış gerçekleştirin.
+                </p>
+              ) : (
+                <>
+                  <div className="report-sale-list report-recent-block__list">
+                    {recentSales.map((sale) => (
+                      <div key={sale.id} className="report-sale-row">
+                        <div className="report-sale-row__left">
+                          <i className="fa fa-file-text-o" aria-hidden="true" />
+                          <div>
+                            <strong>{sale.code}</strong>
+                            <span className="report-sale-row__status">Başarılı</span>
+                            <small>
+                              {sale.staffName || "—"} · {sale.customerName}
+                            </small>
+                          </div>
+                        </div>
+                        <div className="report-sale-row__center">
+                          <span>{formatDateTime(sale.createdAt)}</span>
+                          <small>{paymentLabel(sale.paymentType)}</small>
+                        </div>
+                        <div className="report-sale-row__right">
+                          <span>
+                            <em>Miktar</em>
+                            {formatQty(sale.itemCount)}
+                          </span>
+                          <strong>
+                            <em>Tutar</em>
+                            {formatMoney(sale.total)}
+                          </strong>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="report-desktop-table report-recent-block__table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Satış kodu</th>
+                          <th>Müşteri</th>
+                          <th>Miktar</th>
+                          <th>Tutar</th>
+                          <th>Ödeme</th>
+                          <th>Tarih</th>
+                          <th>Personel</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentSales.map((sale) => (
+                          <tr key={sale.id}>
+                            <td>
+                              <strong>{sale.code}</strong>
+                            </td>
+                            <td>{sale.customerName}</td>
+                            <td>{formatQty(sale.itemCount)}</td>
+                            <td>{formatMoney(sale.total)}</td>
+                            <td>{paymentLabel(sale.paymentType)}</td>
+                            <td>{formatDateTime(sale.createdAt)}</td>
+                            <td>{sale.staffName || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="card-body">
-              <DataTable
-                columns={[
-                  { key: "code", label: "Satış kodu" },
-                  { key: "customer", label: "Müşteri", render: (r) => state.customers.find((c) => c.id === r.customerId)?.name || "—" },
-                  { key: "items", label: "Toplam ürün", render: (r) => r.items?.reduce((s, i) => s + i.qty, 0) || 0 },
-                  { key: "total", label: "Toplam tutar", render: (r) => formatMoney(r.total) },
-                  { key: "paymentType", label: "Ödeme tipi" },
-                  { key: "createdAt", label: "Tarih", render: (r) => formatDateTime(r.createdAt) },
-                  { key: "staffName", label: "Personel" },
-                ]}
-                rows={recentSales}
-                emptyText="Henüz satış yok. Satış Yap sayfasından satış gerçekleştirin."
-              />
-            </div>
-          </div>
+          </section>
         </div>
       </div>
     </div>
