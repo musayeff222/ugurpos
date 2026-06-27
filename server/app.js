@@ -9,6 +9,7 @@ import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
 import apiRoutes from "./routes/api.js";
 import publicRoutes from "./routes/public.js";
+import { startBusinessDayScheduler } from "./utils/businessDayScheduler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -16,6 +17,7 @@ const app = express();
 app.set("trust proxy", 1);
 
 getDb();
+startBusinessDayScheduler();
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "5mb" }));

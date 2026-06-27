@@ -50,6 +50,14 @@ export const api = {
   getAdminActivity: () => request("/admin/activity"),
   getAdminActivityPoll: (after) =>
     request(`/admin/activity/poll${after ? `?after=${encodeURIComponent(after)}` : ""}`),
+  getAdminCashWithdrawals: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/admin/cash-withdrawals${q ? `?${q}` : ""}`);
+  },
+  getAdminBusinessDayReports: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/admin/business-day-reports${q ? `?${q}` : ""}`);
+  },
   changeAdminPassword: (payload) =>
     request("/admin/account/password", { method: "PATCH", body: JSON.stringify(payload) }),
   updateAdminAccount: (payload) =>
@@ -177,4 +185,12 @@ export const api = {
 
   getEInvoices: (direction) => request(`/e-invoices${direction ? `?direction=${direction}` : ""}`),
   createEInvoice: (invoice) => request("/e-invoices", { method: "POST", body: JSON.stringify(invoice) }),
+
+  getCashRegisterBalance: () => request("/cash-register/balance"),
+  getCashWithdrawals: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/cash-withdrawals${q ? `?${q}` : ""}`);
+  },
+  createCashWithdrawal: (payload) =>
+    request("/cash-withdrawals", { method: "POST", body: JSON.stringify(payload) }),
 };

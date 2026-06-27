@@ -193,5 +193,7 @@ export function createDefaultState() {
     refundRequests: [],
     variants: [],
     subProducts: [],
+    cashWithdrawals: [],
+    branchSettings: { businessOpenTime: "08:00", businessCloseTime: "17:00" },
   };
 }

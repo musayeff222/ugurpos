@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useStore } from "../../store/StoreContext";
 import Modal from "../../components/ui/Modal";
-import { formatDateTime, formatMoney, todayISO } from "../../utils/format";
+import { formatDateTime, formatMoney } from "../../utils/format";
+import { getActiveBusinessWindow } from "../../utils/businessHours";
 import "../../styles/report-mobile.css";
 
 const PAGE_SIZE = 12;
@@ -35,6 +36,18 @@ function paymentLabel(type) {
   return type || "—";
 }
 
+function buildDefaultApplied(branchSettings) {
+  const open = branchSettings?.businessOpenTime || "08:00";
+  const close = branchSettings?.businessCloseTime || "17:00";
+  const window = getActiveBusinessWindow(open, close);
+  return {
+    startDate: window.businessDate,
+    endDate: window.businessDate,
+    startTime: window.openTime,
+    endTime: window.closeTime,
+  };
+}
+
 function ReportSummaryGrid({ cards }) {
   return (
     <div className="report-summary__grid">
@@ -54,10 +67,11 @@ export default function DailyReport() {
   const { isStaffUser } = useAuth();
   const { state, updateSalePayment, deleteSale } = useStore();
   const canManageSales = !isStaffUser;
-  const [startDate, setStartDate] = useState(todayISO());
-  const [endDate, setEndDate] = useState(todayISO());
-  const [startTime, setStartTime] = useState("00:00");
-  const [endTime, setEndTime] = useState("23:59");
+  const defaultApplied = buildDefaultApplied(state.branchSettings);
+  const [startDate, setStartDate] = useState(defaultApplied.startDate);
+  const [endDate, setEndDate] = useState(defaultApplied.endDate);
+  const [startTime, setStartTime] = useState(defaultApplied.startTime);
+  const [endTime, setEndTime] = useState(defaultApplied.endTime);
   const [showOtherFilters, setShowOtherFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [summarySheetOpen, setSummarySheetOpen] = useState(false);
@@ -65,12 +79,7 @@ export default function DailyReport() {
   const [editPayment, setEditPayment] = useState("cash");
   const [actionLoading, setActionLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
-  const [applied, setApplied] = useState({
-    startDate: todayISO(),
-    endDate: todayISO(),
-    startTime: "00:00",
-    endTime: "23:59",
-  });
+  const [applied, setApplied] = useState(defaultApplied);
 
   const productBuyMap = useMemo(() => {
     const map = {};
@@ -123,6 +132,12 @@ export default function DailyReport() {
     .filter((item) => isDateInRange(item.date, applied.startDate, applied.endDate))
     .reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
+  const withdrawalsTotal = (state.cashWithdrawals || [])
+    .filter((item) =>
+      isSaleInRange(item.createdAt, applied.startDate, applied.endDate, applied.startTime, applied.endTime)
+    )
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
   const firmPayments = state.purchaseInvoices
     .filter((invoice) => isDateInRange(invoice.date, applied.startDate, applied.endDate))
     .reduce((sum, invoice) => sum + Number(invoice.total || 0), 0);
@@ -139,8 +154,8 @@ export default function DailyReport() {
 
   const profit = total - productCost;
   const profitPct = productCost > 0 ? (profit / productCost) * 100 : 0;
-  const netProfit = profit + incomesTotal - expensesTotal - refundTotal;
-  const cashRegisterTotal = Math.max(0, cashTotal - expensesTotal);
+  const netProfit = profit + incomesTotal - expensesTotal - refundTotal - withdrawalsTotal;
+  const cashRegisterTotal = Math.max(0, cashTotal - expensesTotal - withdrawalsTotal);
   const receivedPayments = 0;
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -156,7 +171,8 @@ export default function DailyReport() {
     { label: "Firma Ödemeleri", value: formatMoney(firmPayments) },
     { label: "Gelirler", value: formatMoney(incomesTotal) },
     { label: "Giderler", value: formatMoney(expensesTotal) },
-    { label: "Nakit Kasa", value: formatMoney(cashRegisterTotal), hint: "Nakit − giderler" },
+    { label: "Kassadan Xərc", value: formatMoney(withdrawalsTotal) },
+    { label: "Nakit Kasa", value: formatMoney(cashRegisterTotal), hint: "Nakit − giderler − kassa xərci" },
     {
       label: "Kâr",
       value: formatMoney(profit),

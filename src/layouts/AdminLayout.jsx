@@ -8,6 +8,7 @@ const adminNav = [
   { to: "/admin", label: "Özet", icon: "fa-home", end: true },
   { to: "/admin/branches", label: "Şubeler", icon: "fa-building" },
   { to: "/admin/activity", label: "Hareketler", icon: "fa-bell", badge: "activity" },
+  { to: "/admin/cash-reports", label: "Kasa", icon: "fa-money" },
   { to: "/admin/qr-menu", label: "Web Sipariş", icon: "fa-shopping-bag", badge: "orders" },
   { to: "/admin/settings", label: "Ayarlar", icon: "fa-cog" },
 ];
@@ -36,6 +37,7 @@ export default function AdminLayout() {
     (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches")) ||
     (item.to === "/admin/qr-menu" && location.pathname.startsWith("/admin/qr-menu")) ||
     (item.to === "/admin/activity" && location.pathname.startsWith("/admin/activity")) ||
+    (item.to === "/admin/cash-reports" && location.pathname.startsWith("/admin/cash-reports")) ||
     (item.to === "/admin/settings" && location.pathname.startsWith("/admin/settings"));
 
   const pageTitle =

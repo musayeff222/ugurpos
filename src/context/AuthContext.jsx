@@ -128,6 +128,7 @@ export function AuthProvider({ children }) {
         activeStaffId: user?.staffId,
         activeStaffName: user?.staffName,
         activeStaffRole: user?.staffRole,
+        canCashExpense: user?.canCashExpense || user?.role !== "staff",
         branches: user?.branches || [],
       }}
     >

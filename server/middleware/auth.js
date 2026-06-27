@@ -46,6 +46,7 @@ export function signStaffToken(staff, branch, firmName) {
     staffId: staff.id,
     staffName: `${staff.name || ""} ${staff.surname || ""}`.trim() || staff.name,
     staffRole: staff.role || "Kasiyer",
+    canCashExpense: !!staff.can_cash_expense,
     role: "staff",
     loginType: "staff",
   });

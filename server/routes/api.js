@@ -11,14 +11,34 @@ import {
 } from "../utils/productImage.js";
 import { productImageUpload } from "../middleware/imageUpload.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
-import { hashBranchPassword } from "../utils/branchAuth.js";
-import { sql as SQL } from "../db/dialect.js";
+import { logActivity } from "../utils/activityLog.js";
+import { getActiveBusinessWindow } from "../utils/businessHours.js";
+import { computeCashRegisterBalance } from "../utils/cashRegister.js";
 
 const router = Router();
 router.use(branchMiddleware);
 
 function canManageSales(req) {
   return req.user?.loginType !== "staff" && req.user?.role !== "staff";
+}
+
+function canRecordCashExpense(req, db) {
+  if (req.user?.loginType !== "staff" && req.user?.role !== "staff") return true;
+  const staff = db.prepare("SELECT can_cash_expense FROM staff WHERE id = ?").get(req.user.staffId);
+  return !!staff?.can_cash_expense;
+}
+
+function rowToCashWithdrawal(row) {
+  return {
+    id: row.id,
+    branchId: row.branch_id,
+    staffId: row.staff_id || null,
+    staffName: row.staff_name,
+    amount: Number(row.amount),
+    reason: row.reason,
+    note: row.note || "",
+    createdAt: row.created_at,
+  };
 }
 
 function rejectStaffSaleManage(req, res) {
@@ -507,6 +527,91 @@ router.post("/refunds", (req, res) => {
   res.status(201).json(getSaleWithItems(db, saleId));
 });
 
+router.get("/cash-register/balance", (req, res) => {
+  const db = getDb();
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.branchId);
+  const window = getActiveBusinessWindow(branch);
+  const cash = computeCashRegisterBalance(db, req.branchId, window);
+  res.json({ window, ...cash });
+});
+
+router.get("/cash-withdrawals", (req, res) => {
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT * FROM cash_withdrawals WHERE branch_id = ? ORDER BY created_at DESC")
+    .all(req.branchId)
+    .map(rowToCashWithdrawal);
+
+  const from = req.query.from;
+  const to = req.query.to;
+  const staffId = req.query.staffId;
+
+  const filtered = rows.filter((row) => {
+    const day = row.createdAt.slice(0, 10);
+    if (from && day < from) return false;
+    if (to && day > to) return false;
+    if (staffId && row.staffId !== staffId) return false;
+    return true;
+  });
+
+  res.json(filtered);
+});
+
+router.post("/cash-withdrawals", (req, res) => {
+  const db = getDb();
+  if (!canRecordCashExpense(req, db)) {
+    return res.status(403).json({ error: "Kassadan xərc icazəsi yoxdur" });
+  }
+
+  const amount = Number(req.body.amount);
+  const reason = String(req.body.reason || "").trim();
+  const note = String(req.body.note || "").trim();
+
+  if (!amount || amount <= 0) return res.status(400).json({ error: "Geçerli məbləğ girin" });
+  if (!reason) return res.status(400).json({ error: "Xərc səbəbi zəruridir" });
+
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.branchId);
+  const window = getActiveBusinessWindow(branch);
+  const cash = computeCashRegisterBalance(db, req.branchId, window);
+
+  if (amount > cash.balance) {
+    return res.status(400).json({ error: "Kassada kifayət qədər nakit yoxdur" });
+  }
+
+  const id = uid("cw");
+  const now = new Date().toISOString();
+  const staffName =
+    req.user?.loginType === "staff"
+      ? req.user.staffName || "Personal"
+      : req.user?.branchName || "Şube";
+
+  db.prepare(
+    `INSERT INTO cash_withdrawals (id, branch_id, staff_id, staff_name, amount, reason, note, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    req.branchId,
+    req.user?.staffId || null,
+    staffName,
+    amount,
+    reason,
+    note,
+    now
+  );
+
+  logActivity(db, {
+    firmId: branch.firm_id,
+    branchId: req.branchId,
+    branchName: branch.name,
+    type: "cash_withdrawal",
+    title: `Kassadan xərc: ${amount.toFixed(2)}`,
+    detail: `${staffName} — ${reason}`,
+    refId: id,
+  });
+
+  res.status(201).json(rowToCashWithdrawal(db.prepare("SELECT * FROM cash_withdrawals WHERE id = ?").get(id)));
+});
+
 // Staff
 router.get("/staff", (req, res) => {
   res.json(
@@ -522,19 +627,32 @@ router.get("/staff", (req, res) => {
         code: r.code,
         role: r.role,
         active: !!r.active,
+        canCashExpense: !!r.can_cash_expense,
       }))
   );
 });
 
 router.post("/staff", (req, res) => {
   const id = uid("s");
-  const { name, surname, login, password, code, role } = req.body;
+  const { name, surname, login, password, code, role, canCashExpense } = req.body;
   const normalizedLogin = login?.trim().toLowerCase() || "";
   const passwordHash = password?.trim() ? hashBranchPassword(password) : null;
+  const canCash = canCashExpense === true || canCashExpense === 1 || canCashExpense === "1" ? 1 : 0;
   getDb()
-    .prepare("INSERT INTO staff (id, name, surname, login, password_hash, code, role, active, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)")
-    .run(id, name, surname || "", normalizedLogin, passwordHash, code || "", role || "Kasiyer", req.branchId);
-  res.status(201).json({ id, name, surname: surname || "", login: normalizedLogin, code, role, active: true });
+    .prepare(
+      "INSERT INTO staff (id, name, surname, login, password_hash, code, role, active, can_cash_expense, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+    )
+    .run(id, name, surname || "", normalizedLogin, passwordHash, code || "", role || "Kasiyer", canCash, req.branchId);
+  res.status(201).json({
+    id,
+    name,
+    surname: surname || "",
+    login: normalizedLogin,
+    code,
+    role,
+    active: true,
+    canCashExpense: !!canCash,
+  });
 });
 
 router.patch("/staff/:id", (req, res) => {
@@ -543,14 +661,23 @@ router.patch("/staff/:id", (req, res) => {
   const existing = db.prepare("SELECT * FROM staff WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
   if (!existing) return res.status(404).json({ error: "Not found" });
   const passwordHash = s.password?.trim() ? hashBranchPassword(s.password) : existing.password_hash;
-  db.prepare("UPDATE staff SET name=?, surname=?, login=?, password_hash=?, code=?, role=?, active=? WHERE id=? AND branch_id=?").run(
-    s.name,
-    s.surname || "",
-    s.login?.trim().toLowerCase() || "",
+  const canCash =
+    s.canCashExpense === undefined
+      ? existing.can_cash_expense
+      : s.canCashExpense === true || s.canCashExpense === 1 || s.canCashExpense === "1"
+        ? 1
+        : 0;
+  db.prepare(
+    "UPDATE staff SET name=?, surname=?, login=?, password_hash=?, code=?, role=?, active=?, can_cash_expense=? WHERE id=? AND branch_id=?"
+  ).run(
+    s.name ?? existing.name,
+    s.surname !== undefined ? s.surname || "" : existing.surname || "",
+    s.login !== undefined ? s.login.trim().toLowerCase() : existing.login || "",
     passwordHash,
-    s.code,
-    s.role || "Kasiyer",
-    s.active !== false ? 1 : 0,
+    s.code !== undefined ? s.code : existing.code,
+    s.role ?? existing.role ?? "Kasiyer",
+    s.active === false ? 0 : s.active === true ? 1 : existing.active ? 1 : 0,
+    canCash,
     req.params.id,
     req.branchId
   );

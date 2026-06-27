@@ -24,6 +24,7 @@ import Notices from "./pages/Notices";
 import Profile from "./pages/Profile";
 import MobileMenuPage from "./pages/MobileMenuPage";
 import DailyReport from "./pages/reports/DailyReport";
+import CashExpense from "./pages/CashExpense";
 import HistoricalReport from "./pages/reports/HistoricalReport";
 import ProductReport from "./pages/reports/ProductReport";
 import GroupReport from "./pages/reports/GroupReport";
@@ -46,6 +47,7 @@ import AdminBranchDetail from "./pages/admin/AdminBranchDetail";
 import AdminQrMenu from "./pages/admin/AdminQrMenu";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminActivity from "./pages/admin/AdminActivity";
+import AdminCashReports from "./pages/admin/AdminCashReports";
 import PublicMenuLanding from "./pages/public/PublicMenuLanding";
 import PublicBranchMenu from "./pages/public/PublicBranchMenu";
 import PublicBranchCart from "./pages/public/PublicBranchCart";
@@ -84,6 +86,7 @@ export default function App() {
         <Route path="branches/:id" element={<AdminBranchDetail />} />
         <Route path="qr-menu" element={<AdminQrMenu />} />
         <Route path="activity" element={<AdminActivity />} />
+        <Route path="cash-reports" element={<AdminCashReports />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />
@@ -92,6 +95,7 @@ export default function App() {
         <Route path="menu" element={<MobileMenuPage />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="sales" element={<Sales />} />
+        <Route path="cash-expense" element={<CashExpense />} />
         <Route path="web-orders" element={<WebOrders />} />
         <Route path="qorders" element={<Navigate to="/web-orders" replace />} />
         <Route path="dreport" element={<DailyReport />} />

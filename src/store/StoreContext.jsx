@@ -160,6 +160,12 @@ export function StoreProvider({ children }) {
         return refresh();
       },
 
+      addCashWithdrawal: async (payload) => {
+        const created = await api.createCashWithdrawal(payload);
+        await refresh();
+        return created;
+      },
+
       addIncomeType: async (name) => {
         await api.createIncomeType(name);
         return refresh();

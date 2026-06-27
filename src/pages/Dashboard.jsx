@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
-import { formatDateTime, formatMoney, isSameDay, todayISO } from "../utils/format";
+import { formatDateTime, formatMoney } from "../utils/format";
+import { getActiveBusinessWindow, isTimestampInWindow } from "../utils/businessHours";
 import "../styles/report-mobile.css";
 
 function StatCard({ iconClass, badge, badgeVariant, title, value, help }) {
@@ -45,13 +46,24 @@ function paymentLabel(type) {
 
 export default function Dashboard() {
   const { state } = useStore();
-  const today = todayISO();
-  const monthPrefix = today.slice(0, 7);
+  const businessWindow = useMemo(
+    () =>
+      getActiveBusinessWindow(
+        state.branchSettings?.businessOpenTime || "08:00",
+        state.branchSettings?.businessCloseTime || "17:00"
+      ),
+    [state.branchSettings]
+  );
+  const monthPrefix = businessWindow.businessDate.slice(0, 7);
 
   const stats = useMemo(() => {
-    const todaySales = state.sales.filter((s) => s.paymentType !== "refund" && isSameDay(s.createdAt, today));
+    const todaySales = state.sales.filter(
+      (s) => s.paymentType !== "refund" && isTimestampInWindow(s.createdAt, businessWindow)
+    );
     const monthSales = state.sales.filter(
-      (s) => s.paymentType !== "refund" && s.createdAt.slice(0, 7) === monthPrefix
+      (s) =>
+        s.paymentType !== "refund" &&
+        s.createdAt.slice(0, 7) === monthPrefix
     );
     const sum = (list) => list.reduce((acc, s) => acc + (s.total || 0), 0);
     return {
@@ -59,8 +71,10 @@ export default function Dashboard() {
       todayTotal: sum(todaySales),
       monthCount: monthSales.length,
       monthTotal: sum(monthSales),
+      businessDate: businessWindow.businessDate,
+      businessHours: `${businessWindow.openTime}–${businessWindow.closeTime}`,
     };
-  }, [state.sales, today, monthPrefix]);
+  }, [state.sales, businessWindow, monthPrefix]);
 
   const recentSales = useMemo(
     () =>
@@ -78,7 +92,13 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       <div className="row">
-        <StatCard iconClass="success" badge="Bugün" badgeVariant="success" title="Toplam Satış" value={`${stats.todayCount} adet`} />
+        <StatCard
+          iconClass="success"
+          badge={`İş günü ${stats.businessHours}`}
+          badgeVariant="success"
+          title="Toplam Satış"
+          value={`${stats.todayCount} adet`}
+        />
         <StatCard iconClass="warning" badge="Bugün" badgeVariant="success" title="Net Kazanç" value={formatMoney(stats.todayTotal)} help="Net kazanç nedir?" />
         <StatCard iconClass="success" badge="Bu ay" badgeVariant="primary" title="Toplam Satış" value={`${stats.monthCount} adet`} />
         <StatCard iconClass="warning" badge="Bu ay" badgeVariant="primary" title="Net Kazanç" value={formatMoney(stats.monthTotal)} help="Net kazanç nedir?" />

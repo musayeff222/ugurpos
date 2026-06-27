@@ -12,6 +12,7 @@ export const mobileMenuItems = [
   { labelKey: "nav.stockCount", path: "/stockl", icon: "fa-cube" },
   { labelKey: "nav.income", path: "/income", icon: "fa-angle-down" },
   { labelKey: "nav.expense", path: "/expense", icon: "fa-angle-up" },
+  { label: "Kassadan Xərc", path: "/cash-expense", icon: "fa-money" },
   { labelKey: "nav.staff", path: "/staffs", icon: "fa-group" },
   { labelKey: "nav.productGroups", path: "/pgroups", icon: "fa-shopping-cart" },
   { labelKey: "nav.integrations", path: "/integration", icon: "fa-refresh" },

@@ -361,6 +361,7 @@ export function getAllState(database, branchId) {
       code: r.code || "",
       role: r.role || "",
       active: !!r.active,
+      canCashExpense: !!r.can_cash_expense,
     }));
   const paymentMethods = database
     .prepare("SELECT * FROM payment_methods WHERE branch_id = ?")
@@ -493,6 +494,26 @@ export function getAllState(database, branchId) {
       date: r.date,
     }));
 
+  const branchRow = database.prepare("SELECT * FROM branches WHERE id = ?").get(branchId);
+
+  let cashWithdrawals = [];
+  try {
+    cashWithdrawals = database
+      .prepare("SELECT * FROM cash_withdrawals WHERE branch_id = ? ORDER BY created_at DESC")
+      .all(branchId)
+      .map((r) => ({
+        id: r.id,
+        staffId: r.staff_id || null,
+        staffName: r.staff_name,
+        amount: Number(r.amount),
+        reason: r.reason,
+        note: r.note || "",
+        createdAt: r.created_at,
+      }));
+  } catch {
+    cashWithdrawals = [];
+  }
+
   return {
     products,
     customers,
@@ -514,6 +535,13 @@ export function getAllState(database, branchId) {
     variants,
     subProducts,
     eInvoices,
+    cashWithdrawals,
+    branchSettings: branchRow
+      ? {
+          businessOpenTime: branchRow.business_open_time || branchRow.menu_open_time || "08:00",
+          businessCloseTime: branchRow.business_close_time || branchRow.menu_close_time || "17:00",
+        }
+      : { businessOpenTime: "08:00", businessCloseTime: "17:00" },
   };
 }
 

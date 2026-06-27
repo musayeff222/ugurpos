@@ -7,7 +7,7 @@ import "../styles/mobile-menu.css";
 
 export default function MobileMenu({ overlay = false, onClose }) {
   const navigate = useNavigate();
-  const { user, logout, isStaffUser, activeStaffRole } = useAuth();
+  const { user, logout, isStaffUser, activeStaffRole, canCashExpense } = useAuth();
   const { pendingCount } = useWebOrders();
   const { t } = useLocale();
   const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
@@ -59,6 +59,16 @@ export default function MobileMenu({ overlay = false, onClose }) {
           <i className="fa fa-calculator" />
           <span>{t("nav.sales")}</span>
         </button>
+        {isCashier && canCashExpense && (
+          <button
+            type="button"
+            className="mobile-menu-sales-cta mobile-menu-sales-cta--secondary"
+            onClick={() => handleItem("/cash-expense")}
+          >
+            <i className="fa fa-money" />
+            <span>Kassadan Xərc</span>
+          </button>
+        )}
         {!isCashier && (
           <div className="mobile-menu-grid">
             {mobileMenuItems.filter((item) => item.path !== "/sales").map((item) => (

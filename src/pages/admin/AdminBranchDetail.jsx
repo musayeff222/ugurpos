@@ -31,6 +31,8 @@ export default function AdminBranchDetail() {
     address: "",
     lat: "",
     lng: "",
+    businessOpenTime: "08:00",
+    businessCloseTime: "17:00",
   });
   const [message, setMessage] = useState(location.state?.message || "");
   const [error, setError] = useState("");
@@ -47,6 +49,8 @@ export default function AdminBranchDetail() {
       address: data.address || "",
       lat: data.lat != null ? String(data.lat) : "",
       lng: data.lng != null ? String(data.lng) : "",
+      businessOpenTime: data.businessOpenTime || "08:00",
+      businessCloseTime: data.businessCloseTime || "17:00",
     });
   };
 
@@ -255,6 +259,23 @@ export default function AdminBranchDetail() {
                 </button>
               </div>
               <p className="hint-text">Web siparişte en yakın şube seçimi için kullanılır.</p>
+
+              <label>İş saatları (günlük hesabat)</label>
+              <div className="admin-qr-hours-row">
+                <input
+                  type="time"
+                  value={form.businessOpenTime}
+                  onChange={(e) => setForm({ ...form, businessOpenTime: e.target.value })}
+                />
+                <input
+                  type="time"
+                  value={form.businessCloseTime}
+                  onChange={(e) => setForm({ ...form, businessCloseTime: e.target.value })}
+                />
+              </div>
+              <p className="hint-text">
+                Günlük satış və hesabatlar bu saat aralığında hesablanır (məs: 08:00–17:00).
+              </p>
 
               <div className="form-actions">
                 <button type="button" className="btn btn-warning" onClick={toggleActive}>

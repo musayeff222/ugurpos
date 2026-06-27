@@ -1,6 +1,7 @@
 import { migrateBranches } from "./migrate-branches.js";
 import { migrateQrMenu } from "./migrate-qr-menu.js";
 import { migrateActivityLog } from "./migrate-activity-log.js";
+import { migrateBusiness } from "./migrate-business.js";
 import { initMysqlSchema } from "./schema-mysql.js";
 import { hasColumn, addColumnIfMissing } from "./columns.js";
 
@@ -10,6 +11,7 @@ export function initSchema(db) {
     migrateBranches(db);
     migrateQrMenu(db);
     migrateActivityLog(db);
+    migrateBusiness(db);
     return;
   }
 
@@ -240,4 +242,5 @@ function initSqliteSchema(db) {
   migrateBranches(db);
   migrateQrMenu(db);
   migrateActivityLog(db);
+  migrateBusiness(db);
 }

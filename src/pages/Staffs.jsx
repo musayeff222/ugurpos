@@ -5,8 +5,15 @@ import PageHeader from "../components/ui/PageHeader";
 import { runAsync } from "../utils/runAsync";
 
 export default function Staffs() {
-  const { state, addStaff, deleteStaff } = useStore();
-  const [form, setForm] = useState({ name: "", surname: "", login: "", password: "", role: "Kasiyer" });
+  const { state, addStaff, updateStaff, deleteStaff } = useStore();
+  const [form, setForm] = useState({
+    name: "",
+    surname: "",
+    login: "",
+    password: "",
+    role: "Kasiyer",
+    canCashExpense: false,
+  });
   const [message, setMessage] = useState("");
 
   return (
@@ -22,7 +29,16 @@ export default function Staffs() {
             return;
           }
           const ok = await runAsync(() => addStaff(form), setMessage);
-          if (ok) setForm({ name: "", surname: "", login: "", password: "", role: "Kasiyer" });
+          if (ok) {
+            setForm({
+              name: "",
+              surname: "",
+              login: "",
+              password: "",
+              role: "Kasiyer",
+              canCashExpense: false,
+            });
+          }
         }}
       >
         <input placeholder="Ad" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -39,6 +55,14 @@ export default function Staffs() {
           <option>Garson</option>
           <option>Admin</option>
         </select>
+        <label className="checkbox-inline">
+          <input
+            type="checkbox"
+            checked={form.canCashExpense}
+            onChange={(e) => setForm({ ...form, canCashExpense: e.target.checked })}
+          />
+          Kassadan xərc
+        </label>
         <button type="submit" className="btn btn-success">
           Ekle
         </button>
@@ -51,6 +75,22 @@ export default function Staffs() {
               { key: "surname", label: "Soyad" },
               { key: "login", label: "Login" },
               { key: "role", label: "Yetki" },
+              {
+                key: "canCashExpense",
+                label: "Kassadan xərc",
+                render: (r) => (
+                  <input
+                    type="checkbox"
+                    checked={!!r.canCashExpense}
+                    onChange={() =>
+                      runAsync(
+                        () => updateStaff(r.id, { canCashExpense: !r.canCashExpense }),
+                        setMessage
+                      )
+                    }
+                  />
+                ),
+              },
               { key: "hasPassword", label: "Şifre", render: (r) => (r.hasPassword ? "Var" : "Yok") },
               {
                 key: "actions",

@@ -179,6 +179,8 @@ export function rowToBranch(row) {
     phone: row.phone || "",
     lat: row.menu_lat != null && row.menu_lat !== "" ? Number(row.menu_lat) : null,
     lng: row.menu_lng != null && row.menu_lng !== "" ? Number(row.menu_lng) : null,
+    businessOpenTime: row.business_open_time || row.menu_open_time || "08:00",
+    businessCloseTime: row.business_close_time || row.menu_close_time || "17:00",
     active: !!row.active,
     createdAt: row.created_at,
   };

@@ -62,6 +62,7 @@ function buildStaffResponse(db, staff, branch) {
     staffId: staff.id,
     staffName,
     staffRole: staff.role || "Kasiyer",
+    canCashExpense: !!staff.can_cash_expense,
     role: "staff",
     loginType: "staff",
     branches: [rowToBranch(branch)],

@@ -11,7 +11,7 @@ import "../styles/layout.css";
 import "../styles/mobile-menu.css";
 
 export default function MainLayout() {
-  const { isAuthenticated, isAdmin, isBranchUser, isImpersonating, isStaffUser, activeStaffRole } = useAuth();
+  const { isAuthenticated, isAdmin, isBranchUser, isImpersonating, isStaffUser, activeStaffRole, canCashExpense } = useAuth();
   const { latestOrder, clearLatest } = useWebOrders();
   const location = useLocation();
   const isDesktop = useIsDesktop();
@@ -37,7 +37,9 @@ export default function MainLayout() {
   }
 
   const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
-  if (isCashier && location.pathname !== "/sales") {
+  const cashierAllowedPaths = ["/sales"];
+  if (canCashExpense) cashierAllowedPaths.push("/cash-expense");
+  if (isCashier && !cashierAllowedPaths.includes(location.pathname)) {
     return <Navigate to="/sales" replace />;
   }
 

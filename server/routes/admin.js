@@ -12,6 +12,7 @@ import { saveMenuLogo, deleteMenuLogo } from "../utils/menuLogo.js";
 import { normalizeMenuTheme } from "../utils/menuTheme.js";
 import { mergeMenuWebConfig, parseMenuWebConfig, serializeMenuWebConfig, applyWebImageUploads } from "../utils/menuWebConfig.js";
 import { listActivityLogs, rowToActivityLog } from "../utils/activityLog.js";
+import { normalizeTime } from "../utils/businessHours.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -219,7 +220,7 @@ router.patch("/branches/:id", (req, res) => {
   const existing = getBranchOr404(db, req.params.id, req.user.firmId);
   if (!existing) return res.status(404).json({ error: "Şube bulunamadı" });
 
-  const { name, email, address, active, password, branchNo, menuLat, menuLng, lat, lng } = req.body;
+  const { name, email, address, active, password, branchNo, menuLat, menuLng, lat, lng, businessOpenTime, businessCloseTime } = req.body;
   const nextEmail = email?.trim() ? normalizeBranchEmail(email) : existing.email;
   if (email?.trim() && !isValidBranchEmail(nextEmail)) {
     return res.status(400).json({ error: "Geçerli bir e-posta girin" });
@@ -259,8 +260,13 @@ router.patch("/branches/:id", (req, res) => {
     if (parsed !== undefined) nextLng = parsed;
   }
 
+  let nextBusinessOpen = existing.business_open_time || "08:00";
+  let nextBusinessClose = existing.business_close_time || "17:00";
+  if (businessOpenTime !== undefined) nextBusinessOpen = normalizeTime(businessOpenTime, nextBusinessOpen);
+  if (businessCloseTime !== undefined) nextBusinessClose = normalizeTime(businessCloseTime, nextBusinessClose);
+
   db.prepare(
-    "UPDATE branches SET name=?, code=?, email=?, password_hash=?, address=?, menu_lat=?, menu_lng=?, active=? WHERE id=?"
+    "UPDATE branches SET name=?, code=?, email=?, password_hash=?, address=?, menu_lat=?, menu_lng=?, business_open_time=?, business_close_time=?, active=? WHERE id=?"
   ).run(
     name ?? existing.name,
     nextCode,
@@ -269,11 +275,85 @@ router.patch("/branches/:id", (req, res) => {
     address ?? existing.address,
     nextLat,
     nextLng,
+    nextBusinessOpen,
+    nextBusinessClose,
     active === false ? 0 : active === true ? 1 : existing.active,
     req.params.id
   );
 
   res.json(rowToBranch(db.prepare("SELECT * FROM branches WHERE id = ?").get(req.params.id)));
+});
+
+function rowToCashWithdrawal(row) {
+  return {
+    id: row.id,
+    branchId: row.branch_id,
+    staffId: row.staff_id || null,
+    staffName: row.staff_name,
+    amount: Number(row.amount),
+    reason: row.reason,
+    note: row.note || "",
+    createdAt: row.created_at,
+  };
+}
+
+function rowToBusinessDayReport(row) {
+  let stats = {};
+  try {
+    stats = JSON.parse(row.stats_json || "{}");
+  } catch {
+    stats = {};
+  }
+  return {
+    id: row.id,
+    branchId: row.branch_id,
+    businessDate: row.business_date,
+    openTime: row.open_time,
+    closeTime: row.close_time,
+    openedAt: row.opened_at,
+    closedAt: row.closed_at,
+    openingCash: Number(row.opening_cash || 0),
+    closingCash: Number(row.closing_cash || 0),
+    stats,
+    createdAt: row.created_at,
+  };
+}
+
+router.get("/cash-withdrawals", (req, res) => {
+  const db = getDb();
+  const { branchId, from, to, staffId } = req.query;
+  let rows = db.prepare("SELECT * FROM cash_withdrawals ORDER BY created_at DESC").all();
+
+  const branchIds = db
+    .prepare("SELECT id FROM branches WHERE firm_id = ?")
+    .all(req.user.firmId)
+    .map((b) => b.id);
+  rows = rows.filter((row) => branchIds.includes(row.branch_id));
+
+  if (branchId) rows = rows.filter((row) => row.branch_id === branchId);
+  if (staffId) rows = rows.filter((row) => row.staff_id === staffId);
+  if (from) rows = rows.filter((row) => row.created_at.slice(0, 10) >= from);
+  if (to) rows = rows.filter((row) => row.created_at.slice(0, 10) <= to);
+
+  res.json(rows.map(rowToCashWithdrawal));
+});
+
+router.get("/business-day-reports", (req, res) => {
+  const db = getDb();
+  const { branchId, from, to } = req.query;
+  let rows = db.prepare("SELECT * FROM business_day_reports ORDER BY business_date DESC").all();
+
+  const branchIds = db
+    .prepare("SELECT id FROM branches WHERE firm_id = ?")
+    .all(req.user.firmId)
+    .map((b) => b.id);
+  rows = rows.filter((row) => branchIds.includes(row.branch_id));
+
+  if (branchId) rows = rows.filter((row) => row.branch_id === branchId);
+  if (from) rows = rows.filter((row) => row.business_date >= from);
+  if (to) rows = rows.filter((row) => row.business_date <= to);
+
+  res.json(rows.map(rowToBusinessDayReport));
 });
 
 router.delete("/branches/:id", (req, res) => {
@@ -310,6 +390,8 @@ router.delete("/branches/:id", (req, res) => {
     "e_invoices",
     "qr_orders",
     "groups",
+    "cash_withdrawals",
+    "business_day_reports",
   ];
 
   const tx = db.transaction(() => {
