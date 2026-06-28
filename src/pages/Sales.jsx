@@ -19,9 +19,9 @@ function emptyCarts() {
 }
 
 export default function Sales() {
-  const { user, logout, isStaffUser, activeStaffRole, activeStaffName } = useAuth();
+  const { user, logout, isStaffUser, activeStaffRole, activeStaffName, canCashExpense } = useAuth();
   const { t } = useLocale();
-  const { state, completeSale } = useStore();
+  const { state, completeSale, addCashWithdrawal } = useStore();
   const [activeTab, setActiveTab] = useState(0);
   const [carts, setCarts] = useState(emptyCarts);
   const [barcode, setBarcode] = useState("");
@@ -49,6 +49,10 @@ export default function Sales() {
   const [mobileView, setMobileView] = useState("products");
   const [terminalMenuOpen, setTerminalMenuOpen] = useState(false);
   const [shiftSummaryOpen, setShiftSummaryOpen] = useState(false);
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expenseReason, setExpenseReason] = useState("");
+  const [expenseNote, setExpenseNote] = useState("");
+  const [expenseLoading, setExpenseLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [lastSale, setLastSale] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -70,6 +74,7 @@ export default function Sales() {
     return value;
   }, [discount, discountType, gross]);
   const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
+  const showCashExpense = isStaffUser && canCashExpense;
   const cashierName = activeStaffName || user?.staffName || "Kasiyer";
   const shiftStartedAt = user?.shiftStartedAt || new Date().toISOString().slice(0, 10);
   const shiftSales = useMemo(
@@ -85,14 +90,23 @@ export default function Sales() {
   const shiftSummary = useMemo(() => {
     const sumByType = (type) =>
       shiftSales.filter((sale) => sale.paymentType === type).reduce((sum, sale) => sum + (sale.total || 0), 0);
+    const shiftWithdrawals = (state.cashWithdrawals || []).filter(
+      (row) =>
+        row.staffName === cashierName && (!shiftStartedAt || row.createdAt >= shiftStartedAt)
+    );
+    const withdrawalsTotal = shiftWithdrawals.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    const cash = sumByType("cash");
     return {
       count: shiftSales.length,
       total: shiftSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
-      cash: sumByType("cash"),
+      cash,
       pos: sumByType("pos"),
       open: sumByType("open"),
+      withdrawalsTotal,
+      cashRegister: Math.max(0, cash - withdrawalsTotal),
+      withdrawals: shiftWithdrawals,
     };
-  }, [shiftSales]);
+  }, [shiftSales, state.cashWithdrawals, cashierName, shiftStartedAt]);
   const change = Math.max(0, (Number(paid) || 0) - total);
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
   const money = (value) => formatMoney(value, "az");
@@ -392,8 +406,42 @@ export default function Sales() {
   const visibleProducts = fastProducts.length ? fastProducts : state.products.filter((p) => p.active).slice(0, 12);
   const terminalNavigation = isCashier ? navigation.filter((item) => item.path === "/sales") : navigation;
 
+  const submitCashExpense = async (e) => {
+    e?.preventDefault();
+    const amount = Number(expenseAmount);
+    if (!amount || amount <= 0) {
+      setMessage("Geçerli məbləğ girin.");
+      return;
+    }
+    if (!expenseReason.trim()) {
+      setMessage("Xərc səbəbi zəruridir.");
+      return;
+    }
+    setExpenseLoading(true);
+    setMessage("");
+    try {
+      await addCashWithdrawal({
+        amount,
+        reason: expenseReason.trim(),
+        note: expenseNote.trim(),
+      });
+      setExpenseAmount("");
+      setExpenseReason("");
+      setExpenseNote("");
+      setMessage("Kassadan xərc qeyd edildi.");
+    } catch (err) {
+      setMessage(err.message || "Xərc qeyd edilə bilmədi.");
+    } finally {
+      setExpenseLoading(false);
+    }
+  };
+
   return (
-    <div className={`sales-page bp-sales sales-terminal dzy-sales dzy-sales--${mobileView}`}>
+    <div
+      className={`sales-page bp-sales sales-terminal dzy-sales dzy-sales--${mobileView}${
+        showCashExpense ? " dzy-sales--with-expense" : ""
+      }`}
+    >
       {message && (
         <div className="alert alert-info sales-alert">
           {message}
@@ -706,6 +754,37 @@ export default function Sales() {
         </button>
       </footer>
 
+      {showCashExpense && (
+        <form className="dzy-expense-strip" onSubmit={submitCashExpense} aria-label="Kassadan xərc">
+          <span className="dzy-expense-strip__label">
+            <i className="fa fa-minus-circle" />
+            Xərc
+          </span>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            placeholder="Məbləğ"
+            value={expenseAmount}
+            onChange={(e) => setExpenseAmount(e.target.value.replace(",", "."))}
+            inputMode="decimal"
+          />
+          <input
+            placeholder="Səbəb"
+            value={expenseReason}
+            onChange={(e) => setExpenseReason(e.target.value)}
+          />
+          <input
+            placeholder="Qeyd"
+            value={expenseNote}
+            onChange={(e) => setExpenseNote(e.target.value)}
+          />
+          <button type="submit" className="dzy-expense-strip__submit" disabled={expenseLoading}>
+            {expenseLoading ? "…" : "Qeyd et"}
+          </button>
+        </form>
+      )}
+
       <nav className="dzy-mobile-nav" aria-label="Mobil satış bölmələri">
         <button
           type="button"
@@ -794,7 +873,29 @@ export default function Sales() {
               <span>Açık hesap</span>
               <strong>{money(shiftSummary.open)}</strong>
             </div>
+            <div>
+              <span>Kassadan xərc</span>
+              <strong>{money(shiftSummary.withdrawalsTotal)}</strong>
+            </div>
+            <div>
+              <span>Nakit kasa</span>
+              <strong>{money(shiftSummary.cashRegister)}</strong>
+            </div>
           </div>
+          {shiftSummary.withdrawals.length > 0 && (
+            <div className="cashier-shift-summary__expenses">
+              <span>Kassadan çıxarılanlar</span>
+              <ul>
+                {shiftSummary.withdrawals.map((row) => (
+                  <li key={row.id}>
+                    <strong>{money(row.amount)}</strong>
+                    <span>{row.reason}</span>
+                    <time>{new Date(row.createdAt).toLocaleString("tr-TR")}</time>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className="cashier-shift-summary__notice">
             Resim çek ve patrona gönder.
           </p>

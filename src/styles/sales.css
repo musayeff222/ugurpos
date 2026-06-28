@@ -1509,6 +1509,16 @@
   font-family: Inter, "Segoe UI", Tahoma, sans-serif;
 }
 
+.dzy-sales--with-expense {
+  grid-template-areas:
+    "dzy-top"
+    "dzy-payment"
+    "dzy-workspace"
+    "dzy-paybar"
+    "dzy-expense";
+  grid-template-rows: 48px 46px 1fr 60px 44px;
+}
+
 .dzy-sales__top {
   grid-area: dzy-top;
   display: grid;
@@ -2186,6 +2196,95 @@
   border: 1px solid var(--dzy-line);
 }
 
+.dzy-expense-strip {
+  grid-area: dzy-expense;
+  display: grid;
+  grid-template-columns: auto minmax(72px, 0.7fr) minmax(100px, 1.2fr) minmax(80px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 0;
+  padding: 0 2px;
+}
+
+.dzy-expense-strip__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #9e3d00;
+  white-space: nowrap;
+}
+
+.dzy-expense-strip input {
+  min-width: 0;
+  height: 36px;
+  border: 1px solid #d8d9e5;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.dzy-expense-strip__submit {
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #b34b00;
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dzy-expense-strip__submit:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.cashier-shift-summary__expenses {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cashier-shift-summary__expenses > span {
+  font-size: 12px;
+  color: #717786;
+  font-weight: 700;
+}
+
+.cashier-shift-summary__expenses ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cashier-shift-summary__expenses li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #d8d9e5;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 13px;
+}
+
+.cashier-shift-summary__expenses li strong {
+  color: #9e3d00;
+}
+
+.cashier-shift-summary__expenses li time {
+  font-size: 11px;
+  color: #717786;
+}
+
 .dzy-mobile-nav {
   display: none;
 }
@@ -2311,6 +2410,16 @@
     gap: 10px;
     height: 58px;
   }
+
+  .dzy-sales--with-expense {
+    grid-template-rows: 46px 44px 1fr 58px 44px;
+    grid-template-areas:
+      "dzy-top"
+      "dzy-payment"
+      "dzy-workspace"
+      "dzy-paybar"
+      "dzy-expense";
+  }
 }
 
 @media (max-width: 900px) {
@@ -2326,6 +2435,32 @@
       "dzy-mobile-nav";
     grid-template-rows: auto auto minmax(0, 1fr) auto 58px;
     padding-bottom: 0;
+  }
+
+  .dzy-sales--with-expense {
+    grid-template-areas:
+      "dzy-top"
+      "dzy-payment"
+      "dzy-workspace"
+      "dzy-paybar"
+      "dzy-expense"
+      "dzy-mobile-nav";
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto 58px;
+  }
+
+  .dzy-expense-strip {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 4px 6px;
+  }
+
+  .dzy-expense-strip__label {
+    grid-column: 1 / -1;
+  }
+
+  .dzy-expense-strip__submit {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .dzy-sales__top,
