@@ -437,11 +437,7 @@ export default function Sales() {
   };
 
   return (
-    <div
-      className={`sales-page bp-sales sales-terminal dzy-sales dzy-sales--${mobileView}${
-        showCashExpense ? " dzy-sales--with-expense" : ""
-      }`}
-    >
+    <div className={`sales-page bp-sales sales-terminal dzy-sales dzy-sales--${mobileView}`}>
       {message && (
         <div className="alert alert-info sales-alert">
           {message}
@@ -548,6 +544,7 @@ export default function Sales() {
                 ×
               </button>
             </div>
+            <div className="dzy-terminal-menu__body">
             {terminalNavigation.map((item) =>
               item.children?.length ? (
                 <div className="dzy-terminal-menu__group" key={item.labelKey || item.label}>
@@ -573,12 +570,43 @@ export default function Sales() {
                 </Link>
               )
             )}
+            {showCashExpense && (
+              <form className="dzy-terminal-menu__expense" onSubmit={submitCashExpense} aria-label="Kassadan xərc">
+                <span className="dzy-terminal-menu__expense-title">
+                  <i className="fa fa-minus-circle" />
+                  Kassadan xərc
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="Məbləğ"
+                  value={expenseAmount}
+                  onChange={(e) => setExpenseAmount(e.target.value.replace(",", "."))}
+                  inputMode="decimal"
+                />
+                <input
+                  placeholder="Səbəb"
+                  value={expenseReason}
+                  onChange={(e) => setExpenseReason(e.target.value)}
+                />
+                <input
+                  placeholder="Qeyd (istəyə bağlı)"
+                  value={expenseNote}
+                  onChange={(e) => setExpenseNote(e.target.value)}
+                />
+                <button type="submit" className="dzy-terminal-menu__expense-submit" disabled={expenseLoading}>
+                  {expenseLoading ? "…" : "Xərc qeyd et"}
+                </button>
+              </form>
+            )}
             {isCashier && (
               <button type="button" className="dzy-terminal-menu__shift" onClick={() => setShiftSummaryOpen(true)}>
                 <i className="fa fa-sign-out" />
                 Nöbeti Bitir
               </button>
             )}
+            </div>
           </nav>
         </div>
       )}
@@ -753,37 +781,6 @@ export default function Sales() {
           <i className="fa fa-print" />
         </button>
       </footer>
-
-      {showCashExpense && (
-        <form className="dzy-expense-strip" onSubmit={submitCashExpense} aria-label="Kassadan xərc">
-          <span className="dzy-expense-strip__label">
-            <i className="fa fa-minus-circle" />
-            Xərc
-          </span>
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            placeholder="Məbləğ"
-            value={expenseAmount}
-            onChange={(e) => setExpenseAmount(e.target.value.replace(",", "."))}
-            inputMode="decimal"
-          />
-          <input
-            placeholder="Səbəb"
-            value={expenseReason}
-            onChange={(e) => setExpenseReason(e.target.value)}
-          />
-          <input
-            placeholder="Qeyd"
-            value={expenseNote}
-            onChange={(e) => setExpenseNote(e.target.value)}
-          />
-          <button type="submit" className="dzy-expense-strip__submit" disabled={expenseLoading}>
-            {expenseLoading ? "…" : "Qeyd et"}
-          </button>
-        </form>
-      )}
 
       <nav className="dzy-mobile-nav" aria-label="Mobil satış bölmələri">
         <button
