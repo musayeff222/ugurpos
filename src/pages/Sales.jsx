@@ -12,7 +12,6 @@ import { playPosItemAddedSound, playPosPaymentSound } from "../utils/posSounds";
 import "../styles/sales.css";
 
 const TAB_COUNT = 5;
-const QUICK_LISTS = ["ANA", "Liste 1", "Liste 2", "Liste 3", "Liste 4"];
 
 function emptyCarts() {
   return Array.from({ length: TAB_COUNT }, () => []);
@@ -53,6 +52,7 @@ export default function Sales() {
   const [expenseReason, setExpenseReason] = useState("");
   const [expenseNote, setExpenseNote] = useState("");
   const [expenseLoading, setExpenseLoading] = useState(false);
+  const [expenseFeedback, setExpenseFeedback] = useState("");
   const [message, setMessage] = useState("");
   const [lastSale, setLastSale] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -74,7 +74,12 @@ export default function Sales() {
     return value;
   }, [discount, discountType, gross]);
   const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
-  const showCashExpense = isStaffUser && canCashExpense;
+  const staffRecord = useMemo(
+    () => state.staff.find((s) => s.id === user?.staffId),
+    [state.staff, user?.staffId]
+  );
+  const showCashExpense =
+    !isStaffUser || isCashier || !!(staffRecord?.canCashExpense ?? canCashExpense);
   const cashierName = activeStaffName || user?.staffName || "Kasiyer";
   const shiftStartedAt = user?.shiftStartedAt || new Date().toISOString().slice(0, 10);
   const shiftSales = useMemo(
@@ -110,6 +115,24 @@ export default function Sales() {
   const change = Math.max(0, (Number(paid) || 0) - total);
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
   const money = (value) => formatMoney(value, "az");
+
+  useEffect(() => {
+    if (!terminalMenuOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [terminalMenuOpen]);
+
+  const productCategories = useMemo(
+    () => [{ id: "__all__", name: "Hamısı" }, ...state.groups.map((g) => ({ id: g.id, name: g.name }))],
+    [state.groups]
+  );
+
+  useEffect(() => {
+    if (fastListTab >= productCategories.length) setFastListTab(0);
+  }, [fastListTab, productCategories.length]);
 
   const buildReceiptData = useCallback(
     (saleOverride = null) => {
@@ -403,21 +426,29 @@ export default function Sales() {
     (p) => p.barcode === priceLookup.trim() || p.stockCode === priceLookup.trim()
   );
 
-  const visibleProducts = fastProducts.length ? fastProducts : state.products.filter((p) => p.active).slice(0, 12);
+  const visibleProducts = useMemo(() => {
+    const saleProducts = state.products.filter((p) => p.active && p.onSalePage);
+    const pool = saleProducts.length ? saleProducts : state.products.filter((p) => p.active);
+    const category = productCategories[fastListTab] || productCategories[0];
+    if (!category || category.id === "__all__") return pool;
+    return pool.filter((p) => p.groupId === category.id);
+  }, [state.products, productCategories, fastListTab]);
+
   const terminalNavigation = isCashier ? navigation.filter((item) => item.path === "/sales") : navigation;
 
   const submitCashExpense = async (e) => {
     e?.preventDefault();
     const amount = Number(expenseAmount);
     if (!amount || amount <= 0) {
-      setMessage("Geçerli məbləğ girin.");
+      setExpenseFeedback("Geçerli məbləğ girin.");
       return;
     }
     if (!expenseReason.trim()) {
-      setMessage("Xərc səbəbi zəruridir.");
+      setExpenseFeedback("Xərc səbəbi zəruridir.");
       return;
     }
     setExpenseLoading(true);
+    setExpenseFeedback("");
     setMessage("");
     try {
       await addCashWithdrawal({
@@ -428,8 +459,10 @@ export default function Sales() {
       setExpenseAmount("");
       setExpenseReason("");
       setExpenseNote("");
+      setExpenseFeedback("Kassadan xərc qeyd edildi.");
       setMessage("Kassadan xərc qeyd edildi.");
     } catch (err) {
+      setExpenseFeedback(err.message || "Xərc qeyd edilə bilmədi.");
       setMessage(err.message || "Xərc qeyd edilə bilmədi.");
     } finally {
       setExpenseLoading(false);
@@ -571,11 +604,16 @@ export default function Sales() {
               )
             )}
             {showCashExpense && (
-              <form className="dzy-terminal-menu__expense" onSubmit={submitCashExpense} aria-label="Kassadan xərc">
+              <div className="dzy-terminal-menu__expense" aria-label="Kassadan xərc">
                 <span className="dzy-terminal-menu__expense-title">
                   <i className="fa fa-minus-circle" />
                   Kassadan xərc
                 </span>
+                {expenseFeedback && (
+                  <p className={`dzy-terminal-menu__expense-msg${expenseFeedback.includes("qeyd") ? " ok" : ""}`}>
+                    {expenseFeedback}
+                  </p>
+                )}
                 <input
                   type="number"
                   step="0.01"
@@ -595,10 +633,15 @@ export default function Sales() {
                   value={expenseNote}
                   onChange={(e) => setExpenseNote(e.target.value)}
                 />
-                <button type="submit" className="dzy-terminal-menu__expense-submit" disabled={expenseLoading}>
+                <button
+                  type="button"
+                  className="dzy-terminal-menu__expense-submit"
+                  disabled={expenseLoading}
+                  onClick={submitCashExpense}
+                >
                   {expenseLoading ? "…" : "Xərc qeyd et"}
                 </button>
-              </form>
+              </div>
             )}
             {isCashier && (
               <button type="button" className="dzy-terminal-menu__shift" onClick={() => setShiftSummaryOpen(true)}>
@@ -711,16 +754,19 @@ export default function Sales() {
 
         <section className="dzy-products">
           <ul className="dzy-products__categories">
-            {QUICK_LISTS.map((label, idx) => (
-              <li key={label}>
+            {productCategories.map((category, idx) => (
+              <li key={category.id}>
                 <button type="button" className={fastListTab === idx ? "active" : ""} onClick={() => setFastListTab(idx)}>
-                  {label}
+                  {category.name}
                 </button>
               </li>
             ))}
           </ul>
           <div className="dzy-products__grid">
-            {visibleProducts.map((p) => (
+            {visibleProducts.length === 0 ? (
+              <p className="dzy-products__empty">Bu qrupda məhsul yoxdur.</p>
+            ) : (
+              visibleProducts.map((p) => (
               <button key={p.id} type="button" className="dzy-product-card" onClick={() => addProductToCart(p)}>
                 {p.hasImage ? (
                   <img src={getProductImageSrc(p)} alt="" loading="lazy" />
@@ -732,7 +778,8 @@ export default function Sales() {
                 <span>{p.name}</span>
                 <strong>{money(p.price1)}</strong>
               </button>
-            ))}
+              ))
+            )}
           </div>
         </section>
       </main>

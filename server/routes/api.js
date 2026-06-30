@@ -24,8 +24,11 @@ function canManageSales(req) {
 
 function canRecordCashExpense(req, db) {
   if (req.user?.loginType !== "staff" && req.user?.role !== "staff") return true;
-  const staff = db.prepare("SELECT can_cash_expense FROM staff WHERE id = ?").get(req.user.staffId);
-  return !!staff?.can_cash_expense;
+  const staff = db.prepare("SELECT can_cash_expense, role FROM staff WHERE id = ?").get(req.user.staffId);
+  if (!staff) return false;
+  if (staff.can_cash_expense) return true;
+  const role = String(staff.role || "").toLocaleLowerCase("tr");
+  return role.includes("kasiyer");
 }
 
 function rowToCashWithdrawal(row) {
@@ -637,7 +640,15 @@ router.post("/staff", (req, res) => {
   const { name, surname, login, password, code, role, canCashExpense } = req.body;
   const normalizedLogin = login?.trim().toLowerCase() || "";
   const passwordHash = password?.trim() ? hashBranchPassword(password) : null;
-  const canCash = canCashExpense === true || canCashExpense === 1 || canCashExpense === "1" ? 1 : 0;
+  const isKasiyer = String(role || "Kasiyer").toLocaleLowerCase("tr").includes("kasiyer");
+  const canCash =
+    canCashExpense === true || canCashExpense === 1 || canCashExpense === "1"
+      ? 1
+      : canCashExpense === false || canCashExpense === 0 || canCashExpense === "0"
+        ? 0
+        : isKasiyer
+          ? 1
+          : 0;
   getDb()
     .prepare(
       "INSERT INTO staff (id, name, surname, login, password_hash, code, role, active, can_cash_expense, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"

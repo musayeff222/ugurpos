@@ -67,4 +67,12 @@ export function migrateBusiness(db) {
       CREATE INDEX IF NOT EXISTS idx_business_day_branch ON business_day_reports(branch_id);
     `);
   }
+
+  try {
+    db.prepare(
+      `UPDATE staff SET can_cash_expense = 1 WHERE LOWER(role) LIKE '%kasiyer%' AND (can_cash_expense IS NULL OR can_cash_expense = 0)`
+    ).run();
+  } catch {
+    /* ignore */
+  }
 }

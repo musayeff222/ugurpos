@@ -12,7 +12,7 @@ export default function Staffs() {
     login: "",
     password: "",
     role: "Kasiyer",
-    canCashExpense: false,
+    canCashExpense: true,
   });
   const [message, setMessage] = useState("");
 
@@ -36,7 +36,7 @@ export default function Staffs() {
               login: "",
               password: "",
               role: "Kasiyer",
-              canCashExpense: false,
+              canCashExpense: true,
             });
           }
         }}
