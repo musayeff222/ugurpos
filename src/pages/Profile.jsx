@@ -1,10 +1,22 @@
+import { useNavigate } from "react-router-dom";
+import StaffLoginForm from "../components/StaffLoginForm";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../context/LocaleContext";
 import PageHeader from "../components/ui/PageHeader";
 import { Link } from "react-router-dom";
+import { getPostLoginPath } from "../utils/authRedirect";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, loginStaff, loading } = useAuth();
+  const { t } = useLocale();
+  const navigate = useNavigate();
   const isBranch = user?.role === "branch" || user?.loginType === "branch";
+  const isStaff = user?.role === "staff" || user?.loginType === "staff";
+
+  const handleStaffLogin = async (staffLogin, staffPassword) => {
+    const account = await loginStaff(staffLogin, staffPassword, { fromBranch: true });
+    navigate(getPostLoginPath(account), { replace: true });
+  };
 
   return (
     <div>
@@ -26,6 +38,21 @@ export default function Profile() {
                 <span>Firma</span> {user?.firmName || "—"}
               </p>
             </>
+          ) : isStaff ? (
+            <>
+              <p>
+                <span>Personal</span> {user?.staffName || "—"}
+              </p>
+              <p>
+                <span>Rol</span> {user?.staffRole || "—"}
+              </p>
+              <p>
+                <span>Login</span> {user?.email || "—"}
+              </p>
+              <p>
+                <span>Şube</span> {user?.branchName || "—"}
+              </p>
+            </>
           ) : (
             <>
               <p>
@@ -41,6 +68,15 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {isBranch && (
+        <div className="card staff-login-panel">
+          <h5>{t("login.staffFromBranch")}</h5>
+          <p>{t("login.staffFromBranchHint")}</p>
+          <StaffLoginForm onSubmit={handleStaffLogin} loading={loading} compact />
+        </div>
+      )}
+
       <div className="card" style={{ marginTop: 16 }}>
         <div className="card-body">
           <Link to="/notices" className="btn btn-default">

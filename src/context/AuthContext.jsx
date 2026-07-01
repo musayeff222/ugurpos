@@ -4,6 +4,7 @@ import { api, setToken, getToken } from "../api/client";
 const AuthContext = createContext(null);
 const USER_KEY = "benimpos_user";
 const ADMIN_BACKUP_KEY = "admin_session_backup";
+const BRANCH_BACKUP_KEY = "branch_session_backup";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -42,9 +43,19 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const loginStaff = async (login, password) => {
+  const loginStaff = async (login, password, options = {}) => {
     setLoading(true);
     try {
+      const currentUser = JSON.parse(localStorage.getItem(USER_KEY) || "null");
+      if (options.fromBranch && currentUser?.loginType === "branch") {
+        sessionStorage.setItem(
+          BRANCH_BACKUP_KEY,
+          JSON.stringify({ token: getToken(), user: currentUser })
+        );
+      } else {
+        sessionStorage.removeItem(BRANCH_BACKUP_KEY);
+      }
+
       const { token, user: account } = await api.staffLogin(login, password);
       sessionStorage.removeItem(ADMIN_BACKUP_KEY);
       const accountWithShift = { ...account, shiftStartedAt: new Date().toISOString() };
@@ -53,6 +64,17 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const returnToBranchSession = () => {
+    const raw = sessionStorage.getItem(BRANCH_BACKUP_KEY);
+    if (raw) {
+      const backup = JSON.parse(raw);
+      sessionStorage.removeItem(BRANCH_BACKUP_KEY);
+      persistUser(backup.user, backup.token);
+      return true;
+    }
+    return false;
   };
 
   const enterBranchAsAdmin = async (branchId) => {
@@ -93,7 +115,14 @@ export function AuthProvider({ children }) {
     setToken(null);
     localStorage.removeItem(USER_KEY);
     sessionStorage.removeItem(ADMIN_BACKUP_KEY);
+    sessionStorage.removeItem(BRANCH_BACKUP_KEY);
     setUser(null);
+  };
+
+  const endStaffShift = () => {
+    if (returnToBranchSession()) return "branch";
+    logout();
+    return "logout";
   };
 
   const patchUser = (patch) => {
@@ -112,6 +141,8 @@ export function AuthProvider({ children }) {
         login,
         loginBranch,
         loginStaff,
+        returnToBranchSession,
+        endStaffShift,
         enterBranchAsAdmin,
         returnToAdminPanel,
         logout,

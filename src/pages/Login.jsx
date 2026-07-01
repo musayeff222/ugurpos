@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import LanguageSwitcher from "../components/public/LanguageSwitcher";
+import StaffLoginForm from "../components/StaffLoginForm";
 import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
+import { getPostLoginPath } from "../utils/authRedirect";
 import "../styles/login.css";
 
 export default function Login() {
-  const { loginBranch, loginStaff, isAuthenticated, isAdmin, isBranchUser } = useAuth();
+  const { loginBranch, loginStaff, isAuthenticated, isAdmin, isBranchUser, user, loading } = useAuth();
   const { t } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,16 +18,14 @@ export default function Login() {
   const [error, setError] = useState("");
 
   if (isAuthenticated && isBranchUser) {
-    const dest =
-      location.state?.from?.pathname || (window.matchMedia("(max-width: 991px)").matches ? "/menu" : "/dashboard");
-    return <Navigate to={dest} replace />;
+    return <Navigate to={getPostLoginPath(user, location.state?.from?.pathname)} replace />;
   }
 
   if (isAuthenticated && isAdmin) {
     return <Navigate to="/admin" replace />;
   }
 
-  const handleSubmit = async (e) => {
+  const handleBranchSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -35,13 +35,16 @@ export default function Login() {
     }
 
     try {
-      if (loginType === "staff") await loginStaff(email.trim(), password);
-      else await loginBranch(email.trim(), password);
-      const isMobile = window.matchMedia("(max-width: 991px)").matches;
-      navigate(location.state?.from?.pathname || (isMobile ? "/menu" : "/dashboard"), { replace: true });
+      const account = await loginBranch(email.trim(), password);
+      navigate(getPostLoginPath(account, location.state?.from?.pathname), { replace: true });
     } catch (err) {
       setError(err.message === "Invalid credentials" ? t("login.errorInvalid") : err.message);
     }
+  };
+
+  const handleStaffSubmit = async (staffLogin, staffPassword) => {
+    const account = await loginStaff(staffLogin, staffPassword);
+    navigate(getPostLoginPath(account, location.state?.from?.pathname), { replace: true });
   };
 
   return (
@@ -52,57 +55,74 @@ export default function Login() {
       <div className="login-container">
         <div className="login-grid">
           <div className="login-card">
-            <form onSubmit={handleSubmit}>
-              <h4>{t("login.title")}</h4>
-              <p className="login-hint">{t("login.hint")}</p>
+            <h4>{loginType === "staff" ? t("login.staffTitle") : t("login.title")}</h4>
+            <p className="login-hint">{loginType === "staff" ? t("login.staffHint") : t("login.hint")}</p>
 
-              <div className="login-type-toggle">
-                <button
-                  type="button"
-                  className={loginType === "branch" ? "active" : ""}
-                  onClick={() => setLoginType("branch")}
-                >
-                  Şube
-                </button>
-                <button
-                  type="button"
-                  className={loginType === "staff" ? "active" : ""}
-                  onClick={() => setLoginType("staff")}
-                >
-                  Personel
-                </button>
-              </div>
-
-              <div className="form-group">
-                <input
-                  type={loginType === "staff" ? "text" : "email"}
-                  placeholder={loginType === "staff" ? "Personel login" : t("login.email")}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="username"
-                />
-              </div>
-
-              <div className="form-group">
-                <input
-                  type="password"
-                  placeholder={t("login.password")}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                />
-              </div>
-
-              {error && <p className="login-error">{error}</p>}
-
-              <button type="submit" className="btn-login">
-                {t("login.submit")}
+            <div className="login-type-toggle">
+              <button
+                type="button"
+                className={loginType === "branch" ? "active" : ""}
+                onClick={() => {
+                  setLoginType("branch");
+                  setError("");
+                }}
+              >
+                {t("login.branchTab")}
               </button>
+              <button
+                type="button"
+                className={loginType === "staff" ? "active" : ""}
+                onClick={() => {
+                  setLoginType("staff");
+                  setError("");
+                }}
+              >
+                {t("login.staffTab")}
+              </button>
+            </div>
 
-              <div className="login-links">
-                <Link to="/login/admin">{t("login.adminLink")}</Link>
-              </div>
-            </form>
+            {loginType === "branch" ? (
+              <form onSubmit={handleBranchSubmit}>
+                <div className="form-group">
+                  <input
+                    type="email"
+                    placeholder={t("login.email")}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="username"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <input
+                    type="password"
+                    placeholder={t("login.password")}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                </div>
+
+                {error && <p className="login-error">{error}</p>}
+
+                <button type="submit" className="btn-login">
+                  {t("login.submit")}
+                </button>
+
+                <p className="login-switch-hint">
+                  {t("login.staffSwitchHint")}{" "}
+                  <button type="button" className="login-switch-link" onClick={() => setLoginType("staff")}>
+                    {t("login.staffTab")}
+                  </button>
+                </p>
+              </form>
+            ) : (
+              <StaffLoginForm onSubmit={handleStaffSubmit} loading={loading} />
+            )}
+
+            <div className="login-links">
+              <Link to="/login/admin">{t("login.adminLink")}</Link>
+            </div>
           </div>
 
           <div className="login-promo">
@@ -112,7 +132,8 @@ export default function Login() {
             </p>
             <h4>Her şube ayrı</h4>
             <p>
-              Şube e-postası ve şifre admin panelden oluşturulur. Yönetim için <Link to="/login/admin">/login/admin</Link>
+              Şube e-postası ve şifre admin panelden oluşturulur. Kasiyer personal login ilə satış ekranına daxil ola
+              bilər.
             </p>
           </div>
         </div>

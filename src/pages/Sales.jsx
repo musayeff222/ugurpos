@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
 import { useStore } from "../store/StoreContext";
 import Modal from "../components/ui/Modal";
+import StaffLoginForm from "../components/StaffLoginForm";
 import { navigation } from "../data/navigation";
 import { calcCartTotal, formatMoney, uid } from "../utils/format";
+import { getPostLoginPath } from "../utils/authRedirect";
 import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
 import { playPosItemAddedSound, playPosPaymentSound } from "../utils/posSounds";
@@ -18,8 +20,9 @@ function emptyCarts() {
 }
 
 export default function Sales() {
-  const { user, logout, isStaffUser, activeStaffRole, activeStaffName, canCashExpense } = useAuth();
+  const { user, logout, endStaffShift, loginStaff, loading: authLoading, isStaffUser, activeStaffRole, activeStaffName, canCashExpense } = useAuth();
   const { t } = useLocale();
+  const navigate = useNavigate();
   const { state, completeSale, addCashWithdrawal } = useStore();
   const [activeTab, setActiveTab] = useState(0);
   const [carts, setCarts] = useState(emptyCarts);
@@ -47,6 +50,7 @@ export default function Sales() {
   const [fastListTab, setFastListTab] = useState(0);
   const [mobileView, setMobileView] = useState("products");
   const [terminalMenuOpen, setTerminalMenuOpen] = useState(false);
+  const [staffLoginOpen, setStaffLoginOpen] = useState(false);
   const [shiftSummaryOpen, setShiftSummaryOpen] = useState(false);
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseReason, setExpenseReason] = useState("");
@@ -74,6 +78,7 @@ export default function Sales() {
     return value;
   }, [discount, discountType, gross]);
   const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
+  const isBranchSession = user?.loginType === "branch";
   const staffRecord = useMemo(
     () => state.staff.find((s) => s.id === user?.staffId),
     [state.staff, user?.staffId]
@@ -434,8 +439,6 @@ export default function Sales() {
     return pool.filter((p) => p.groupId === category.id);
   }, [state.products, productCategories, fastListTab]);
 
-  const terminalNavigation = isCashier ? navigation.filter((item) => item.path === "/sales") : navigation;
-
   const submitCashExpense = async (e) => {
     e?.preventDefault();
     const amount = Number(expenseAmount);
@@ -467,6 +470,26 @@ export default function Sales() {
     } finally {
       setExpenseLoading(false);
     }
+  };
+
+  const terminalNavigation = isCashier ? navigation.filter((item) => item.path === "/sales") : navigation;
+
+  const handleStaffLogin = async (staffLogin, staffPassword) => {
+    const account = await loginStaff(staffLogin, staffPassword, { fromBranch: isBranchSession });
+    setStaffLoginOpen(false);
+    setTerminalMenuOpen(false);
+    navigate(getPostLoginPath(account), { replace: true });
+  };
+
+  const handleEndShift = () => {
+    const result = endStaffShift();
+    setShiftSummaryOpen(false);
+    if (result === "branch") {
+      navigate("/sales", { replace: true });
+      return;
+    }
+    logout();
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -578,6 +601,14 @@ export default function Sales() {
               </button>
             </div>
             <div className="dzy-terminal-menu__body">
+            {isBranchSession && (
+              <div className="dzy-terminal-menu__staff-login">
+                <span>{t("login.staffFromBranch")}</span>
+                <button type="button" onClick={() => setStaffLoginOpen(true)}>
+                  {t("login.staffSubmit")}
+                </button>
+              </div>
+            )}
             {terminalNavigation.map((item) =>
               item.children?.length ? (
                 <div className="dzy-terminal-menu__group" key={item.labelKey || item.label}>
@@ -947,11 +978,15 @@ export default function Sales() {
             <button type="button" className="btn btn-default" onClick={() => setShiftSummaryOpen(false)}>
               Geri dön
             </button>
-            <button type="button" className="btn btn-danger" onClick={logout}>
+            <button type="button" className="btn btn-danger" onClick={handleEndShift}>
               Çıkış yap
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={staffLoginOpen} title={t("login.staffTitle")} onClose={() => setStaffLoginOpen(false)}>
+        <StaffLoginForm onSubmit={handleStaffLogin} loading={authLoading} compact />
       </Modal>
 
       <Modal open={customerModal} title="Müşteri Seç" onClose={() => setCustomerModal(false)}>
