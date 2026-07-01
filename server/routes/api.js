@@ -14,6 +14,7 @@ import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 import { logActivity } from "../utils/activityLog.js";
 import { getActiveBusinessWindow } from "../utils/businessHours.js";
 import { computeCashRegisterBalance } from "../utils/cashRegister.js";
+import { hashBranchPassword } from "../utils/branchAuth.js";
 
 const router = Router();
 router.use(branchMiddleware);
