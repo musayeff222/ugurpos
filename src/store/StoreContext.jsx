@@ -101,8 +101,9 @@ export function StoreProvider({ children }) {
       },
 
       addGroup: async (name) => {
-        await api.createGroup(name);
-        return refresh();
+        const created = await api.createGroup(name);
+        await refresh();
+        return created;
       },
 
       deleteGroup: async (id) => {

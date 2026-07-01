@@ -474,8 +474,13 @@ export default function Sales() {
 
   const terminalNavigation = isCashier ? navigation.filter((item) => item.path === "/sales") : navigation;
 
-  const handleStaffLogin = async (staffLogin, staffPassword) => {
-    const account = await loginStaff(staffLogin, staffPassword, { fromBranch: isBranchSession });
+  const branchStaff = useMemo(
+    () => state.staff.filter((member) => member.hasPassword && member.login),
+    [state.staff]
+  );
+
+  const handleStaffLogin = async (staffLogin, staffPassword, options = {}) => {
+    const account = await loginStaff(staffLogin, staffPassword, { fromBranch: isBranchSession, ...options });
     setStaffLoginOpen(false);
     setTerminalMenuOpen(false);
     navigate(getPostLoginPath(account), { replace: true });
@@ -986,7 +991,13 @@ export default function Sales() {
       </Modal>
 
       <Modal open={staffLoginOpen} title={t("login.staffTitle")} onClose={() => setStaffLoginOpen(false)}>
-        <StaffLoginForm onSubmit={handleStaffLogin} loading={authLoading} compact />
+        <StaffLoginForm
+          onSubmit={handleStaffLogin}
+          loading={authLoading}
+          compact
+          staffList={branchStaff}
+          branchEmail={user?.email || user?.branchEmail || ""}
+        />
       </Modal>
 
       <Modal open={customerModal} title="Müşteri Seç" onClose={() => setCustomerModal(false)}>

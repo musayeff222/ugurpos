@@ -9,10 +9,33 @@ export default function ProductGroups() {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
 
+  const quickGroups = ["Yiyecekler", "İçecekler", "Tatlılar", "Çiğköfte", "Diğer"];
+
+  const createIfMissing = async (groupName) => {
+    const exists = state.groups.some((g) => g.name.toLocaleLowerCase("tr") === groupName.toLocaleLowerCase("tr"));
+    if (exists) {
+      setMessage(`"${groupName}" artıq mövcuddur.`);
+      return;
+    }
+    await runAsync(() => addGroup(groupName), setMessage);
+  };
+
   return (
     <div>
-      <PageHeader title="Ürün Grupları" />
+      <PageHeader title="Məhsul Kateqoriyaları" subtitle="Satış ekranında qrup tabları buradan gəlir" />
       {message && <div className="alert alert-info">{message}</div>}
+
+      <div className="card filter-bar">
+        <span className="hint-text" style={{ margin: 0 }}>
+          Tez əlavə:
+        </span>
+        {quickGroups.map((groupName) => (
+          <button key={groupName} type="button" className="btn btn-default btn-sm" onClick={() => createIfMissing(groupName)}>
+            + {groupName}
+          </button>
+        ))}
+      </div>
+
       <form
         className="card filter-bar"
         onSubmit={async (e) => {
@@ -22,9 +45,9 @@ export default function ProductGroups() {
           if (ok) setName("");
         }}
       >
-        <input placeholder="Yeni grup adı" value={name} onChange={(e) => setName(e.target.value)} />
+        <input placeholder="Yeni kateqoriya adı" value={name} onChange={(e) => setName(e.target.value)} />
         <button type="submit" className="btn btn-success">
-          Ekle
+          Kateqoriya əlavə et
         </button>
       </form>
       <div className="card">

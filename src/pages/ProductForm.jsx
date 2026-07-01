@@ -4,6 +4,7 @@ import { useStore } from "../store/StoreContext";
 import { api } from "../api/client";
 import PageHeader from "../components/ui/PageHeader";
 import ProductImageField from "../components/ProductImageField";
+import ProductGroupField from "../components/ProductGroupField";
 import { DEFAULT_PRODUCT_UNIT, PRODUCT_UNITS } from "../data/productUnits";
 
 const emptyForm = {
@@ -21,7 +22,7 @@ const emptyForm = {
 };
 
 export default function ProductForm() {
-  const { state, addProduct, updateProduct, uploadProductImage } = useStore();
+  const { state, addProduct, updateProduct, uploadProductImage, addGroup } = useStore();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const editId = params.get("id");
@@ -41,11 +42,16 @@ export default function ProductForm() {
     }
   }, [existing?.id]);
 
+  useEffect(() => {
+    if (existing || form.groupId || !state.groups[0]?.id) return;
+    setForm((prev) => ({ ...prev, groupId: state.groups[0].id }));
+  }, [existing, state.groups, form.groupId]);
+
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const buildProductPayload = () => ({
     name: form.name.trim(),
-    groupId: form.groupId || state.groups[0]?.id,
+    groupId: form.groupId,
     stock: Number(form.stock),
     criticalStock: Number(form.criticalStock),
     vat: Number(form.vat),
@@ -81,6 +87,10 @@ export default function ProductForm() {
     e.preventDefault();
     if (!form.name.trim()) {
       setMessage("Ürün adı zorunludur.");
+      return;
+    }
+    if (!form.groupId) {
+      setMessage("Kateqoriya / qrup seçin və ya yeni yaradın.");
       return;
     }
     if (imageValue && imageValue !== null && !imageValue.file && !imageValue.data) {
@@ -147,14 +157,14 @@ export default function ProductForm() {
         <label>Ürün Adı *</label>
         <input value={form.name} onChange={(e) => setField("name", e.target.value)} required />
 
-        <label>Grup</label>
-        <select value={form.groupId} onChange={(e) => setField("groupId", e.target.value)}>
-          {state.groups.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-            </option>
-          ))}
-        </select>
+        <label>Kateqoriya / Qrup *</label>
+        <ProductGroupField
+          showLabel={false}
+          value={form.groupId}
+          groups={state.groups}
+          onChange={(groupId) => setField("groupId", groupId)}
+          onCreateGroup={addGroup}
+        />
 
         <label>Ürün Birimi</label>
         <select value={form.unit} onChange={(e) => setField("unit", e.target.value)} required>

@@ -10,15 +10,19 @@ import { getProductImageSrc } from "../utils/productImage";
 export default function Products() {
   const { state, deleteProducts } = useStore();
   const [filter, setFilter] = useState("all");
+  const [groupFilter, setGroupFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState([]);
   const [message, setMessage] = useState("");
+
+  const groupMap = useMemo(() => Object.fromEntries(state.groups.map((g) => [g.id, g.name])), [state.groups]);
 
   const rows = useMemo(() => {
     let list = [...state.products];
     if (filter === "instock") list = list.filter((p) => p.stock > 0);
     if (filter === "outstock") list = list.filter((p) => p.stock <= 0);
     if (filter === "critical") list = list.filter((p) => p.stock <= p.criticalStock);
+    if (groupFilter !== "all") list = list.filter((p) => p.groupId === groupFilter);
     if (search.trim()) {
       const q = search.toLocaleLowerCase("tr");
       list = list.filter(
@@ -29,7 +33,7 @@ export default function Products() {
       );
     }
     return list;
-  }, [state.products, filter, search]);
+  }, [state.products, filter, groupFilter, search]);
 
   const toggleSelect = (id) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -64,6 +68,14 @@ export default function Products() {
       {message && <div className="alert alert-info">{message}</div>}
 
       <div className="card filter-bar">
+        <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
+          <option value="all">Bütün kateqoriyalar</option>
+          {state.groups.map((group) => (
+            <option key={group.id} value={group.id}>
+              {group.name}
+            </option>
+          ))}
+        </select>
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="all">Tüm Ürünler</option>
           <option value="instock">Stoktakiler</option>
@@ -100,6 +112,11 @@ export default function Products() {
               },
               { key: "barcode", label: "Barkod" },
               { key: "name", label: "Ürün adı" },
+              {
+                key: "groupId",
+                label: "Kateqoriya",
+                render: (r) => groupMap[r.groupId] || "—",
+              },
               { key: "unit", label: "Birim", render: (r) => r.unit || "Adet" },
               { key: "stock", label: "Stok" },
               { key: "vat", label: "KDV", render: (r) => `%${r.vat}` },

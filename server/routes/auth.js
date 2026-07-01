@@ -129,17 +129,57 @@ router.post("/branch-login", (req, res) => {
   });
 });
 
+router.get("/staff-for-login", (req, res) => {
+  const branchEmail = req.query.branchEmail?.trim();
+  if (!branchEmail) {
+    return res.status(400).json({ error: "Filial e-poçtu lazımdır" });
+  }
+
+  const db = getDb();
+  const branch = db
+    .prepare("SELECT id, name FROM branches WHERE email = ? AND active = 1")
+    .get(normalizeBranchEmail(branchEmail));
+  if (!branch) {
+    return res.status(404).json({ error: "Filial tapılmadı" });
+  }
+
+  const rows = db
+    .prepare(
+      `SELECT id, name, surname, login, role FROM staff
+       WHERE branch_id = ? AND active = 1 AND password_hash IS NOT NULL AND password_hash != ''
+       ORDER BY name, surname`
+    )
+    .all(branch.id);
+
+  res.json(
+    rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      surname: row.surname || "",
+      login: row.login || "",
+      role: row.role || "Kasiyer",
+      hasPassword: true,
+    }))
+  );
+});
+
 router.post("/staff-login", (req, res) => {
-  const { login, password } = req.body;
-  if (!login?.trim() || !password) {
+  const { login, password, staffId } = req.body;
+  if (!password) {
     return res.status(400).json({ error: "Login ve parola gerekli" });
   }
 
   const db = getDb();
-  const normalizedLogin = login.trim().toLowerCase();
-  const staff = db
-    .prepare("SELECT * FROM staff WHERE login = ? AND active = 1 LIMIT 1")
-    .get(normalizedLogin);
+  let staff = null;
+
+  if (staffId) {
+    staff = db.prepare("SELECT * FROM staff WHERE id = ? AND active = 1").get(staffId);
+  } else if (login?.trim()) {
+    const normalizedLogin = login.trim().toLowerCase();
+    staff = db.prepare("SELECT * FROM staff WHERE login = ? AND active = 1 LIMIT 1").get(normalizedLogin);
+  } else {
+    return res.status(400).json({ error: "Personal seçin veya login girin" });
+  }
 
   if (!staff || !staff.password_hash || !bcrypt.compareSync(password, staff.password_hash)) {
     return res.status(401).json({ error: "Invalid credentials" });
@@ -156,7 +196,7 @@ router.post("/staff-login", (req, res) => {
     branchName: branch.name,
     type: "staff_login",
     title: `${staff.name} giriş yaptı`,
-    detail: normalizedLogin,
+    detail: staff.login || staff.id,
   });
   res.json({
     token,

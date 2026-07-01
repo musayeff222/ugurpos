@@ -101,6 +101,37 @@
   gap: 8px;
 }
 
+.product-group-field__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.product-group-field__body select {
+  width: 100%;
+  border: 1px solid #dbe0ec;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.product-group-field__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.product-group-field__create {
+  padding: 0 !important;
+  margin: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.product-group-field__create input {
+  flex: 1;
+  min-width: 180px;
+}
+
 .form-inline-bar,
 .filter-bar {
   display: flex;

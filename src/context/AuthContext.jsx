@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const loginStaff = async (login, password, options = {}) => {
+  const loginStaff = async (loginOrStaffId, password, options = {}) => {
     setLoading(true);
     try {
       const currentUser = JSON.parse(localStorage.getItem(USER_KEY) || "null");
@@ -56,7 +56,15 @@ export function AuthProvider({ children }) {
         sessionStorage.removeItem(BRANCH_BACKUP_KEY);
       }
 
-      const { token, user: account } = await api.staffLogin(login, password);
+      const payload =
+        options.staffId || typeof loginOrStaffId === "object"
+          ? {
+              staffId: options.staffId || loginOrStaffId.id,
+              password,
+            }
+          : { login: loginOrStaffId, password };
+
+      const { token, user: account } = await api.staffLogin(payload);
       sessionStorage.removeItem(ADMIN_BACKUP_KEY);
       const accountWithShift = { ...account, shiftStartedAt: new Date().toISOString() };
       persistUser(accountWithShift, token);

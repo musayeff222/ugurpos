@@ -171,6 +171,73 @@
   margin-top: 4px;
 }
 
+.btn-login--secondary {
+  background: #0080ff;
+  margin-top: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+.staff-login-form__branch-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.staff-login-form__branch-row input {
+  width: 100%;
+  border: 1px solid #dbe0ec;
+  border-radius: 4px;
+  padding: 12px 14px;
+}
+
+.staff-login-form__selected {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #303e67;
+}
+
+.staff-login-picker {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.staff-login-picker__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #dbe0ec;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.staff-login-picker__item strong {
+  color: #181c23;
+  font-size: 15px;
+}
+
+.staff-login-picker__item span {
+  color: #717786;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.staff-login-picker__item.active {
+  border-color: #0080ff;
+  background: #eef5ff;
+  box-shadow: inset 0 0 0 1px #0080ff;
+}
+
 .dzy-terminal-menu__staff-login {
   margin: 8px 0 12px;
   padding: 12px;

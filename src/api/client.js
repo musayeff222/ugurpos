@@ -33,8 +33,11 @@ export const api = {
   branchLogin: (email, password) =>
     request("/auth/branch-login", { method: "POST", body: JSON.stringify({ email, password }) }),
 
-  staffLogin: (login, password) =>
-    request("/auth/staff-login", { method: "POST", body: JSON.stringify({ login, password }) }),
+  staffLogin: (payload) =>
+    request("/auth/staff-login", { method: "POST", body: JSON.stringify(payload) }),
+
+  getStaffForLogin: (branchEmail) =>
+    request(`/auth/staff-for-login?branchEmail=${encodeURIComponent(branchEmail)}`),
 
   getBranches: () => request("/auth/branches"),
 
