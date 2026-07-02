@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { api } from "../api/client";
 import LanguageSwitcher from "../components/public/LanguageSwitcher";
 import StaffLoginForm from "../components/StaffLoginForm";
 import { useAuth } from "../context/AuthContext";
@@ -43,8 +42,8 @@ export default function Login() {
     }
   };
 
-  const handleStaffSubmit = async (staffLogin, staffPassword, options = {}) => {
-    const account = await loginStaff(staffLogin, staffPassword, options);
+  const handleStaffSubmit = async (staffLogin, staffPassword) => {
+    const account = await loginStaff(staffLogin, staffPassword);
     navigate(getPostLoginPath(account, location.state?.from?.pathname), { replace: true });
   };
 
@@ -118,11 +117,7 @@ export default function Login() {
                 </p>
               </form>
             ) : (
-              <StaffLoginForm
-                onSubmit={handleStaffSubmit}
-                loading={loading}
-                onLoadStaff={(email) => api.getStaffForLogin(email)}
-              />
+              <StaffLoginForm onSubmit={handleStaffSubmit} loading={loading} />
             )}
 
             <div className="login-links">
