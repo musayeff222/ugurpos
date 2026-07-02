@@ -1,4 +1,4 @@
-import { getBranchBusinessHours, getBusinessWindowForDate } from "./businessHours.js";
+import { getBranchBusinessHours, getBusinessWindowForDate, isTimestampInWindow } from "./businessHours.js";
 import { computeCashRegisterBalance } from "./cashRegister.js";
 import { uid } from "../db/index.js";
 import { logActivity } from "./activityLog.js";
@@ -7,12 +7,7 @@ function sumSalesInWindow(db, branchId, window) {
   const sales = db
     .prepare("SELECT created_at, payment_type, total FROM sales WHERE branch_id = ?")
     .all(branchId);
-  const inWindow = sales.filter((s) => {
-    const day = s.created_at?.slice(0, 10);
-    const time = s.created_at?.length >= 16 ? s.created_at.slice(11, 16) : "00:00";
-    if (day !== window.businessDate) return false;
-    return time >= window.openTime && time <= window.closeTime;
-  });
+  const inWindow = sales.filter((s) => isTimestampInWindow(s.created_at, window));
   const nonRefund = inWindow.filter((s) => s.payment_type !== "refund");
   const refunds = inWindow.filter((s) => s.payment_type === "refund");
   return {
@@ -36,7 +31,7 @@ export function closeBusinessDayForBranch(db, branchId, businessDate, closedAtIS
 
   const { openTime, closeTime } = getBranchBusinessHours(branch);
   const window = getBusinessWindowForDate(businessDate, openTime, closeTime);
-  const cash = computeCashRegisterBalance(db, branchId, window);
+  const cash = computeCashRegisterBalance(db, branchId, window, { ignoreClose: false });
   const sales = sumSalesInWindow(db, branchId, window);
 
   const stats = {

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
 import { useStore } from "../store/StoreContext";
+import { api } from "../api/client";
 import Modal from "../components/ui/Modal";
 import StaffLoginForm from "../components/StaffLoginForm";
 import { navigation } from "../data/navigation";
@@ -57,6 +58,7 @@ export default function Sales() {
   const [expenseNote, setExpenseNote] = useState("");
   const [expenseLoading, setExpenseLoading] = useState(false);
   const [expenseFeedback, setExpenseFeedback] = useState("");
+  const [cashRegisterBalance, setCashRegisterBalance] = useState(null);
   const [message, setMessage] = useState("");
   const [lastSale, setLastSale] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -120,6 +122,20 @@ export default function Sales() {
   const change = Math.max(0, (Number(paid) || 0) - total);
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
   const money = (value) => formatMoney(value, "az");
+
+  const loadCashRegisterBalance = useCallback(async () => {
+    if (!showCashExpense) return;
+    try {
+      const data = await api.getCashRegisterBalance();
+      setCashRegisterBalance(data);
+    } catch {
+      setCashRegisterBalance(null);
+    }
+  }, [showCashExpense]);
+
+  useEffect(() => {
+    loadCashRegisterBalance();
+  }, [loadCashRegisterBalance, state.sales, state.cashWithdrawals, state.expense]);
 
   useEffect(() => {
     if (!terminalMenuOpen) return undefined;
@@ -464,6 +480,7 @@ export default function Sales() {
       setExpenseNote("");
       setExpenseFeedback("Kassadan xərc qeyd edildi.");
       setMessage("Kassadan xərc qeyd edildi.");
+      await loadCashRegisterBalance();
     } catch (err) {
       setExpenseFeedback(err.message || "Xərc qeyd edilə bilmədi.");
       setMessage(err.message || "Xərc qeyd edilə bilmədi.");
@@ -645,6 +662,11 @@ export default function Sales() {
                   <i className="fa fa-minus-circle" />
                   Kassadan xərc
                 </span>
+                {cashRegisterBalance != null && (
+                  <p className="dzy-terminal-menu__expense-balance">
+                    Kasa balansı: {money(Math.max(0, cashRegisterBalance.balance || 0))}
+                  </p>
+                )}
                 {expenseFeedback && (
                   <p className={`dzy-terminal-menu__expense-msg${expenseFeedback.includes("qeyd") ? " ok" : ""}`}>
                     {expenseFeedback}
@@ -959,7 +981,14 @@ export default function Sales() {
             </div>
             <div>
               <span>Nakit kasa</span>
-              <strong>{money(shiftSummary.cashRegister)}</strong>
+              <strong>
+                {money(
+                  Math.max(
+                    0,
+                    cashRegisterBalance?.balance ?? shiftSummary.cashRegister
+                  )
+                )}
+              </strong>
             </div>
           </div>
           {shiftSummary.withdrawals.length > 0 && (

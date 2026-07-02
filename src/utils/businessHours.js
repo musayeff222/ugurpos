@@ -52,11 +52,23 @@ export function getActiveBusinessWindow(openTime = "08:00", closeTime = "17:00",
   return getBusinessWindowForDate(today, open, close);
 }
 
-export function isTimestampInWindow(createdAt, window) {
+export function parseLocalTimestamp(createdAt) {
+  if (!createdAt) return null;
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return null;
+  return {
+    date: dateISO(d),
+    time: `${pad2(d.getHours())}:${pad2(d.getMinutes())}`,
+    minutes: d.getHours() * 60 + d.getMinutes(),
+  };
+}
+
+export function isTimestampInWindow(createdAt, window, options = {}) {
   if (!createdAt || !window) return false;
-  const day = createdAt.slice(0, 10);
-  const time = createdAt.length >= 16 ? createdAt.slice(11, 16) : "00:00";
-  if (day !== window.businessDate) return false;
-  const tMin = toMinutes(time);
-  return tMin >= toMinutes(window.openTime) && tMin <= toMinutes(window.closeTime);
+  const local = parseLocalTimestamp(createdAt);
+  if (!local) return false;
+  if (local.date !== window.businessDate) return false;
+  if (local.minutes < toMinutes(window.openTime)) return false;
+  if (options.ignoreClose) return true;
+  return local.minutes <= toMinutes(window.closeTime);
 }
