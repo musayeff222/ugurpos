@@ -155,7 +155,7 @@ export default function DailyReport() {
   const profit = total - productCost;
   const profitPct = productCost > 0 ? (profit / productCost) * 100 : 0;
   const netProfit = profit + incomesTotal - expensesTotal - refundTotal - withdrawalsTotal;
-  const cashRegisterTotal = Math.max(0, cashTotal - expensesTotal - withdrawalsTotal);
+  const cashRegisterTotal = cashTotal - expensesTotal - withdrawalsTotal;
   const receivedPayments = 0;
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));

@@ -575,13 +575,6 @@ router.post("/cash-withdrawals", (req, res) => {
   if (!reason) return res.status(400).json({ error: "Xərc səbəbi zəruridir" });
 
   const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.branchId);
-  const window = getActiveBusinessWindow(branch);
-  const cash = computeCashRegisterBalance(db, req.branchId, window);
-
-  if (amount > cash.balance) {
-    return res.status(400).json({ error: "Kassada kifayət qədər nakit yoxdur" });
-  }
-
   const id = uid("cw");
   const now = new Date().toISOString();
   const staffName =

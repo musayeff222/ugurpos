@@ -115,7 +115,7 @@ export default function Sales() {
       pos: sumByType("pos"),
       open: sumByType("open"),
       withdrawalsTotal,
-      cashRegister: Math.max(0, cash - withdrawalsTotal),
+      cashRegister: cash - withdrawalsTotal,
       withdrawals: shiftWithdrawals,
     };
   }, [shiftSales, state.cashWithdrawals, cashierName, shiftStartedAt]);
@@ -658,8 +658,12 @@ export default function Sales() {
                   Kassadan xərc
                 </span>
                 {cashRegisterBalance != null && (
-                  <p className="dzy-terminal-menu__expense-balance">
-                    Kasa balansı: {money(Math.max(0, cashRegisterBalance.balance || 0))}
+                  <p
+                    className={`dzy-terminal-menu__expense-balance${
+                      Number(cashRegisterBalance.balance || 0) < 0 ? " negative" : ""
+                    }`}
+                  >
+                    Kasa balansı: {money(cashRegisterBalance.balance || 0)}
                   </p>
                 )}
                 {expenseFeedback && (
@@ -976,13 +980,8 @@ export default function Sales() {
             </div>
             <div>
               <span>Nakit kasa</span>
-              <strong>
-                {money(
-                  Math.max(
-                    0,
-                    cashRegisterBalance?.balance ?? shiftSummary.cashRegister
-                  )
-                )}
+              <strong className={Number(cashRegisterBalance?.balance ?? shiftSummary.cashRegister) < 0 ? "cash-negative" : ""}>
+                {money(cashRegisterBalance?.balance ?? shiftSummary.cashRegister)}
               </strong>
             </div>
           </div>

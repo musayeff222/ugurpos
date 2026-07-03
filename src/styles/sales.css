@@ -1538,6 +1538,10 @@
   color: #1f6b3a;
 }
 
+.dzy-terminal-menu__expense-balance.negative {
+  color: #b42318;
+}
+
 .dzy-terminal-menu__expense input {
   width: 100%;
   height: 38px;
@@ -2389,6 +2393,10 @@
 .cashier-shift-summary__grid strong {
   font-size: 18px;
   color: #181c23;
+}
+
+.cashier-shift-summary__grid strong.cash-negative {
+  color: #b42318;
 }
 
 .cashier-shift-summary__notice {
