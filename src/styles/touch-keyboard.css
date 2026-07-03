@@ -1,0 +1,278 @@
+.cash-expense-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 18, 28, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.cash-expense-modal {
+  width: min(720px, 100%);
+  max-height: calc(100dvh - 24px);
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: 12px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.cash-expense-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 0;
+}
+
+.cash-expense-modal__head strong {
+  display: block;
+  font-size: 22px;
+  color: #9e3d00;
+}
+
+.cash-expense-modal__balance {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f6b3a;
+}
+
+.cash-expense-modal__balance.negative {
+  color: #b42318;
+}
+
+.cash-expense-modal__close {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: #eef0fa;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cash-expense-modal__fields {
+  display: grid;
+  gap: 10px;
+  padding: 0 18px;
+}
+
+.cash-expense-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 2px solid #d8d9e5;
+  border-radius: 12px;
+  background: #f8f9fd;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cash-expense-field.active {
+  border-color: #0067c8;
+  background: #eef5ff;
+  box-shadow: 0 0 0 3px rgba(0, 103, 200, 0.15);
+}
+
+.cash-expense-field span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5c6170;
+}
+
+.cash-expense-field strong {
+  font-size: 24px;
+  font-weight: 800;
+  color: #181c23;
+  word-break: break-word;
+}
+
+.cash-expense-modal__feedback {
+  margin: 0 18px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  background: #fde8e8;
+  color: #9b1c1c;
+}
+
+.cash-expense-modal__feedback.ok {
+  background: #e6f6ea;
+  color: #1f7a34;
+}
+
+.cash-expense-modal__keyboard {
+  min-height: 0;
+  overflow: auto;
+  padding: 0 12px;
+}
+
+.cash-expense-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px 18px;
+  border-top: 1px solid #e6e8f3;
+}
+
+.cash-expense-modal__actions .btn {
+  min-height: 52px;
+  min-width: 130px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.touch-numpad {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.touch-numpad__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.touch-numpad__key,
+.touch-numpad__backspace {
+  min-height: 58px;
+  border: none;
+  border-radius: 12px;
+  background: #eef0fa;
+  color: #181c23;
+  font-size: 26px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.touch-numpad__key:active,
+.touch-numpad__backspace:active,
+.touch-text-kb__key:active {
+  transform: scale(0.97);
+  background: #dfe3f3;
+}
+
+.touch-numpad__key--action {
+  background: #ffe8cc;
+  color: #9e3d00;
+}
+
+.touch-numpad__backspace {
+  width: 72px;
+  font-size: 30px;
+}
+
+.touch-text-kb {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.touch-text-kb__row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.touch-text-kb__key {
+  min-width: 52px;
+  min-height: 52px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 10px;
+  background: #eef0fa;
+  color: #181c23;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.touch-text-kb__key.active {
+  background: #0067c8;
+  color: #fff;
+}
+
+.touch-text-kb__key--wide {
+  min-width: 72px;
+}
+
+.touch-text-kb__key--extra {
+  min-width: 56px;
+  background: #fff4e5;
+}
+
+.touch-text-kb__key--space {
+  flex: 1;
+  min-width: 120px;
+}
+
+.touch-text-kb__key--action {
+  min-width: 72px;
+  background: #ffe8cc;
+  color: #9e3d00;
+  font-size: 24px;
+}
+
+.dzy-terminal-menu__expense-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  margin: 10px 0 12px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  background: #b34b00;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dzy-terminal-menu__expense-btn i {
+  font-size: 18px;
+}
+
+@media (max-width: 600px) {
+  .cash-expense-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .cash-expense-modal {
+    width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .touch-numpad__key,
+  .touch-numpad__backspace {
+    min-height: 52px;
+    font-size: 22px;
+  }
+
+  .touch-text-kb__key {
+    min-width: 44px;
+    min-height: 46px;
+    font-size: 18px;
+  }
+}

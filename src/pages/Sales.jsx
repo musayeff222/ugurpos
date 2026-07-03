@@ -5,6 +5,7 @@ import { useLocale } from "../context/LocaleContext";
 import { useStore } from "../store/StoreContext";
 import { api } from "../api/client";
 import Modal from "../components/ui/Modal";
+import CashExpenseModal from "../components/CashExpenseModal";
 import StaffLoginForm from "../components/StaffLoginForm";
 import { navigation } from "../data/navigation";
 import { calcCartTotal, formatMoney, uid } from "../utils/format";
@@ -54,11 +55,8 @@ export default function Sales() {
   const [terminalMenuOpen, setTerminalMenuOpen] = useState(false);
   const [staffLoginOpen, setStaffLoginOpen] = useState(false);
   const [shiftSummaryOpen, setShiftSummaryOpen] = useState(false);
-  const [expenseAmount, setExpenseAmount] = useState("");
-  const [expenseReason, setExpenseReason] = useState("");
-  const [expenseNote, setExpenseNote] = useState("");
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [expenseLoading, setExpenseLoading] = useState(false);
-  const [expenseFeedback, setExpenseFeedback] = useState("");
   const [cashRegisterBalance, setCashRegisterBalance] = useState(null);
   const [splitModalOpen, setSplitModalOpen] = useState(false);
   const [splitCash, setSplitCash] = useState("");
@@ -523,35 +521,16 @@ export default function Sales() {
     return pool.filter((p) => p.groupId === category.id);
   }, [state.products, productCategories, fastListTab]);
 
-  const submitCashExpense = async (e) => {
-    e?.preventDefault();
-    const amount = Number(expenseAmount);
-    if (!amount || amount <= 0) {
-      setExpenseFeedback("Geçerli məbləğ girin.");
-      return;
-    }
-    if (!expenseReason.trim()) {
-      setExpenseFeedback("Xərc səbəbi zəruridir.");
-      return;
-    }
+  const handleCashExpenseSubmit = async ({ amount, reason, note }) => {
     setExpenseLoading(true);
-    setExpenseFeedback("");
     setMessage("");
     try {
-      await addCashWithdrawal({
-        amount,
-        reason: expenseReason.trim(),
-        note: expenseNote.trim(),
-      });
-      setExpenseAmount("");
-      setExpenseReason("");
-      setExpenseNote("");
-      setExpenseFeedback("Kassadan xərc qeyd edildi.");
+      await addCashWithdrawal({ amount, reason, note });
       setMessage("Kassadan xərc qeyd edildi.");
       await loadCashRegisterBalance();
+      setExpenseModalOpen(false);
     } catch (err) {
-      setExpenseFeedback(err.message || "Xərc qeyd edilə bilmədi.");
-      setMessage(err.message || "Xərc qeyd edilə bilmədi.");
+      throw err;
     } finally {
       setExpenseLoading(false);
     }
@@ -720,53 +699,17 @@ export default function Sales() {
               )
             )}
             {showCashExpense && (
-              <div className="dzy-terminal-menu__expense" aria-label="Kassadan xərc">
-                <span className="dzy-terminal-menu__expense-title">
-                  <i className="fa fa-minus-circle" />
-                  Kassadan xərc
-                </span>
-                {cashRegisterBalance != null && (
-                  <p
-                    className={`dzy-terminal-menu__expense-balance${
-                      Number(cashRegisterBalance.balance || 0) < 0 ? " negative" : ""
-                    }`}
-                  >
-                    Kasa balansı: {money(cashRegisterBalance.balance || 0)}
-                  </p>
-                )}
-                {expenseFeedback && (
-                  <p className={`dzy-terminal-menu__expense-msg${expenseFeedback.includes("qeyd") ? " ok" : ""}`}>
-                    {expenseFeedback}
-                  </p>
-                )}
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="Məbləğ"
-                  value={expenseAmount}
-                  onChange={(e) => setExpenseAmount(e.target.value.replace(",", "."))}
-                  inputMode="decimal"
-                />
-                <input
-                  placeholder="Səbəb"
-                  value={expenseReason}
-                  onChange={(e) => setExpenseReason(e.target.value)}
-                />
-                <input
-                  placeholder="Qeyd (istəyə bağlı)"
-                  value={expenseNote}
-                  onChange={(e) => setExpenseNote(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="dzy-terminal-menu__expense-submit"
-                  disabled={expenseLoading}
-                  onClick={submitCashExpense}
-                >
-                  {expenseLoading ? "…" : "Xərc qeyd et"}
-                </button>
-              </div>
+              <button
+                type="button"
+                className="dzy-terminal-menu__expense-btn"
+                onClick={() => {
+                  setExpenseModalOpen(true);
+                  setTerminalMenuOpen(false);
+                }}
+              >
+                <i className="fa fa-minus-circle" />
+                Kassadan xərc
+              </button>
             )}
             {isCashier && (
               <button type="button" className="dzy-terminal-menu__shift" onClick={() => setShiftSummaryOpen(true)}>
@@ -1013,6 +956,14 @@ export default function Sales() {
           )}
         </div>
       </div>
+
+      <CashExpenseModal
+        open={expenseModalOpen}
+        onClose={() => setExpenseModalOpen(false)}
+        onSubmit={handleCashExpenseSubmit}
+        balance={cashRegisterBalance}
+        loading={expenseLoading}
+      />
 
       <Modal open={shiftSummaryOpen} title="Nöbet Çıkış Özeti" onClose={() => setShiftSummaryOpen(false)}>
         <div className="cashier-shift-summary">

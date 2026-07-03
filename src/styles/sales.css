@@ -1937,7 +1937,7 @@
 
 .dzy-cart {
   display: grid;
-  grid-template-rows: 44px auto 1fr 66px;
+  grid-template-rows: 52px auto 1fr 88px;
 }
 
 .dzy-cart__head {
@@ -1945,14 +1945,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 0 12px;
+  padding: 0 14px;
   background: #f2f3fb;
   border-bottom: 1px solid var(--dzy-line);
 }
 
 .dzy-cart__head h5 {
   margin: 0;
-  font-size: 13px;
+  font-size: 22px;
   font-weight: 800;
 }
 
@@ -1961,7 +1961,7 @@
   background: transparent;
   color: #b43b3b;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 18px;
   cursor: pointer;
 }
 
@@ -1970,7 +1970,7 @@
   gap: 4px;
   list-style: none;
   margin: 0;
-  padding: 6px;
+  padding: 8px;
   overflow: hidden;
   border-bottom: 1px solid #e6e8f3;
 }
@@ -1982,12 +1982,12 @@
 
 .dzy-cart__tabs button {
   width: 100%;
-  min-height: 30px;
+  min-height: 44px;
   border: none;
   border-radius: 8px;
   background: transparent;
   color: var(--dzy-muted);
-  font-size: 10px;
+  font-size: 16px;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -2007,7 +2007,7 @@
 
 .dzy-cart__table table {
   width: 100%;
-  font-size: 12px;
+  font-size: 22px;
   border-collapse: collapse;
 }
 
@@ -2015,7 +2015,7 @@
 .dzy-cart__table td {
   border: none;
   border-bottom: 1px solid #e8eaf4;
-  padding: 8px 8px;
+  padding: 12px 10px;
   vertical-align: middle;
 }
 
@@ -2025,11 +2025,12 @@
   z-index: 1;
   background: #eef0fa;
   color: #414755;
-  font-size: 11px;
+  font-size: 18px;
+  font-weight: 800;
 }
 
 .dzy-cart__table td:first-child {
-  max-width: 130px;
+  max-width: 240px;
 }
 
 .dzy-cart__table td:first-child strong {
@@ -2038,30 +2039,44 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.dzy-cart__table td:nth-child(3),
+.dzy-cart__table td:nth-child(4) {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .dzy-cart__remove {
-  margin-top: 2px;
+  margin-top: 4px;
   border: none;
   background: none;
   color: #e34a67;
   cursor: pointer;
+  font-size: 18px;
 }
 
 .dzy-cart__qty {
   display: inline-grid;
-  grid-template-columns: 28px 34px 28px;
-  gap: 4px;
+  grid-template-columns: 44px 56px 44px;
+  gap: 6px;
   align-items: center;
 }
 
 .dzy-cart__qty button,
 .dzy-cart__qty input {
-  height: 28px;
+  height: 44px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: #e8ebf5;
   text-align: center;
+  font-size: 20px;
+  font-weight: 800;
 }
 
 .dzy-cart__qty button {
@@ -2072,11 +2087,11 @@
 .dzy-cart__footer {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px 10px;
-  padding: 8px 12px;
+  gap: 6px 12px;
+  padding: 10px 14px;
   background: #f2f3fb;
   border-top: 1px solid var(--dzy-line);
-  font-size: 13px;
+  font-size: 20px;
 }
 
 .dzy-cart__footer div {
@@ -2085,24 +2100,36 @@
   gap: 8px;
 }
 
+.dzy-cart__footer div strong {
+  font-size: 22px;
+}
+
 .dzy-cart__footer-actions {
   grid-column: 1 / -1;
 }
 
 .dzy-cart__footer-actions button {
   flex: 1;
-  min-height: 32px;
+  min-height: 48px;
   border: none;
   border-radius: 8px;
   background: #e6e8f3;
   color: #414755;
   font-weight: 700;
+  font-size: 18px;
   cursor: pointer;
 }
 
 .dzy-cart__footer-actions button:last-child {
   background: var(--dzy-primary);
   color: #fff;
+}
+
+.dzy-cart__table .sales-empty {
+  font-size: 20px;
+  color: var(--dzy-muted);
+  text-align: center;
+  padding: 24px 12px !important;
 }
 
 .dzy-products {
@@ -2480,7 +2507,7 @@
   }
 
   .dzy-cart {
-    grid-template-rows: 42px auto 1fr 66px;
+    grid-template-rows: 50px auto 1fr 92px;
   }
 
   .dzy-products__grid {

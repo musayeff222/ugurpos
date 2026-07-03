@@ -4,7 +4,12 @@ import { useAuth } from "../../context/AuthContext";
 import { useStore } from "../../store/StoreContext";
 import Modal from "../../components/ui/Modal";
 import { formatDateTime, formatMoney } from "../../utils/format";
-import { getActiveBusinessWindow } from "../../utils/businessHours";
+import {
+  getActiveBusinessWindow,
+  getReportRangeForBusinessDate,
+  isTimestampInReportRange,
+  formatReportRangeLabel,
+} from "../../utils/businessHours";
 import { getSalePaymentParts, paymentLabel as salePaymentLabel } from "../../utils/salePayments";
 import "../../styles/report-mobile.css";
 
@@ -15,15 +20,6 @@ function formatQty(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-}
-
-function isSaleInRange(createdAt, startDate, endDate, startTime, endTime) {
-  const day = createdAt.slice(0, 10);
-  const time = createdAt.length >= 16 ? createdAt.slice(11, 16) : "00:00";
-  if (day < startDate || day > endDate) return false;
-  if (day === startDate && time < startTime) return false;
-  if (day === endDate && time > endTime) return false;
-  return true;
 }
 
 function isDateInRange(date, startDate, endDate) {
@@ -38,12 +34,7 @@ function buildDefaultApplied(branchSettings) {
   const open = branchSettings?.businessOpenTime || "08:00";
   const close = branchSettings?.businessCloseTime || "17:00";
   const window = getActiveBusinessWindow(open, close);
-  return {
-    startDate: window.businessDate,
-    endDate: window.businessDate,
-    startTime: window.openTime,
-    endTime: window.closeTime,
-  };
+  return getReportRangeForBusinessDate(window.businessDate, open, close);
 }
 
 function ReportSummaryGrid({ cards }) {
@@ -65,12 +56,13 @@ export default function DailyReport() {
   const { isStaffUser } = useAuth();
   const { state, updateSalePayment, deleteSale } = useStore();
   const canManageSales = !isStaffUser;
+  const branchOpen = state.branchSettings?.businessOpenTime || "08:00";
+  const branchClose = state.branchSettings?.businessCloseTime || "17:00";
   const defaultApplied = buildDefaultApplied(state.branchSettings);
-  const [startDate, setStartDate] = useState(defaultApplied.startDate);
-  const [endDate, setEndDate] = useState(defaultApplied.endDate);
+  const [startBusinessDate, setStartBusinessDate] = useState(defaultApplied.businessDate);
+  const [endBusinessDate, setEndBusinessDate] = useState(defaultApplied.businessDate);
   const [startTime, setStartTime] = useState(defaultApplied.startTime);
   const [endTime, setEndTime] = useState(defaultApplied.endTime);
-  const [showOtherFilters, setShowOtherFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [summarySheetOpen, setSummarySheetOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
@@ -79,18 +71,28 @@ export default function DailyReport() {
   const [actionMessage, setActionMessage] = useState("");
   const [applied, setApplied] = useState(defaultApplied);
 
-  const productBuyMap = useMemo(() => {
-    const map = {};
-    state.products.forEach((product) => {
-      map[product.id] = Number(product.buyPrice) || 0;
-    });
-    return map;
-  }, [state.products]);
+  const syncRangeFromBusinessDates = (startDay, endDay, times = {}) => {
+    const startRange = getReportRangeForBusinessDate(startDay, branchOpen, branchClose);
+    const endRange = getReportRangeForBusinessDate(endDay, branchOpen, branchClose);
+    setStartBusinessDate(startDay);
+    setEndBusinessDate(endDay);
+    setStartTime(times.startTime ?? startRange.startTime);
+    setEndTime(times.endTime ?? endRange.endTime);
+  };
+
+  const handleStartBusinessDateChange = (value) => {
+    syncRangeFromBusinessDates(value, value);
+  };
+
+  const handleEndBusinessDateChange = (value) => {
+    const nextStart = value < startBusinessDate ? value : startBusinessDate;
+    syncRangeFromBusinessDates(nextStart, value);
+  };
 
   const filteredSales = useMemo(
     () =>
       state.sales.filter((sale) =>
-        isSaleInRange(
+        isTimestampInReportRange(
           sale.createdAt,
           applied.startDate,
           applied.endDate,
@@ -100,6 +102,14 @@ export default function DailyReport() {
       ),
     [state.sales, applied]
   );
+
+  const productBuyMap = useMemo(() => {
+    const map = {};
+    state.products.forEach((product) => {
+      map[product.id] = Number(product.buyPrice) || 0;
+    });
+    return map;
+  }, [state.products]);
 
   const rows = useMemo(
     () =>
@@ -133,7 +143,13 @@ export default function DailyReport() {
 
   const withdrawalsTotal = (state.cashWithdrawals || [])
     .filter((item) =>
-      isSaleInRange(item.createdAt, applied.startDate, applied.endDate, applied.startTime, applied.endTime)
+      isTimestampInReportRange(
+        item.createdAt,
+        applied.startDate,
+        applied.endDate,
+        applied.startTime,
+        applied.endTime
+      )
     )
     .reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
@@ -184,7 +200,15 @@ export default function DailyReport() {
   ];
 
   const applyFilters = () => {
-    setApplied({ startDate, endDate, startTime, endTime });
+    const startRange = getReportRangeForBusinessDate(startBusinessDate, branchOpen, branchClose);
+    const endRange = getReportRangeForBusinessDate(endBusinessDate, branchOpen, branchClose);
+    setApplied({
+      startDate: startRange.startDate,
+      endDate: endRange.endDate,
+      startTime,
+      endTime,
+      businessDate: startBusinessDate,
+    });
     setPage(1);
     setSummarySheetOpen(false);
   };
@@ -261,39 +285,41 @@ export default function DailyReport() {
         </div>
 
         <div className="report-filters">
-          <div className="report-filter-grid">
+          <p className="report-business-hint">
+            Şube iş saatları: {branchOpen} – {branchClose}
+            {applied && (
+              <>
+                {" "}
+                · Seçilmiş aralıq: {formatReportRangeLabel(applied)}
+              </>
+            )}
+          </p>
+          <div className="report-filter-grid report-filter-grid--range">
             <label className="report-pill">
-              <span>Başlangıç tarihi</span>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <span>İş günü (başlanğıc)</span>
+              <input
+                type="date"
+                value={startBusinessDate}
+                onChange={(e) => handleStartBusinessDateChange(e.target.value)}
+              />
             </label>
             <label className="report-pill">
-              <span>Bitiş tarihi</span>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <span>Başlanğıc saatı</span>
+              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            </label>
+            <label className="report-pill">
+              <span>İş günü (bitiş)</span>
+              <input
+                type="date"
+                value={endBusinessDate}
+                onChange={(e) => handleEndBusinessDateChange(e.target.value)}
+              />
+            </label>
+            <label className="report-pill">
+              <span>Bitiş saatı</span>
+              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
             </label>
           </div>
-
-          <button
-            type="button"
-            className="report-other-filters"
-            onClick={() => setShowOtherFilters((open) => !open)}
-            aria-expanded={showOtherFilters}
-          >
-            Diğer filtreler
-            <i className={`fa fa-chevron-${showOtherFilters ? "up" : "down"}`} aria-hidden="true" />
-          </button>
-
-          {showOtherFilters && (
-            <div className="report-other-filters__panel">
-              <label className="report-pill">
-                <span>Başlangıç saati</span>
-                <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-              </label>
-              <label className="report-pill">
-                <span>Bitiş saati</span>
-                <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-              </label>
-            </div>
-          )}
 
           <button type="button" className="report-list-btn" onClick={applyFilters}>
             Listele

@@ -84,6 +84,17 @@
   gap: 10px;
 }
 
+.report-filter-grid--range {
+  grid-template-columns: 1fr 1fr;
+}
+
+.report-business-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--report-muted);
+  line-height: 1.45;
+}
+
 .report-pill {
   display: flex;
   flex-direction: column;
@@ -519,8 +530,10 @@
   }
 
   .report-filter-grid,
+  .report-filter-grid--range,
   .report-other-filters__panel {
-    max-width: 720px;
+    max-width: 960px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .report-list-btn {

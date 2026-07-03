@@ -29,13 +29,47 @@ function shiftDateISO(dateStr, deltaDays) {
 export function getBusinessWindowForDate(businessDate, openTime, closeTime) {
   const open = normalizeTime(openTime);
   const close = normalizeTime(closeTime);
+  const endDate = toMinutes(close) <= toMinutes(open) ? shiftDateISO(businessDate, 1) : businessDate;
   return {
     businessDate,
     openTime: open,
     closeTime: close,
+    endDate,
     start: `${businessDate}T${open}:00`,
-    end: `${businessDate}T${close}:00`,
+    end: `${endDate}T${close}:00`,
   };
+}
+
+export function getReportRangeForBusinessDate(businessDate, openTime, closeTime) {
+  const window = getBusinessWindowForDate(businessDate, openTime, closeTime);
+  return {
+    businessDate,
+    startDate: businessDate,
+    endDate: window.endDate,
+    startTime: window.openTime,
+    endTime: window.closeTime,
+  };
+}
+
+function toLocalMs(dateStr, timeStr) {
+  return new Date(`${dateStr}T${normalizeTime(timeStr)}:00`).getTime();
+}
+
+export function isTimestampInReportRange(createdAt, startDate, endDate, startTime, endTime) {
+  const local = parseLocalTimestamp(createdAt);
+  if (!local) return false;
+  const ts = toLocalMs(local.date, local.time);
+  const start = toLocalMs(startDate, startTime);
+  const end = toLocalMs(endDate, endTime);
+  return ts >= start && ts <= end;
+}
+
+export function formatReportRangeLabel(range) {
+  if (!range) return "";
+  if (range.startDate === range.endDate) {
+    return `${range.startDate} ${range.startTime} – ${range.endTime}`;
+  }
+  return `${range.startDate} ${range.startTime} – ${range.endDate} ${range.endTime}`;
 }
 
 export function getActiveBusinessWindow(openTime = "08:00", closeTime = "17:00", now = new Date()) {
@@ -67,8 +101,18 @@ export function isTimestampInWindow(createdAt, window, options = {}) {
   if (!createdAt || !window) return false;
   const local = parseLocalTimestamp(createdAt);
   if (!local) return false;
-  if (local.date !== window.businessDate) return false;
-  if (local.minutes < toMinutes(window.openTime)) return false;
-  if (options.ignoreClose) return true;
-  return local.minutes <= toMinutes(window.closeTime);
+  const endDate = window.endDate || window.businessDate;
+
+  if (options.ignoreClose && endDate === window.businessDate) {
+    if (local.date !== window.businessDate) return false;
+    return local.minutes >= toMinutes(window.openTime);
+  }
+
+  return isTimestampInReportRange(
+    createdAt,
+    window.businessDate,
+    endDate,
+    window.openTime,
+    window.closeTime
+  );
 }
