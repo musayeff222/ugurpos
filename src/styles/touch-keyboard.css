@@ -4,41 +4,45 @@
   z-index: 1200;
   background: rgba(15, 18, 28, 0.55);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
+  padding: 0;
 }
 
 .cash-expense-modal {
-  width: min(720px, 100%);
-  max-height: calc(100dvh - 24px);
+  width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
-  gap: 12px;
+  grid-template-rows: auto 1fr;
+  gap: 0;
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
   overflow: hidden;
 }
 
 .cash-expense-modal__head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px 0;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e6e8f3;
+  background: #fff4e5;
+}
+
+.cash-expense-modal__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
 }
 
 .cash-expense-modal__head strong {
-  display: block;
-  font-size: 22px;
+  font-size: 18px;
   color: #9e3d00;
 }
 
 .cash-expense-modal__balance {
-  display: block;
-  margin-top: 4px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: #1f6b3a;
 }
@@ -48,33 +52,52 @@
 }
 
 .cash-expense-modal__close {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border: none;
-  border-radius: 10px;
-  background: #eef0fa;
-  font-size: 28px;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cash-expense-modal__body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(240px, 36%) minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.cash-expense-modal__side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 12px;
+  border-right: 1px solid #e6e8f3;
+  background: #f8f9fd;
 }
 
 .cash-expense-modal__fields {
-  display: grid;
-  gap: 10px;
-  padding: 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
 }
 
 .cash-expense-field {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
-  min-height: 72px;
-  padding: 12px 14px;
+  min-height: 56px;
+  padding: 8px 10px;
   border: 2px solid #d8d9e5;
-  border-radius: 12px;
-  background: #f8f9fd;
+  border-radius: 10px;
+  background: #fff;
   text-align: left;
   cursor: pointer;
 }
@@ -82,27 +105,27 @@
 .cash-expense-field.active {
   border-color: #0067c8;
   background: #eef5ff;
-  box-shadow: 0 0 0 3px rgba(0, 103, 200, 0.15);
 }
 
 .cash-expense-field span {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: #5c6170;
 }
 
 .cash-expense-field strong {
-  font-size: 24px;
+  font-size: 17px;
   font-weight: 800;
   color: #181c23;
   word-break: break-word;
+  line-height: 1.2;
 }
 
 .cash-expense-modal__feedback {
-  margin: 0 18px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 14px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 700;
   background: #fde8e8;
   color: #9b1c1c;
@@ -115,46 +138,55 @@
 
 .cash-expense-modal__keyboard {
   min-height: 0;
-  overflow: auto;
-  padding: 0 12px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 10px;
+  overflow: hidden;
+  background: #fff;
 }
 
 .cash-expense-modal__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 12px 18px 18px;
-  border-top: 1px solid #e6e8f3;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
 }
 
 .cash-expense-modal__actions .btn {
-  min-height: 52px;
-  min-width: 130px;
-  font-size: 18px;
+  min-height: 44px;
+  font-size: 15px;
   font-weight: 800;
 }
 
 .touch-numpad {
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: stretch;
+  gap: 8px;
+  align-self: center;
 }
 
 .touch-numpad__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  height: 100%;
 }
 
 .touch-numpad__key,
 .touch-numpad__backspace {
-  min-height: 58px;
+  min-height: 0;
+  height: 100%;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #eef0fa;
   color: #181c23;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   cursor: pointer;
   touch-action: manipulation;
@@ -163,7 +195,7 @@
 .touch-numpad__key:active,
 .touch-numpad__backspace:active,
 .touch-text-kb__key:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
   background: #dfe3f3;
 }
 
@@ -173,32 +205,37 @@
 }
 
 .touch-numpad__backspace {
-  width: 72px;
-  font-size: 30px;
+  width: 64px;
+  font-size: 24px;
 }
 
 .touch-text-kb {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.touch-text-kb__row {
-  display: flex;
-  flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
 }
 
+.touch-text-kb__row {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 5px;
+}
+
 .touch-text-kb__key {
-  min-width: 52px;
-  min-height: 52px;
-  padding: 0 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 52px;
+  min-height: 42px;
+  padding: 0 4px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #eef0fa;
   color: #181c23;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
@@ -210,24 +247,27 @@
 }
 
 .touch-text-kb__key--wide {
-  min-width: 72px;
+  max-width: 58px;
+  flex: 0 0 58px;
 }
 
 .touch-text-kb__key--extra {
-  min-width: 56px;
+  max-width: 44px;
+  flex: 0 0 44px;
   background: #fff4e5;
 }
 
 .touch-text-kb__key--space {
-  flex: 1;
-  min-width: 120px;
+  flex: 2 1 120px;
+  max-width: none;
 }
 
 .touch-text-kb__key--action {
-  min-width: 72px;
+  max-width: 58px;
+  flex: 0 0 58px;
   background: #ffe8cc;
   color: #9e3d00;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .dzy-terminal-menu__expense-btn {
@@ -236,43 +276,54 @@
   justify-content: center;
   gap: 10px;
   width: 100%;
-  min-height: 52px;
+  min-height: 48px;
   margin: 10px 0 12px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: none;
   border-radius: 12px;
   background: #b34b00;
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   cursor: pointer;
 }
 
 .dzy-terminal-menu__expense-btn i {
-  font-size: 18px;
+  font-size: 16px;
 }
 
-@media (max-width: 600px) {
-  .cash-expense-overlay {
-    padding: 0;
-    align-items: stretch;
+@media (max-width: 760px) {
+  .cash-expense-modal__body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
-  .cash-expense-modal {
-    width: 100%;
-    max-height: 100dvh;
-    border-radius: 0;
+  .cash-expense-modal__side {
+    border-right: none;
+    border-bottom: 1px solid #e6e8f3;
+    padding: 10px;
   }
 
-  .touch-numpad__key,
-  .touch-numpad__backspace {
+  .cash-expense-modal__fields {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .cash-expense-field {
+    flex: 1 1 calc(33.33% - 8px);
+    min-width: 100px;
     min-height: 52px;
-    font-size: 22px;
   }
 
-  .touch-text-kb__key {
-    min-width: 44px;
-    min-height: 46px;
-    font-size: 18px;
+  .cash-expense-modal__actions {
+    grid-column: 1 / -1;
+  }
+
+  .touch-numpad {
+    max-width: none;
+  }
+
+  .touch-text-kb__row {
+    flex-wrap: wrap;
   }
 }

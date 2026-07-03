@@ -64,7 +64,7 @@ export default function CashExpenseModal({
     <div className="cash-expense-overlay" onClick={onClose}>
       <div className="cash-expense-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Kassadan xərc">
         <header className="cash-expense-modal__head">
-          <div>
+          <div className="cash-expense-modal__title">
             <strong>Kassadan xərc</strong>
             {balance != null && (
               <span className={`cash-expense-modal__balance${Number(balance.balance || 0) < 0 ? " negative" : ""}`}>
@@ -77,53 +77,57 @@ export default function CashExpenseModal({
           </button>
         </header>
 
-        <div className="cash-expense-modal__fields">
-          <button
-            type="button"
-            className={`cash-expense-field${activeField === "amount" ? " active" : ""}`}
-            onClick={() => setActiveField("amount")}
-          >
-            <span>Məbləğ (AZN)</span>
-            <strong>{amount || "0.00"}</strong>
-          </button>
-          <button
-            type="button"
-            className={`cash-expense-field${activeField === "reason" ? " active" : ""}`}
-            onClick={() => setActiveField("reason")}
-          >
-            <span>Səbəb *</span>
-            <strong>{reason || "Yazın…"}</strong>
-          </button>
-          <button
-            type="button"
-            className={`cash-expense-field${activeField === "note" ? " active" : ""}`}
-            onClick={() => setActiveField("note")}
-          >
-            <span>Qeyd</span>
-            <strong>{note || "İstəyə bağlı"}</strong>
-          </button>
+        <div className="cash-expense-modal__body">
+          <div className="cash-expense-modal__side">
+            <div className="cash-expense-modal__fields">
+              <button
+                type="button"
+                className={`cash-expense-field${activeField === "amount" ? " active" : ""}`}
+                onClick={() => setActiveField("amount")}
+              >
+                <span>Məbləğ</span>
+                <strong>{amount || "0.00"}</strong>
+              </button>
+              <button
+                type="button"
+                className={`cash-expense-field${activeField === "reason" ? " active" : ""}`}
+                onClick={() => setActiveField("reason")}
+              >
+                <span>Səbəb *</span>
+                <strong>{reason || "—"}</strong>
+              </button>
+              <button
+                type="button"
+                className={`cash-expense-field${activeField === "note" ? " active" : ""}`}
+                onClick={() => setActiveField("note")}
+              >
+                <span>Qeyd</span>
+                <strong>{note || "—"}</strong>
+              </button>
+            </div>
+
+            {feedback && (
+              <p className={`cash-expense-modal__feedback${feedback.includes("qeyd") ? " ok" : ""}`}>{feedback}</p>
+            )}
+
+            <footer className="cash-expense-modal__actions">
+              <button type="button" className="btn btn-default" onClick={onClose} disabled={loading}>
+                Ləğv
+              </button>
+              <button type="button" className="btn btn-success" onClick={handleSubmit} disabled={loading}>
+                {loading ? "…" : "Qeyd et"}
+              </button>
+            </footer>
+          </div>
+
+          <div className="cash-expense-modal__keyboard">
+            {activeField === "amount" ? (
+              <TouchNumpad value={amount} onChange={setAmount} />
+            ) : (
+              <TouchTextKeyboard value={activeValue} onChange={setActiveValue} />
+            )}
+          </div>
         </div>
-
-        {feedback && (
-          <p className={`cash-expense-modal__feedback${feedback.includes("qeyd") ? " ok" : ""}`}>{feedback}</p>
-        )}
-
-        <div className="cash-expense-modal__keyboard">
-          {activeField === "amount" ? (
-            <TouchNumpad value={amount} onChange={setAmount} />
-          ) : (
-            <TouchTextKeyboard value={activeValue} onChange={setActiveValue} />
-          )}
-        </div>
-
-        <footer className="cash-expense-modal__actions">
-          <button type="button" className="btn btn-default" onClick={onClose} disabled={loading}>
-            Ləğv et
-          </button>
-          <button type="button" className="btn btn-success" onClick={handleSubmit} disabled={loading}>
-            {loading ? "…" : "Xərc qeyd et"}
-          </button>
-        </footer>
       </div>
     </div>
   );
