@@ -12,6 +12,7 @@ import { getPostLoginPath } from "../utils/authRedirect";
 import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
 import { playPosItemAddedSound, playPosPaymentSound } from "../utils/posSounds";
+import { getSalePaymentParts } from "../utils/salePayments";
 import "../styles/sales.css";
 
 const TAB_COUNT = 5;
@@ -59,6 +60,10 @@ export default function Sales() {
   const [expenseLoading, setExpenseLoading] = useState(false);
   const [expenseFeedback, setExpenseFeedback] = useState("");
   const [cashRegisterBalance, setCashRegisterBalance] = useState(null);
+  const [splitModalOpen, setSplitModalOpen] = useState(false);
+  const [splitCash, setSplitCash] = useState("");
+  const [splitPos, setSplitPos] = useState("");
+  const [splitError, setSplitError] = useState("");
   const [message, setMessage] = useState("");
   const [lastSale, setLastSale] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -100,20 +105,26 @@ export default function Sales() {
     [cashierName, shiftStartedAt, state.sales]
   );
   const shiftSummary = useMemo(() => {
-    const sumByType = (type) =>
-      shiftSales.filter((sale) => sale.paymentType === type).reduce((sum, sale) => sum + (sale.total || 0), 0);
     const shiftWithdrawals = (state.cashWithdrawals || []).filter(
       (row) =>
         row.staffName === cashierName && (!shiftStartedAt || row.createdAt >= shiftStartedAt)
     );
     const withdrawalsTotal = shiftWithdrawals.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-    const cash = sumByType("cash");
+    let cash = 0;
+    let pos = 0;
+    shiftSales.forEach((sale) => {
+      const parts = getSalePaymentParts(sale);
+      cash += parts.cash;
+      pos += parts.pos;
+    });
+    const partialSales = shiftSales.filter((sale) => sale.paymentType === "partial");
     return {
       count: shiftSales.length,
       total: shiftSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
       cash,
-      pos: sumByType("pos"),
-      open: sumByType("open"),
+      pos,
+      partialTotal: partialSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
+      partialCount: partialSales.length,
       withdrawalsTotal,
       cashRegister: cash - withdrawalsTotal,
       withdrawals: shiftWithdrawals,
@@ -353,35 +364,37 @@ export default function Sales() {
     setPaid(String(value));
   };
 
-  const finalize = useCallback(async (paymentType) => {
+  const finalize = useCallback(async (paymentType, options = {}) => {
     if (!cart.length) {
       setMessage("Sepet boş.");
-      return;
-    }
-    if (paymentType === "open" && !customerId) {
-      setMessage("Açık hesap için müşteri seçin.");
-      setCustomerModal(true);
       return;
     }
 
     let paidAmount = Number(paid) || 0;
     if (paymentType === "cash") {
       paidAmount = Math.max(paidAmount, total);
-    } else if (paymentType === "pos") {
+    } else if (paymentType === "pos" || paymentType === "partial") {
       paidAmount = total;
     }
 
+    const payload = {
+      items: cart,
+      paymentType,
+      customerId: customerId || null,
+      staffName: user?.staffName || "Admin",
+      note,
+      discount: Number(discount) || 0,
+      discountType,
+      paidAmount,
+    };
+
+    if (paymentType === "partial") {
+      payload.cashAmount = options.cashAmount;
+      payload.posAmount = options.posAmount;
+    }
+
     try {
-      const sale = await completeSale({
-        items: cart,
-        paymentType,
-        customerId: customerId || null,
-        staffName: user?.staffName || "Admin",
-        note,
-        discount: Number(discount) || 0,
-        discountType,
-        paidAmount,
-      });
+      const sale = await completeSale(payload);
 
       setLastSale(sale);
       setMessage("Satış tamamlandı.");
@@ -390,6 +403,10 @@ export default function Sales() {
       setPaid("0");
       setDiscount("");
       setCustomerForTab("");
+      setSplitModalOpen(false);
+      setSplitCash("");
+      setSplitPos("");
+      setSplitError("");
 
       if (autoPrint) {
         printSaleReceipt(
@@ -402,6 +419,8 @@ export default function Sales() {
             discountType: sale.discountType,
             total: sale.total,
             paidAmount: sale.paidAmount,
+            cashAmount: sale.cashAmount,
+            posAmount: sale.posAmount,
             change: Math.max(0, sale.paidAmount - sale.total),
             paymentType: sale.paymentType,
             customerName: selectedCustomer?.name || "",
@@ -413,8 +432,57 @@ export default function Sales() {
       }
     } catch (err) {
       setMessage(err.message || "Satış kaydedilemedi.");
+      if (paymentType === "partial") {
+        setSplitError(err.message || "Satış kaydedilemedi.");
+      }
     }
   }, [autoPrint, cart, completeSale, customerId, discount, discountType, note, paid, total, selectedCustomer, user?.firmName, user?.staffName]);
+
+  const openSplitModal = useCallback(() => {
+    if (!cart.length) {
+      setMessage("Sepet boş.");
+      return;
+    }
+    setSplitCash("");
+    setSplitPos("");
+    setSplitError("");
+    setSplitModalOpen(true);
+  }, [cart.length]);
+
+  const handleSplitCashChange = (value) => {
+    const raw = value.replace(",", ".");
+    setSplitCash(raw);
+    setSplitError("");
+    const cash = Number(raw);
+    if (!Number.isNaN(cash) && raw !== "") {
+      setSplitPos(String(Math.max(0, Number((total - cash).toFixed(2)))));
+    }
+  };
+
+  const handleSplitPosChange = (value) => {
+    const raw = value.replace(",", ".");
+    setSplitPos(raw);
+    setSplitError("");
+    const pos = Number(raw);
+    if (!Number.isNaN(pos) && raw !== "") {
+      setSplitCash(String(Math.max(0, Number((total - pos).toFixed(2)))));
+    }
+  };
+
+  const submitSplitPayment = async (e) => {
+    e?.preventDefault();
+    const cash = Number(splitCash) || 0;
+    const pos = Number(splitPos) || 0;
+    if (cash <= 0 && pos <= 0) {
+      setSplitError("Nakit və ya kart məbləği daxil edin.");
+      return;
+    }
+    if (Math.abs(cash + pos - total) > 0.009) {
+      setSplitError(`Nakit + kart = ${money(total)} olmalıdır.`);
+      return;
+    }
+    await finalize("partial", { cashAmount: cash, posAmount: pos });
+  };
 
   useEffect(() => {
     const onKey = (e) => {
@@ -428,12 +496,12 @@ export default function Sales() {
       }
       if (e.key === "F10") {
         e.preventDefault();
-        finalize("open");
+        openSplitModal();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [finalize]);
+  }, [finalize, openSplitModal]);
 
   const filteredCustomers = state.customers.filter((c) =>
     c.name.toLocaleLowerCase("tr").includes(customerSearch.toLocaleLowerCase("tr"))
@@ -877,9 +945,9 @@ export default function Sales() {
           <i className="fa fa-credit-card" />
           <span>POS</span>
         </button>
-        <button type="button" className="dzy-paybar__btn dzy-paybar__btn--open" onClick={() => finalize("open")}>
-          <i className="fa fa-book" />
-          <span>AÇIQ HESAB</span>
+        <button type="button" className="dzy-paybar__btn dzy-paybar__btn--partial" onClick={openSplitModal}>
+          <i className="fa fa-columns" />
+          <span>HİSSƏLİ</span>
         </button>
         <button type="button" className="dzy-paybar__print" onClick={() => handlePrint("thermal", "SATIŞ FİŞİ")}>
           <i className="fa fa-print" />
@@ -971,8 +1039,9 @@ export default function Sales() {
               <strong>{money(shiftSummary.pos)}</strong>
             </div>
             <div>
-              <span>Açık hesap</span>
-              <strong>{money(shiftSummary.open)}</strong>
+              <span>Hissəli ödəmə</span>
+              <strong>{money(shiftSummary.partialTotal)}</strong>
+              {shiftSummary.partialCount > 0 && <small>{shiftSummary.partialCount} satış</small>}
             </div>
             <div>
               <span>Kassadan xərc</span>
@@ -1011,6 +1080,42 @@ export default function Sales() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={splitModalOpen} title="Hissəli ödəmə" onClose={() => setSplitModalOpen(false)}>
+        <form className="split-payment-form" onSubmit={submitSplitPayment}>
+          <p className="split-payment-form__total">
+            Toplam: <strong>{money(total)}</strong>
+          </p>
+          <label>Nakit (AZN)</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            value={splitCash}
+            onChange={(e) => handleSplitCashChange(e.target.value)}
+            autoFocus
+          />
+          <label>Kart / POS (AZN)</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            value={splitPos}
+            onChange={(e) => handleSplitPosChange(e.target.value)}
+          />
+          {splitError && <p className="login-error">{splitError}</p>}
+          <div className="form-actions">
+            <button type="button" className="btn btn-default" onClick={() => setSplitModalOpen(false)}>
+              Ləğv et
+            </button>
+            <button type="submit" className="btn btn-success">
+              Satışı tamamla
+            </button>
+          </div>
+        </form>
       </Modal>
 
       <Modal open={staffLoginOpen} title={t("login.staffTitle")} onClose={() => setStaffLoginOpen(false)}>

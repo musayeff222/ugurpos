@@ -285,6 +285,8 @@ export function getSaleWithItems(database, saleId) {
     discountType: sale.discount_type,
     paidAmount: sale.paid_amount,
     total: sale.total,
+    cashAmount: Number(sale.cash_amount || 0),
+    posAmount: Number(sale.pos_amount || 0),
     items: items.map((i) => ({
       id: i.id,
       productId: i.product_id,

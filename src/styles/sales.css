@@ -2283,6 +2283,10 @@
   background: #5149ce;
 }
 
+.dzy-paybar__btn--partial {
+  background: #b34b00;
+}
+
 .dzy-paybar__btn--open {
   background: #b34b00;
 }
@@ -2413,6 +2417,39 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.split-payment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.split-payment-form__total {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: #414755;
+}
+
+.split-payment-form label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5c6170;
+}
+
+.split-payment-form input {
+  height: 42px;
+  border: 1px solid #d8d9e5;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 16px;
+}
+
+.split-payment-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 @media (max-width: 1024px) {

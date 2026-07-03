@@ -40,6 +40,7 @@ function paymentLabel(type) {
   if (type === "cash") return "Nakit";
   if (type === "pos") return "Pos";
   if (type === "open") return "Açık Hesap";
+  if (type === "partial") return "Hissəli ödəmə";
   if (type === "refund") return "İade";
   return type || "—";
 }

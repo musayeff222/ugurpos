@@ -1,11 +1,12 @@
 import { getBranchBusinessHours, getBusinessWindowForDate, isTimestampInWindow } from "./businessHours.js";
 import { computeCashRegisterBalance } from "./cashRegister.js";
+import { getSalePaymentParts } from "./salePayments.js";
 import { uid } from "../db/index.js";
 import { logActivity } from "./activityLog.js";
 
 function sumSalesInWindow(db, branchId, window) {
   const sales = db
-    .prepare("SELECT created_at, payment_type, total FROM sales WHERE branch_id = ?")
+    .prepare("SELECT created_at, payment_type, total, cash_amount, pos_amount FROM sales WHERE branch_id = ?")
     .all(branchId);
   const inWindow = sales.filter((s) => isTimestampInWindow(s.created_at, window));
   const nonRefund = inWindow.filter((s) => s.payment_type !== "refund");
@@ -13,9 +14,10 @@ function sumSalesInWindow(db, branchId, window) {
   return {
     saleCount: nonRefund.length,
     totalSales: nonRefund.reduce((sum, s) => sum + Number(s.total || 0), 0),
-    cashTotal: nonRefund.filter((s) => s.payment_type === "cash").reduce((sum, s) => sum + Number(s.total || 0), 0),
-    posTotal: nonRefund.filter((s) => s.payment_type === "pos").reduce((sum, s) => sum + Number(s.total || 0), 0),
+    cashTotal: nonRefund.reduce((sum, s) => sum + getSalePaymentParts(s).cash, 0),
+    posTotal: nonRefund.reduce((sum, s) => sum + getSalePaymentParts(s).pos, 0),
     openTotal: nonRefund.filter((s) => s.payment_type === "open").reduce((sum, s) => sum + Number(s.total || 0), 0),
+    partialTotal: nonRefund.filter((s) => s.payment_type === "partial").reduce((sum, s) => sum + Number(s.total || 0), 0),
     refundTotal: refunds.reduce((sum, s) => sum + Math.abs(Number(s.total || 0)), 0),
   };
 }

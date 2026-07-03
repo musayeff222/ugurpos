@@ -14,6 +14,7 @@ import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 import { logActivity } from "../utils/activityLog.js";
 import { getActiveBusinessWindow } from "../utils/businessHours.js";
 import { computeCashRegisterBalance } from "../utils/cashRegister.js";
+import { resolvePaymentAmounts } from "../utils/salePayments.js";
 import { hashBranchPassword } from "../utils/branchAuth.js";
 
 const router = Router();
@@ -358,13 +359,25 @@ router.get("/sales", (req, res) => {
 
 router.post("/sales", (req, res) => {
   const db = getDb();
-  const { items, paymentType, customerId, staffName, note, discount, discountType, paidAmount } = req.body;
+  const { items, paymentType, customerId, staffName, note, discount, discountType, paidAmount, cashAmount, posAmount } =
+    req.body;
   const resolvedStaffName = req.user?.loginType === "staff" ? req.user.staffName : staffName || "Admin";
+
+  if (!["cash", "pos", "open", "partial"].includes(paymentType)) {
+    return res.status(400).json({ error: "Geçersiz ödeme tipi" });
+  }
 
   let subtotal = items.reduce((s, i) => s + i.qty * i.price - (i.discount || 0), 0);
   const disc = Number(discount) || 0;
   if (discountType === "Yüzde") subtotal = Math.max(0, subtotal - (subtotal * disc) / 100);
   else subtotal = Math.max(0, subtotal - disc);
+
+  let paymentParts;
+  try {
+    paymentParts = resolvePaymentAmounts(paymentType, subtotal, cashAmount, posAmount);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
 
   const saleId = uid("sale");
   const code = generateSaleCode();
@@ -372,9 +385,24 @@ router.post("/sales", (req, res) => {
 
   const tx = db.transaction(() => {
     db.prepare(`
-      INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total, branch_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(saleId, code, now, paymentType, customerId || null, resolvedStaffName, note || "", disc, discountType || "TL", Number(paidAmount) || 0, subtotal, req.branchId);
+      INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total, cash_amount, pos_amount, branch_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      saleId,
+      code,
+      now,
+      paymentType,
+      customerId || null,
+      resolvedStaffName,
+      note || "",
+      disc,
+      discountType || "TL",
+      Number(paidAmount) || subtotal,
+      subtotal,
+      paymentParts.cash,
+      paymentParts.pos,
+      req.branchId
+    );
 
     const insItem = db.prepare(`
       INSERT INTO sale_items (id, sale_id, product_id, name, qty, price, discount, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)

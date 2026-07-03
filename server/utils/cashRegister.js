@@ -1,15 +1,16 @@
 import { sql as SQL } from "../db/dialect.js";
 import { isTimestampInWindow } from "./businessHours.js";
+import { getSalePaymentParts } from "./salePayments.js";
 
 export function sumCashSalesInWindow(db, branchId, window, options = {}) {
   const sales = db
     .prepare(
-      `SELECT created_at, payment_type, total FROM sales WHERE branch_id = ? AND payment_type != 'refund' ORDER BY created_at`
+      `SELECT created_at, payment_type, total, cash_amount, pos_amount FROM sales WHERE branch_id = ? AND payment_type != 'refund' ORDER BY created_at`
     )
     .all(branchId);
   return sales
-    .filter((sale) => sale.payment_type === "cash" && isTimestampInWindow(sale.created_at, window, options))
-    .reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+    .filter((sale) => isTimestampInWindow(sale.created_at, window, options))
+    .reduce((sum, sale) => sum + getSalePaymentParts(sale).cash, 0);
 }
 
 export function sumExpensesForBusinessDate(db, branchId, businessDate) {

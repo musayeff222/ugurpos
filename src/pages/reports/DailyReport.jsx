@@ -5,6 +5,7 @@ import { useStore } from "../../store/StoreContext";
 import Modal from "../../components/ui/Modal";
 import { formatDateTime, formatMoney } from "../../utils/format";
 import { getActiveBusinessWindow } from "../../utils/businessHours";
+import { getSalePaymentParts, paymentLabel as salePaymentLabel } from "../../utils/salePayments";
 import "../../styles/report-mobile.css";
 
 const PAGE_SIZE = 12;
@@ -29,11 +30,8 @@ function isDateInRange(date, startDate, endDate) {
   return date >= startDate && date <= endDate;
 }
 
-function paymentLabel(type) {
-  if (type === "cash") return "Nakit";
-  if (type === "pos") return "Pos";
-  if (type === "open") return "Açık Hesap";
-  return type || "—";
+function paymentLabel(type, sale) {
+  return salePaymentLabel(type, sale);
 }
 
 function buildDefaultApplied(branchSettings) {
@@ -119,9 +117,10 @@ export default function DailyReport() {
     .filter((sale) => sale.paymentType === "refund")
     .reduce((sum, sale) => sum + Math.abs(sale.total || 0), 0);
 
-  const cashTotal = rows.filter((row) => row.paymentType === "cash").reduce((sum, row) => sum + row.total, 0);
-  const cardTotal = rows.filter((row) => row.paymentType === "pos").reduce((sum, row) => sum + row.total, 0);
+  const cashTotal = rows.reduce((sum, row) => sum + getSalePaymentParts(row).cash, 0);
+  const cardTotal = rows.reduce((sum, row) => sum + getSalePaymentParts(row).pos, 0);
   const openTotal = rows.filter((row) => row.paymentType === "open").reduce((sum, row) => sum + row.total, 0);
+  const partialTotal = rows.filter((row) => row.paymentType === "partial").reduce((sum, row) => sum + row.total, 0);
   const total = rows.reduce((sum, row) => sum + row.total, 0);
 
   const incomesTotal = state.income
@@ -165,6 +164,7 @@ export default function DailyReport() {
   const summaryCards = [
     { label: "Nakit", value: formatMoney(cashTotal) },
     { label: "Pos", value: formatMoney(cardTotal) },
+    { label: "Hissəli Ödəmə", value: formatMoney(partialTotal) },
     { label: "Açık Hesap", value: formatMoney(openTotal) },
     { label: "Toplam", value: formatMoney(total) },
     { label: "Alınan Ödemeler", value: formatMoney(receivedPayments) },
@@ -332,7 +332,7 @@ export default function DailyReport() {
                     </div>
                     <div className="report-sale-row__center">
                       <span>{formatDateTime(sale.createdAt)}</span>
-                      <small>{paymentLabel(sale.paymentType)}</small>
+                      <small>{paymentLabel(sale.paymentType, sale)}</small>
                     </div>
                     <div className="report-sale-row__right">
                       <span>
@@ -372,7 +372,7 @@ export default function DailyReport() {
                         </td>
                         <td>{formatQty(sale.itemCount)}</td>
                         <td>{formatMoney(sale.total)}</td>
-                        <td>{paymentLabel(sale.paymentType)}</td>
+                        <td>{paymentLabel(sale.paymentType, sale)}</td>
                         <td>{sale.staffName || "—"}</td>
                         <td>{formatDateTime(sale.createdAt)}</td>
                       </tr>

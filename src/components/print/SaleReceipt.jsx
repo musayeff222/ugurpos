@@ -24,6 +24,12 @@ export function buildReceiptText(data) {
     "",
     `TOPLAM: ${Number(data.total).toFixed(2)} AZN`,
     `Ödeme: ${PAYMENT_LABELS[data.paymentType] || data.paymentType || "-"}`,
+    data.paymentType === "partial" && data.cashAmount != null
+      ? `Nakit: ${Number(data.cashAmount).toFixed(2)} AZN`
+      : null,
+    data.paymentType === "partial" && data.posAmount != null
+      ? `Kart: ${Number(data.posAmount).toFixed(2)} AZN`
+      : null,
     data.paidAmount != null ? `Ödenen: ${Number(data.paidAmount).toFixed(2)} AZN` : null,
     data.change > 0 ? `Para Üstü: ${Number(data.change).toFixed(2)} AZN` : null,
     data.note ? `Not: ${data.note}` : null,
@@ -93,6 +99,18 @@ export default function SaleReceipt({ data, paper = "thermal", copyLabel = "" })
           <span>Ödeme</span>
           <span>{paymentLabel}</span>
         </div>
+        {data.paymentType === "partial" && (
+          <>
+            <div className="sale-receipt__row">
+              <span>Nakit</span>
+              <span>{Number(data.cashAmount || 0).toFixed(2)} AZN</span>
+            </div>
+            <div className="sale-receipt__row">
+              <span>Kart</span>
+              <span>{Number(data.posAmount || 0).toFixed(2)} AZN</span>
+            </div>
+          </>
+        )}
         {data.paidAmount != null && (
           <div className="sale-receipt__row">
             <span>Ödenen</span>
