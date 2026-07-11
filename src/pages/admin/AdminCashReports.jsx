@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import PageHeader from "../../components/ui/PageHeader";
 import DataTable from "../../components/ui/DataTable";
+import Modal from "../../components/ui/Modal";
 import { formatDateTime, formatMoney, todayISO } from "../../utils/format";
 import { getBranchLabel } from "../../utils/branchDisplay";
 
@@ -12,6 +13,8 @@ export default function AdminCashReports() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("withdrawals");
+  const [editRow, setEditRow] = useState(null);
+  const [editForm, setEditForm] = useState({ amount: "", reason: "", note: "" });
   const [filters, setFilters] = useState({
     branchId: "",
     from: todayISO().slice(0, 8) + "01",
@@ -56,6 +59,42 @@ export default function AdminCashReports() {
   }, [branches]);
 
   const withdrawalTotal = withdrawals.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+
+  const openEdit = (row) => {
+    setEditRow(row);
+    setEditForm({
+      amount: String(row.amount ?? ""),
+      reason: row.reason || "",
+      note: row.note || "",
+    });
+    setError("");
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editRow) return;
+    setError("");
+    const amount = Number(editForm.amount);
+    if (!amount || amount <= 0) {
+      setError("Geçerli məbləğ girin");
+      return;
+    }
+    if (!editForm.reason.trim()) {
+      setError("Xərc səbəbi zəruridir");
+      return;
+    }
+    try {
+      await api.updateAdminCashWithdrawal(editRow.id, {
+        amount,
+        reason: editForm.reason.trim(),
+        note: editForm.note.trim(),
+      });
+      setEditRow(null);
+      await load();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   return (
     <div className="admin-page">
@@ -131,6 +170,15 @@ export default function AdminCashReports() {
                 { key: "reason", label: "Səbəb" },
                 { key: "note", label: "Qeyd" },
                 { key: "amount", label: "Məbləğ", render: (r) => formatMoney(r.amount) },
+                {
+                  key: "actions",
+                  label: "",
+                  render: (r) => (
+                    <button type="button" className="btn btn-default btn-sm" onClick={() => openEdit(r)}>
+                      Düzəlt
+                    </button>
+                  ),
+                },
               ]}
               rows={withdrawals}
             />
@@ -180,6 +228,35 @@ export default function AdminCashReports() {
           </div>
         </div>
       )}
+      <Modal open={!!editRow} title="Xərci düzəlt" onClose={() => setEditRow(null)}>
+        <form className="form-grid" onSubmit={handleEditSubmit}>
+          <label>Məbləğ *</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            value={editForm.amount}
+            onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+            required
+          />
+          <label>Səbəb *</label>
+          <input
+            value={editForm.reason}
+            onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
+            required
+          />
+          <label>Qeyd</label>
+          <input value={editForm.note} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} />
+          <div className="form-actions">
+            <button type="button" className="btn btn-default" onClick={() => setEditRow(null)}>
+              Ləğv
+            </button>
+            <button type="submit" className="btn btn-success">
+              Yadda saxla
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -637,6 +637,49 @@ router.post("/cash-withdrawals", (req, res) => {
   res.status(201).json(rowToCashWithdrawal(db.prepare("SELECT * FROM cash_withdrawals WHERE id = ?").get(id)));
 });
 
+router.patch("/cash-withdrawals/:id", (req, res) => {
+  if (rejectStaffSaleManage(req, res)) return;
+
+  const db = getDb();
+  const existing = db
+    .prepare("SELECT * FROM cash_withdrawals WHERE id = ? AND branch_id = ?")
+    .get(req.params.id, req.branchId);
+  if (!existing) return res.status(404).json({ error: "Xərc tapılmadı" });
+
+  const amount = Number(req.body.amount ?? existing.amount);
+  const reason = String(req.body.reason ?? existing.reason).trim();
+  const note = String(req.body.note ?? existing.note ?? "").trim();
+
+  if (!amount || amount <= 0) return res.status(400).json({ error: "Geçerli məbləğ girin" });
+  if (!reason) return res.status(400).json({ error: "Xərc səbəbi zəruridir" });
+
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.branchId);
+  const editorName =
+    req.user?.loginType === "staff"
+      ? req.user.staffName || "Personal"
+      : req.user?.branchName || req.user?.email || "Admin";
+
+  db.prepare("UPDATE cash_withdrawals SET amount = ?, reason = ?, note = ? WHERE id = ? AND branch_id = ?").run(
+    amount,
+    reason,
+    note,
+    req.params.id,
+    req.branchId
+  );
+
+  logActivity(db, {
+    firmId: branch.firm_id,
+    branchId: req.branchId,
+    branchName: branch.name,
+    type: "cash_withdrawal_edit",
+    title: `Kassadan xərc düzəldildi: ${amount.toFixed(2)}`,
+    detail: `${editorName} — ${reason}`,
+    refId: req.params.id,
+  });
+
+  res.json(rowToCashWithdrawal(db.prepare("SELECT * FROM cash_withdrawals WHERE id = ?").get(req.params.id)));
+});
+
 // Staff
 router.get("/staff", (req, res) => {
   res.json(

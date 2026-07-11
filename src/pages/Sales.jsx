@@ -579,11 +579,6 @@ export default function Sales() {
             <i className="fa fa-bars" />
           </button>
           <strong>Terminal 01</strong>
-          {isCashier && (
-            <button type="button" className="dzy-shift-end-btn" onClick={() => setShiftSummaryOpen(true)}>
-              Nöbeti Bitir
-            </button>
-          )}
         </div>
         <div className="dzy-sales__search">
           <i className="fa fa-barcode" />

@@ -57,6 +57,8 @@ export const api = {
     const q = new URLSearchParams(params).toString();
     return request(`/admin/cash-withdrawals${q ? `?${q}` : ""}`);
   },
+  updateAdminCashWithdrawal: (id, payload) =>
+    request(`/admin/cash-withdrawals/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   getAdminBusinessDayReports: (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return request(`/admin/business-day-reports${q ? `?${q}` : ""}`);
@@ -196,4 +198,6 @@ export const api = {
   },
   createCashWithdrawal: (payload) =>
     request("/cash-withdrawals", { method: "POST", body: JSON.stringify(payload) }),
+  updateCashWithdrawal: (id, payload) =>
+    request(`/cash-withdrawals/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
 };

@@ -338,6 +338,31 @@ router.get("/cash-withdrawals", (req, res) => {
   res.json(rows.map(rowToCashWithdrawal));
 });
 
+router.patch("/cash-withdrawals/:id", (req, res) => {
+  const db = getDb();
+  const existing = db.prepare("SELECT * FROM cash_withdrawals WHERE id = ?").get(req.params.id);
+  if (!existing) return res.status(404).json({ error: "Xərc tapılmadı" });
+
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ? AND firm_id = ?").get(existing.branch_id, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Xərc tapılmadı" });
+
+  const amount = Number(req.body.amount ?? existing.amount);
+  const reason = String(req.body.reason ?? existing.reason).trim();
+  const note = String(req.body.note ?? existing.note ?? "").trim();
+
+  if (!amount || amount <= 0) return res.status(400).json({ error: "Geçerli məbləğ girin" });
+  if (!reason) return res.status(400).json({ error: "Xərc səbəbi zəruridir" });
+
+  db.prepare("UPDATE cash_withdrawals SET amount = ?, reason = ?, note = ? WHERE id = ?").run(
+    amount,
+    reason,
+    note,
+    req.params.id
+  );
+
+  res.json(rowToCashWithdrawal(db.prepare("SELECT * FROM cash_withdrawals WHERE id = ?").get(req.params.id)));
+});
+
 router.get("/business-day-reports", (req, res) => {
   const db = getDb();
   const { branchId, from, to } = req.query;
