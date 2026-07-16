@@ -54,7 +54,7 @@ export default function Sales() {
   const [mobileView, setMobileView] = useState("products");
   const [terminalMenuOpen, setTerminalMenuOpen] = useState(false);
   const [staffLoginOpen, setStaffLoginOpen] = useState(false);
-  const [shiftSummaryOpen, setShiftSummaryOpen] = useState(false);
+  const [shiftEndStep, setShiftEndStep] = useState(null);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [expenseLoading, setExpenseLoading] = useState(false);
   const [cashRegisterBalance, setCashRegisterBalance] = useState(null);
@@ -547,13 +547,22 @@ export default function Sales() {
 
   const handleEndShift = () => {
     const result = endStaffShift();
-    setShiftSummaryOpen(false);
+    setShiftEndStep(null);
     if (result === "branch") {
       navigate("/sales", { replace: true });
       return;
     }
     logout();
     navigate("/login", { replace: true });
+  };
+
+  const handleShiftEndRequest = () => {
+    setTerminalMenuOpen(false);
+    setShiftEndStep("confirm");
+  };
+
+  const handleShiftEndConfirm = () => {
+    setShiftEndStep("summary");
   };
 
   return (
@@ -707,7 +716,7 @@ export default function Sales() {
               </button>
             )}
             {isCashier && (
-              <button type="button" className="dzy-terminal-menu__shift" onClick={() => setShiftSummaryOpen(true)}>
+              <button type="button" className="dzy-terminal-menu__shift" onClick={handleShiftEndRequest}>
                 <i className="fa fa-sign-out" />
                 Nöbeti Bitir
               </button>
@@ -960,7 +969,30 @@ export default function Sales() {
         loading={expenseLoading}
       />
 
-      <Modal open={shiftSummaryOpen} title="Nöbet Çıkış Özeti" onClose={() => setShiftSummaryOpen(false)}>
+      <Modal
+        open={shiftEndStep === "confirm"}
+        title="Nöbeti bitir"
+        onClose={() => setShiftEndStep(null)}
+      >
+        <p className="cashier-shift-confirm__text">Növbəni bitirmək istəyirsiniz?</p>
+        <p className="cashier-shift-confirm__hint">Təsdiq etdikdən sonra növbə xülasəsi göstəriləcək və hesabdan çıxış ediləcək.</p>
+        <div className="cashier-shift-summary__actions">
+          <button type="button" className="btn btn-default" onClick={() => setShiftEndStep(null)}>
+            Xeyr
+          </button>
+          <button type="button" className="btn btn-danger" onClick={handleShiftEndConfirm}>
+            Bəli, bitir
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={shiftEndStep === "summary"}
+        title="Nöbet Çıkış Özeti"
+        onClose={() => {}}
+        closable={false}
+        size="lg"
+      >
         <div className="cashier-shift-summary">
           <div className="cashier-shift-summary__hero">
             <span>Kasiyer</span>
@@ -1015,14 +1047,11 @@ export default function Sales() {
             </div>
           )}
           <p className="cashier-shift-summary__notice">
-            Resim çek ve patrona gönder.
+            Növbə bitdi. Məlumatı yoxlayın və çıxış edin.
           </p>
-          <div className="cashier-shift-summary__actions">
-            <button type="button" className="btn btn-default" onClick={() => setShiftSummaryOpen(false)}>
-              Geri dön
-            </button>
+          <div className="cashier-shift-summary__actions cashier-shift-summary__actions--final">
             <button type="button" className="btn btn-danger" onClick={handleEndShift}>
-              Çıkış yap
+              Çıxış et
             </button>
           </div>
         </div>

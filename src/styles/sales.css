@@ -2446,6 +2446,29 @@
   gap: 8px;
 }
 
+.cashier-shift-summary__actions--final {
+  justify-content: stretch;
+}
+
+.cashier-shift-summary__actions--final .btn {
+  flex: 1;
+  min-height: 48px;
+}
+
+.cashier-shift-confirm__text {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #181c23;
+}
+
+.cashier-shift-confirm__hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #717786;
+  line-height: 1.45;
+}
+
 .split-payment-form {
   display: flex;
   flex-direction: column;
