@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
-import PageHeader from "../../components/ui/PageHeader";
 import DataTable from "../../components/ui/DataTable";
 import Modal from "../../components/ui/Modal";
 import { formatDateTime, formatMoney, todayISO } from "../../utils/format";
@@ -97,20 +96,23 @@ export default function AdminCashReports() {
   };
 
   return (
-    <div className="admin-page">
-      <PageHeader
-        title="Kasa & İş Günü"
-        subtitle="Kassadan çıxarılan pullar və gün sonu hesabatları"
-        actions={
-          <button type="button" className="btn btn-default btn-sm" onClick={load}>
+    <div className="admin-page erp-page">
+      <section className="erp-hero">
+        <div>
+          <p className="erp-kicker">Finans</p>
+          <h2>Kasa & iş günü</h2>
+          <p>Şube kasası, çekimler ve gün sonu arşivi.</p>
+        </div>
+        <div className="erp-hero__actions">
+          <button type="button" className="btn btn-default" onClick={load}>
             Yenile
           </button>
-        }
-      />
+        </div>
+      </section>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <div className="card form-inline-bar">
+      <div className="erp-panel erp-filters">
         <select
           value={filters.branchId}
           onChange={(e) => setFilters({ ...filters, branchId: e.target.value })}
@@ -127,20 +129,26 @@ export default function AdminCashReports() {
         </button>
       </div>
 
-      <div className="admin-stats admin-stats--compact">
-        <div className="admin-stat-card">
-          <span>Kassadan xərc (filtre)</span>
-          <strong>{formatMoney(withdrawalTotal)}</strong>
-          <small>{withdrawals.length} əməliyyat</small>
-        </div>
-        <div className="admin-stat-card">
-          <span>Arxiv iş günü</span>
-          <strong>{dayReports.length}</strong>
-          <small>gün sonu hesabat</small>
-        </div>
+      <div className="erp-kpi-grid erp-kpi-grid--2">
+        <article className="erp-kpi erp-kpi--amber">
+          <i className="fa fa-minus-circle" />
+          <div>
+            <span>Kassadan xərc</span>
+            <strong>{formatMoney(withdrawalTotal)}</strong>
+            <small>{withdrawals.length} əməliyyat</small>
+          </div>
+        </article>
+        <article className="erp-kpi erp-kpi--navy">
+          <i className="fa fa-calendar" />
+          <div>
+            <span>Arxiv iş günü</span>
+            <strong>{dayReports.length}</strong>
+            <small>gün sonu hesabat</small>
+          </div>
+        </article>
       </div>
 
-      <ul className="admin-tabs">
+      <ul className="admin-tabs erp-tabs">
         <li>
           <button type="button" className={tab === "withdrawals" ? "active" : ""} onClick={() => setTab("withdrawals")}>
             Kassadan çıxarılanlar
@@ -156,7 +164,7 @@ export default function AdminCashReports() {
       {loading && <p className="admin-empty-inline">Yükleniyor…</p>}
 
       {tab === "withdrawals" && !loading && (
-        <div className="card">
+        <div className="erp-panel">
           <div className="card-body">
             <DataTable
               columns={[
@@ -187,7 +195,7 @@ export default function AdminCashReports() {
       )}
 
       {tab === "days" && !loading && (
-        <div className="card">
+        <div className="erp-panel">
           <div className="card-body">
             <DataTable
               columns={[
@@ -229,24 +237,32 @@ export default function AdminCashReports() {
         </div>
       )}
       <Modal open={!!editRow} title="Xərci düzəlt" onClose={() => setEditRow(null)}>
-        <form className="form-grid" onSubmit={handleEditSubmit}>
-          <label>Məbləğ *</label>
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            value={editForm.amount}
-            onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
-            required
-          />
-          <label>Səbəb *</label>
-          <input
-            value={editForm.reason}
-            onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
-            required
-          />
-          <label>Qeyd</label>
-          <input value={editForm.note} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} />
+        <form className="erp-form" onSubmit={handleEditSubmit}>
+          <div className="erp-form-grid">
+            <label className="erp-field">
+              <span>Məbləğ *</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={editForm.amount}
+                onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                required
+              />
+            </label>
+            <label className="erp-field">
+              <span>Səbəb *</span>
+              <input
+                value={editForm.reason}
+                onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
+                required
+              />
+            </label>
+            <label className="erp-field erp-field--full">
+              <span>Qeyd</span>
+              <input value={editForm.note} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} />
+            </label>
+          </div>
           <div className="form-actions">
             <button type="button" className="btn btn-default" onClick={() => setEditRow(null)}>
               Ləğv

@@ -41,53 +41,52 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="login-page admin-login-page">
-      <div className="login-container admin-login-container">
-        <div className="login-grid admin-login-grid">
-          <div className="login-card admin-login-card">
-            <form onSubmit={handleSubmit}>
-              <div className="admin-login-badge">Super Admin ERP</div>
-              <h4>Merkezi yönetim</h4>
-              <p className="login-hint">Tüm şubeler, finans, CRM ve web sipariş tek panelden.</p>
-
-              <div className="form-group">
-                <input
-                  type="text"
-                  placeholder="Yönetici e-posta"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="username"
-                />
-              </div>
-              <div className="form-group">
-                <input
-                  type="password"
-                  placeholder="Parola"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                />
-              </div>
-
-              {error && <p className="login-error">{error}</p>}
-
-              <button type="submit" className="btn-login admin-login-btn">
-                Super Admin paneline gir
-              </button>
-
-              <div className="login-links">
-                <Link to="/login">← POS / Şube girişi</Link>
-              </div>
-            </form>
-          </div>
-
-          <div className="login-promo admin-login-promo">
-            <h4>UgurPOS Super Admin</h4>
-            <p>ERP / CRM komuta merkezi: şube, kasa, stok, personel ve omnichannel sipariş.</p>
-            <p>Şube kassası ayrı adreste: <strong>/login</strong></p>
+    <div className="erp-login">
+      <aside className="erp-login__brand">
+        <div className="erp-brand">
+          <div className="erp-brand__mark">UP</div>
+          <div>
+            <strong>UgurPOS</strong>
+            <span>Super Admin ERP</span>
           </div>
         </div>
-      </div>
+        <h1>Bütün şubeler. Tek komuta.</h1>
+        <ul>
+          <li>Şube CRM ve stok</li>
+          <li>Kasa, ciro, gün sonu</li>
+          <li>QR / web sipariş</li>
+          <li>Canlı hareket akışı</li>
+        </ul>
+        <Link to="/login">POS / şube girişi →</Link>
+      </aside>
+      <main className="erp-login__form">
+        <form onSubmit={handleSubmit}>
+          <p className="erp-kicker">Güvenli giriş</p>
+          <h2>Super Admin</h2>
+          <label className="erp-field">
+            <span>Yönetici e-posta</span>
+            <input
+              type="text"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+            />
+          </label>
+          <label className="erp-field">
+            <span>Parola</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </label>
+          {error && <p className="login-error">{error}</p>}
+          <button type="submit" className="btn-login admin-login-btn">
+            Panele gir
+          </button>
+        </form>
+      </main>
     </div>
   );
 }

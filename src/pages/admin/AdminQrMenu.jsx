@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import { useLocale } from "../../context/LocaleContext";
-import PageHeader from "../../components/ui/PageHeader";
 import ProductImageField from "../../components/ProductImageField";
 import QrSocialLinks from "../../components/public/QrSocialLinks";
 import WebImageField from "../../components/admin/WebImageField";
@@ -12,11 +11,11 @@ import { getMenuPublicUrl, getQrCodeUrl } from "../../utils/qrMenuPublic";
 
 function WebConfigField({ label, children, hint }) {
   return (
-    <>
-      <label>{label}</label>
+    <label className="erp-field">
+      <span>{label}</span>
       {children}
-      {hint ? <p className="hint-text">{hint}</p> : null}
-    </>
+      {hint ? <small>{hint}</small> : null}
+    </label>
   );
 }
 
@@ -32,12 +31,16 @@ function WebItemVisibilityToggle({ checked, onChange, label }) {
 function AdminQrSectionCard({ id, title, hint, children, active = true }) {
   return (
     <div
-      className={`card admin-qr-firm-card admin-qr-section-card${active ? " admin-qr-section-card--active" : ""}`}
+      className={`erp-panel admin-qr-firm-card admin-qr-section-card${active ? " admin-qr-section-card--active" : ""}`}
       id={id}
       hidden={!active}
     >
-      <h3>{title}</h3>
-      {hint ? <p className="hint-text">{hint}</p> : null}
+      <header className="erp-panel__head">
+        <div>
+          <h3>{title}</h3>
+          {hint ? <p className="hint-text">{hint}</p> : null}
+        </div>
+      </header>
       {children}
     </div>
   );
@@ -329,16 +332,22 @@ export default function AdminQrMenu() {
     }
   };
 
-  if (loading || !webConfigDraft) return <div className="card">{t("common.loading")}</div>;
+  if (loading || !webConfigDraft) return <div className="erp-panel">{t("common.loading")}</div>;
 
   return (
-    <div className="admin-page admin-qr-page">
-      <PageHeader title={t("admin.qr.title")} subtitle={t("admin.qr.subtitle")} />
+    <div className="admin-page admin-qr-page erp-page">
+      <section className="erp-hero">
+        <div>
+          <p className="erp-kicker">Omnichannel</p>
+          <h2>{t("admin.qr.title")}</h2>
+          <p>{t("admin.qr.subtitle")}</p>
+        </div>
+      </section>
 
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <ul className="admin-tabs">
+      <ul className="admin-tabs erp-tabs">
         <li>
           <button type="button" className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>
             {t("admin.qr.tabSettings")}
@@ -415,40 +424,48 @@ export default function AdminQrMenu() {
             hint={t("admin.qr.sectionPageParamsHint")}
             active={activeSettingsSection === "qr-section-page"}
           >
-            <div className="admin-qr-firm-form">
-              <label>{t("admin.qr.menuTitle")}</label>
-              <input
-                value={firmDraft.menuTitle || ""}
-                onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuTitle: e.target.value }))}
-              />
-              <label>{t("admin.qr.menuWelcome")}</label>
-              <textarea
-                rows={2}
-                value={firmDraft.menuWelcome || ""}
-                onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuWelcome: e.target.value }))}
-              />
-              <label>{t("admin.qr.menuHours")}</label>
-              <div className="admin-qr-hours-row">
+            <div className="admin-qr-firm-form erp-form-grid">
+              <label className="erp-field">
+                <span>{t("admin.qr.menuTitle")}</span>
                 <input
-                  type="time"
-                  value={firmDraft.menuOpenTime || "09:00"}
-                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuOpenTime: e.target.value }))}
+                  value={firmDraft.menuTitle || ""}
+                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuTitle: e.target.value }))}
                 />
-                <span>–</span>
-                <input
-                  type="time"
-                  value={firmDraft.menuCloseTime || "23:00"}
-                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuCloseTime: e.target.value }))}
+              </label>
+              <label className="erp-field">
+                <span>{t("admin.qr.defaultLang")}</span>
+                <select
+                  value={firmDraft.menuDefaultLang || "az"}
+                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuDefaultLang: e.target.value }))}
+                >
+                  <option value="az">Azərbaycan</option>
+                  <option value="tr">Türkçe</option>
+                </select>
+              </label>
+              <label className="erp-field erp-field--full">
+                <span>{t("admin.qr.menuWelcome")}</span>
+                <textarea
+                  rows={2}
+                  value={firmDraft.menuWelcome || ""}
+                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuWelcome: e.target.value }))}
                 />
+              </label>
+              <div className="erp-field erp-field--full">
+                <span>{t("admin.qr.menuHours")}</span>
+                <div className="erp-inline-row">
+                  <input
+                    type="time"
+                    value={firmDraft.menuOpenTime || "09:00"}
+                    onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuOpenTime: e.target.value }))}
+                  />
+                  <span>–</span>
+                  <input
+                    type="time"
+                    value={firmDraft.menuCloseTime || "23:00"}
+                    onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuCloseTime: e.target.value }))}
+                  />
+                </div>
               </div>
-              <label>{t("admin.qr.defaultLang")}</label>
-              <select
-                value={firmDraft.menuDefaultLang || "az"}
-                onChange={(e) => setFirmDraft((prev) => ({ ...prev, menuDefaultLang: e.target.value }))}
-              >
-                <option value="az">Azərbaycan</option>
-                <option value="tr">Türkçe</option>
-              </select>
             </div>
           </AdminQrSectionCard>
 
@@ -856,25 +873,29 @@ export default function AdminQrMenu() {
             hint={t("admin.qr.socialHint")}
             active={activeSettingsSection === "qr-section-social"}
           >
-            <div className="admin-qr-social-form">
-              <label>
-                <i className="fa-brands fa-instagram admin-qr-social-icon admin-qr-social-icon--fab" />
-                {t("admin.qr.socialInstagram")}
+            <div className="admin-qr-social-form erp-form-grid">
+              <label className="erp-field">
+                <span>
+                  <i className="fa-brands fa-instagram admin-qr-social-icon admin-qr-social-icon--fab" />
+                  {t("admin.qr.socialInstagram")}
+                </span>
+                <input
+                  placeholder="@cigkofte veya https://instagram.com/..."
+                  value={firmDraft.socialInstagram || ""}
+                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialInstagram: e.target.value }))}
+                />
               </label>
-              <input
-                placeholder="@cigkofte veya https://instagram.com/..."
-                value={firmDraft.socialInstagram || ""}
-                onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialInstagram: e.target.value }))}
-              />
-              <label>
-                <i className="fa-brands fa-whatsapp admin-qr-social-icon admin-qr-social-icon--fab" />
-                {t("admin.qr.socialWhatsapp")}
+              <label className="erp-field">
+                <span>
+                  <i className="fa-brands fa-whatsapp admin-qr-social-icon admin-qr-social-icon--fab" />
+                  {t("admin.qr.socialWhatsapp")}
+                </span>
+                <input
+                  placeholder="+994501234567"
+                  value={firmDraft.socialWhatsapp || ""}
+                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialWhatsapp: e.target.value }))}
+                />
               </label>
-              <input
-                placeholder="+994501234567"
-                value={firmDraft.socialWhatsapp || ""}
-                onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialWhatsapp: e.target.value }))}
-              />
               <label className="checkbox-row">
                 <input
                   type="checkbox"
@@ -893,24 +914,28 @@ export default function AdminQrMenu() {
                   onChange={(e) => patchWeb("whatsappFloatPhone", e.target.value)}
                 />
               </WebConfigField>
-              <label>
-                <i className="fa-brands fa-facebook-f admin-qr-social-icon admin-qr-social-icon--fab" />
-                {t("admin.qr.socialFacebook")}
+              <label className="erp-field">
+                <span>
+                  <i className="fa-brands fa-facebook-f admin-qr-social-icon admin-qr-social-icon--fab" />
+                  {t("admin.qr.socialFacebook")}
+                </span>
+                <input
+                  placeholder="cigkofte veya https://facebook.com/..."
+                  value={firmDraft.socialFacebook || ""}
+                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialFacebook: e.target.value }))}
+                />
               </label>
-              <input
-                placeholder="cigkofte veya https://facebook.com/..."
-                value={firmDraft.socialFacebook || ""}
-                onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialFacebook: e.target.value }))}
-              />
-              <label>
-                <i className="fa-brands fa-tiktok admin-qr-social-icon admin-qr-social-icon--fab" />
-                {t("admin.qr.socialTiktok")}
+              <label className="erp-field">
+                <span>
+                  <i className="fa-brands fa-tiktok admin-qr-social-icon admin-qr-social-icon--fab" />
+                  {t("admin.qr.socialTiktok")}
+                </span>
+                <input
+                  placeholder="@cigkofte veya https://tiktok.com/@..."
+                  value={firmDraft.socialTiktok || ""}
+                  onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialTiktok: e.target.value }))}
+                />
               </label>
-              <input
-                placeholder="@cigkofte veya https://tiktok.com/@..."
-                value={firmDraft.socialTiktok || ""}
-                onChange={(e) => setFirmDraft((prev) => ({ ...prev, socialTiktok: e.target.value }))}
-              />
               <div className="admin-qr-social-preview">
                 <span>{t("admin.qr.socialPreview")}</span>
                 <QrSocialLinks social={socialPreview} variant="fab" />
@@ -927,7 +952,7 @@ export default function AdminQrMenu() {
             {branches.filter((b) => b.active !== false).map((branch) => {
               const draft = branchDrafts[branch.id] || {};
               return (
-                <div key={branch.id} className="card admin-qr-branch-card admin-qr-branch-card--compact">
+                <div key={branch.id} className="erp-panel admin-qr-branch-card admin-qr-branch-card--compact">
                   <div className="admin-qr-branch-card__head">
                     <div>
                       <h3>{getBranchLabel(branch)}</h3>
@@ -1063,8 +1088,8 @@ export default function AdminQrMenu() {
       )}
 
       {tab === "orders" && (
-        <div className="card admin-qr-orders">
-          <div className="filter-bar">
+        <div className="erp-panel admin-qr-orders">
+          <div className="erp-filters">
             <select
               value={orderFilter.branchId}
               onChange={(e) => setOrderFilter((prev) => ({ ...prev, branchId: e.target.value }))}

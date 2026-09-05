@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
-import PageHeader from "../../components/ui/PageHeader";
 import { formatMoney } from "../../utils/format";
 import { getBranchLabel } from "../../utils/branchDisplay";
 
@@ -18,15 +17,18 @@ export default function AdminBranches() {
 
   return (
     <div className="admin-page erp-page">
-      <PageHeader
-        title="Şube CRM"
-        subtitle={`${branches.length} şube · stok, satış ve kasa tek yerde`}
-        actions={
-          <Link to="/admin/branches/new" className="btn btn-success btn-sm">
-            + Yeni Şube
+      <section className="erp-hero">
+        <div>
+          <p className="erp-kicker">Şube CRM</p>
+          <h2>Şubeler</h2>
+          <p>{branches.length} şube · stok, satış ve kasa tek yerde</p>
+        </div>
+        <div className="erp-hero__actions">
+          <Link to="/admin/branches/new" className="btn btn-success">
+            + Yeni şube
           </Link>
-        }
-      />
+        </div>
+      </section>
       {error && <div className="alert alert-danger">{error}</div>}
 
       <section className="erp-panel">

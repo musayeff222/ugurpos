@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
-import PageHeader from "../../components/ui/PageHeader";
 import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatMoney } from "../../utils/format";
 
@@ -119,65 +118,85 @@ export default function AdminBranchDetail() {
     }
   };
 
-  if (!branch && !error) return <div className="card">Yükleniyor...</div>;
+  if (!branch && !error) return <div className="erp-panel">Yükleniyor...</div>;
 
   return (
-    <div className="admin-page">
-      <PageHeader
-        title={branch ? getBranchLabel(branch) : "Şube"}
-        actions={
-          <>
-            <Link to="/admin/branches" className="btn btn-default btn-sm">
-              ← Geri
-            </Link>
-            {branch?.active && (
-              <button type="button" className="btn btn-primary btn-sm" onClick={handleEnterPos} disabled={entering}>
-                {entering ? "..." : "POS'a Gir"}
-              </button>
-            )}
-          </>
-        }
-      />
+    <div className="admin-page erp-page">
+      <section className="erp-hero">
+        <div>
+          <p className="erp-kicker">Şube CRM</p>
+          <h2>{branch ? getBranchLabel(branch) : "Şube"}</h2>
+          <p>{branch?.email || "Şube kartı, kasa ve POS erişimi"}</p>
+        </div>
+        <div className="erp-hero__actions">
+          <Link to="/admin/branches" className="btn btn-default">
+            ← Liste
+          </Link>
+          {branch?.active && (
+            <button type="button" className="btn btn-primary" onClick={handleEnterPos} disabled={entering}>
+              {entering ? "..." : "POS'a gir"}
+            </button>
+          )}
+        </div>
+      </section>
 
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 
       {branch && (
         <>
-          <div className="admin-stats admin-stats--compact">
-            <div className="admin-stat-card">
-              <span>Bugün</span>
-              <strong>{formatMoney(branch.stats?.todayTotal || 0)}</strong>
-              <small>{branch.stats?.todayCount || 0} satış</small>
-            </div>
-            <div className="admin-stat-card">
-              <span>Bu ay</span>
-              <strong>{formatMoney(branch.stats?.monthTotal || 0)}</strong>
-              <small>{branch.stats?.monthCount || 0} satış</small>
-            </div>
-            <div className="admin-stat-card">
-              <span>Ürün</span>
-              <strong>{branch.stats?.productCount || 0}</strong>
-            </div>
+          <div className="erp-kpi-grid erp-kpi-grid--4">
+            <article className="erp-kpi erp-kpi--green">
+              <i className="fa fa-money" />
+              <div>
+                <span>Bugün</span>
+                <strong>{formatMoney(branch.stats?.todayTotal || 0)}</strong>
+                <small>{branch.stats?.todayCount || 0} satış</small>
+              </div>
+            </article>
+            <article className="erp-kpi erp-kpi--navy">
+              <i className="fa fa-bar-chart" />
+              <div>
+                <span>Bu ay</span>
+                <strong>{formatMoney(branch.stats?.monthTotal || 0)}</strong>
+                <small>{branch.stats?.monthCount || 0} satış</small>
+              </div>
+            </article>
+            <article className="erp-kpi erp-kpi--teal">
+              <i className="fa fa-cube" />
+              <div>
+                <span>Ürün</span>
+                <strong>{branch.stats?.productCount || 0}</strong>
+                <small>katalog</small>
+              </div>
+            </article>
+            <article className="erp-kpi erp-kpi--purple">
+              <i className="fa fa-users" />
+              <div>
+                <span>Müşteri</span>
+                <strong>{branch.stats?.customerCount || 0}</strong>
+                <small>CRM</small>
+              </div>
+            </article>
           </div>
 
-          <div className="admin-info-strip">
+          <div className="erp-meta">
             <span>
-              <strong>E-posta:</strong> {branch.email || "—"}
+              <strong>E-posta</strong> {branch.email || "—"}
             </span>
             {branch.address && (
               <span>
-                <strong>Adres:</strong> {branch.address}
+                <strong>Adres</strong> {branch.address}
               </span>
             )}
             {branch.lat != null && branch.lng != null && (
               <span>
-                <strong>Konum:</strong> {branch.lat}, {branch.lng}
+                <strong>Konum</strong> {branch.lat}, {branch.lng}
               </span>
             )}
           </div>
 
-          <ul className="admin-tabs">
+          <ul className="admin-tabs erp-tabs">
             <li>
               <button type="button" className={tab === "edit" ? "active" : ""} onClick={() => setTab("edit")}>
                 Bilgiler
@@ -191,92 +210,100 @@ export default function AdminBranchDetail() {
           </ul>
 
           {tab === "edit" && (
-            <form className="card form-grid admin-branch-form" onSubmit={handleSave}>
-              <label>Ünvan (şube adı) *</label>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-
-              <label>Şube No *</label>
-              <input
-                type="number"
-                min={1}
-                max={99999}
-                value={form.branchNo}
-                onChange={(e) => setForm({ ...form, branchNo: e.target.value })}
-                required
-              />
-              <p className="hint-text">Dahili numara. Web sitesinde müşteriye gösterilmez.</p>
-
-              <label>Giriş E-postası *</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-              />
-
-              <label>Yeni Şifre (boş = değişmez)</label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-              />
-
-              <label>Adres</label>
-              <textarea
-                rows={3}
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-                placeholder="Küçə, bina, mərtəbə..."
-              />
-
-              <label>Konum (harita / yakın şube için)</label>
-              <div className="admin-qr-hours-row">
-                <input
-                  placeholder="Lat"
-                  value={form.lat}
-                  onChange={(e) => setForm({ ...form, lat: e.target.value })}
-                />
-                <input
-                  placeholder="Lng"
-                  value={form.lng}
-                  onChange={(e) => setForm({ ...form, lng: e.target.value })}
-                />
-                <button
-                  type="button"
-                  className="btn btn-default btn-sm"
-                  onClick={() => {
-                    if (!navigator.geolocation) return;
-                    navigator.geolocation.getCurrentPosition((pos) => {
-                      setForm((prev) => ({
-                        ...prev,
-                        lat: String(pos.coords.latitude),
-                        lng: String(pos.coords.longitude),
-                      }));
-                    });
-                  }}
-                >
-                  Konumumu al
-                </button>
+            <form className="erp-panel erp-form admin-branch-form" onSubmit={handleSave}>
+              <div className="erp-form-grid">
+                <label className="erp-field">
+                  <span>Ünvan (şube adı) *</span>
+                  <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                </label>
+                <label className="erp-field">
+                  <span>Şube No *</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={99999}
+                    value={form.branchNo}
+                    onChange={(e) => setForm({ ...form, branchNo: e.target.value })}
+                    required
+                  />
+                  <small>Dahili numara. Web sitesinde müşteriye gösterilmez.</small>
+                </label>
+                <label className="erp-field">
+                  <span>Giriş e-postası *</span>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    required
+                  />
+                </label>
+                <label className="erp-field">
+                  <span>Yeni şifre</span>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    placeholder="Boş = değişmez"
+                  />
+                </label>
+                <label className="erp-field erp-field--full">
+                  <span>Adres</span>
+                  <textarea
+                    rows={3}
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    placeholder="Küçə, bina, mərtəbə..."
+                  />
+                </label>
+                <div className="erp-field erp-field--full">
+                  <span>Konum (harita / yakın şube)</span>
+                  <div className="erp-inline-row">
+                    <input
+                      placeholder="Lat"
+                      value={form.lat}
+                      onChange={(e) => setForm({ ...form, lat: e.target.value })}
+                    />
+                    <input
+                      placeholder="Lng"
+                      value={form.lng}
+                      onChange={(e) => setForm({ ...form, lng: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-default btn-sm"
+                      onClick={() => {
+                        if (!navigator.geolocation) return;
+                        navigator.geolocation.getCurrentPosition((pos) => {
+                          setForm((prev) => ({
+                            ...prev,
+                            lat: String(pos.coords.latitude),
+                            lng: String(pos.coords.longitude),
+                          }));
+                        });
+                      }}
+                    >
+                      Konumumu al
+                    </button>
+                  </div>
+                  <small>Web siparişte en yakın şube seçimi için kullanılır.</small>
+                </div>
+                <div className="erp-field erp-field--full">
+                  <span>İş saatları</span>
+                  <div className="erp-inline-row">
+                    <input
+                      type="time"
+                      value={form.businessOpenTime}
+                      onChange={(e) => setForm({ ...form, businessOpenTime: e.target.value })}
+                    />
+                    <input
+                      type="time"
+                      value={form.businessCloseTime}
+                      onChange={(e) => setForm({ ...form, businessCloseTime: e.target.value })}
+                    />
+                  </div>
+                  <small>Günlük satış və hesabatlar bu saat aralığında hesablanır (məs: 08:00–17:00).</small>
+                </div>
               </div>
-              <p className="hint-text">Web siparişte en yakın şube seçimi için kullanılır.</p>
-
-              <label>İş saatları (günlük hesabat)</label>
-              <div className="admin-qr-hours-row">
-                <input
-                  type="time"
-                  value={form.businessOpenTime}
-                  onChange={(e) => setForm({ ...form, businessOpenTime: e.target.value })}
-                />
-                <input
-                  type="time"
-                  value={form.businessCloseTime}
-                  onChange={(e) => setForm({ ...form, businessCloseTime: e.target.value })}
-                />
-              </div>
-              <p className="hint-text">
-                Günlük satış və hesabatlar bu saat aralığında hesablanır (məs: 08:00–17:00).
-              </p>
-
               <div className="form-actions">
                 <button type="button" className="btn btn-warning" onClick={toggleActive}>
                   {branch.active ? "Pasifleştir" : "Aktifleştir"}
@@ -292,59 +319,57 @@ export default function AdminBranchDetail() {
           )}
 
           {tab === "activity" && (
-            <div className="admin-activity">
+            <section className="erp-panel">
+              <header className="erp-panel__head">
+                <h3>Son satışlar</h3>
+              </header>
               {!activity ? (
-                <div className="card">Yükleniyor...</div>
+                <p className="admin-empty-inline">Yükleniyor...</p>
+              ) : activity.sales.length === 0 ? (
+                <p className="admin-empty-inline">Henüz satış yok.</p>
               ) : (
                 <>
-                  <div className="card">
-                    <h3>Son Satışlar</h3>
-                    {activity.sales.length === 0 ? (
-                      <p className="admin-empty-inline">Henüz satış yok.</p>
-                    ) : (
-                      <div className="admin-mobile-list">
-                        {activity.sales.map((s) => (
-                          <div key={s.id} className="admin-mobile-list__item">
-                            <div className="admin-mobile-list__head">
-                              <strong>{s.code}</strong>
-                              <span>{formatMoney(s.total)}</span>
-                            </div>
-                            <p>
-                              {new Date(s.createdAt).toLocaleString("tr-TR")} ·{" "}
-                              {PAYMENT_LABELS[s.paymentType] || s.paymentType} · {s.itemCount} kalem
-                            </p>
-                          </div>
-                        ))}
+                  <div className="admin-mobile-list">
+                    {activity.sales.map((s) => (
+                      <div key={s.id} className="admin-mobile-list__item">
+                        <div className="admin-mobile-list__head">
+                          <strong>{s.code}</strong>
+                          <span>{formatMoney(s.total)}</span>
+                        </div>
+                        <p>
+                          {new Date(s.createdAt).toLocaleString("tr-TR")} ·{" "}
+                          {PAYMENT_LABELS[s.paymentType] || s.paymentType} · {s.itemCount} kalem
+                        </p>
                       </div>
-                    )}
-                    <div className="admin-table-wrap admin-table-wrap--desktop-only">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Tarih</th>
-                            <th>Fiş</th>
-                            <th>Ödeme</th>
-                            <th>Kalem</th>
-                            <th>Tutar</th>
+                    ))}
+                  </div>
+                  <div className="admin-table-wrap admin-table-wrap--desktop-only">
+                    <table className="erp-table">
+                      <thead>
+                        <tr>
+                          <th>Tarih</th>
+                          <th>Fiş</th>
+                          <th>Ödeme</th>
+                          <th>Kalem</th>
+                          <th>Tutar</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activity.sales.map((s) => (
+                          <tr key={s.id}>
+                            <td>{new Date(s.createdAt).toLocaleString("tr-TR")}</td>
+                            <td>{s.code}</td>
+                            <td>{PAYMENT_LABELS[s.paymentType] || s.paymentType}</td>
+                            <td>{s.itemCount}</td>
+                            <td>{formatMoney(s.total)}</td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {activity.sales.map((s) => (
-                            <tr key={s.id}>
-                              <td>{new Date(s.createdAt).toLocaleString("tr-TR")}</td>
-                              <td>{s.code}</td>
-                              <td>{PAYMENT_LABELS[s.paymentType] || s.paymentType}</td>
-                              <td>{s.itemCount}</td>
-                              <td>{formatMoney(s.total)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </>
               )}
-            </div>
+            </section>
           )}
         </>
       )}

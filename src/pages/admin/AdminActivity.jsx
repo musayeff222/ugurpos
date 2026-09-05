@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
-import PageHeader from "../../components/ui/PageHeader";
 import { getBranchLabel } from "../../utils/branchDisplay";
 
 const TYPE_LABELS = {
@@ -40,26 +39,29 @@ export default function AdminActivity() {
   }, []);
 
   return (
-    <div className="admin-page">
-      <PageHeader
-        title="Şube hareketleri"
-        subtitle="Girişler ve web sipariş bildirimleri"
-        actions={
-          <button type="button" className="btn btn-default btn-sm" onClick={load}>
+    <div className="admin-page erp-page">
+      <section className="erp-hero">
+        <div>
+          <p className="erp-kicker">Operasyon</p>
+          <h2>Hareket akışı</h2>
+          <p>Şube girişleri, admin oturumları ve web sipariş bildirimleri.</p>
+        </div>
+        <div className="erp-hero__actions">
+          <button type="button" className="btn btn-default" onClick={load}>
             Yenile
           </button>
-        }
-      />
+        </div>
+      </section>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <div className="card">
+      <section className="erp-panel">
         {loading && items.length === 0 ? (
           <p className="admin-empty-inline">Yükleniyor…</p>
         ) : items.length === 0 ? (
           <p className="admin-empty-inline">Henüz kayıt yok. Şube girişleri ve web siparişler burada görünür.</p>
         ) : (
-          <div className="admin-activity-feed">
+          <div className="admin-activity-feed erp-activity">
             {items.map((item) => (
               <div key={item.id} className={`admin-activity-feed__item admin-activity-feed__item--${item.type}`}>
                 <div className="admin-activity-feed__head">
@@ -82,7 +84,7 @@ export default function AdminActivity() {
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

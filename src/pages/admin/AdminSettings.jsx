@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
-import PageHeader from "../../components/ui/PageHeader";
 
 export default function AdminSettings() {
   const { user, patchUser } = useAuth();
@@ -55,62 +54,71 @@ export default function AdminSettings() {
   };
 
   return (
-    <div className="admin-page">
-      <PageHeader title="Ayarlar" subtitle="Admin giriş bilgileri (/login/admin)" />
+    <div className="admin-page erp-page">
+      <section className="erp-hero">
+        <div>
+          <p className="erp-kicker">Sistem</p>
+          <h2>Firma ayarları</h2>
+          <p>Super Admin e-posta ve şifre. POS / şube girişi ayrı kalır.</p>
+        </div>
+      </section>
 
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <div className="card admin-settings-card">
-        <h3>Admin giriş bilgilerini güncelle</h3>
-        <p className="hint-text">
-          Yönetim paneli giriş e-postası ve şifresini buradan değiştirebilirsiniz. POS / şube girişi
-          (/login) ayrıdır.
-        </p>
-        <p className="admin-settings-email">
-          <strong>Mevcut giriş e-postası:</strong> {user?.email || "—"}
+      <div className="erp-panel admin-settings-card">
+        <header className="erp-panel__head">
+          <h3>Güvenlik</h3>
+        </header>
+        <p className="erp-current-email">
+          Mevcut hesap <strong>{user?.email || "—"}</strong>
         </p>
 
-        <form className="form-grid admin-settings-form" onSubmit={handleSubmit}>
-          <label>Yeni giriş e-postası</label>
-          <input
-            type="email"
-            autoComplete="username"
-            placeholder="admin@firma.com"
-            value={form.newEmail}
-            onChange={(e) => setForm((prev) => ({ ...prev, newEmail: e.target.value }))}
-          />
-          <p className="hint-text admin-settings-field-hint">Boş bırakırsanız e-posta değişmez.</p>
-
-          <label>Mevcut şifre</label>
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={form.currentPassword}
-            onChange={(e) => setForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-            required
-          />
-
-          <label>Yeni şifre</label>
-          <input
-            type="password"
-            autoComplete="new-password"
-            placeholder="Değiştirmeyecekseniz boş bırakın"
-            value={form.newPassword}
-            onChange={(e) => setForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-          />
-
-          <label>Yeni şifre (tekrar)</label>
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={form.confirmPassword}
-            onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-          />
-
+        <form className="erp-form admin-settings-form" onSubmit={handleSubmit}>
+          <div className="erp-form-grid">
+          <label className="erp-field">
+            <span>Yeni giriş e-postası</span>
+            <input
+              type="email"
+              autoComplete="username"
+              placeholder="Boş = değişmez"
+              value={form.newEmail}
+              onChange={(e) => setForm((prev) => ({ ...prev, newEmail: e.target.value }))}
+            />
+          </label>
+          <label className="erp-field">
+            <span>Mevcut şifre *</span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={form.currentPassword}
+              onChange={(e) => setForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+              required
+            />
+          </label>
+          <label className="erp-field">
+            <span>Yeni şifre</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              placeholder="Değiştirmeyecekseniz boş"
+              value={form.newPassword}
+              onChange={(e) => setForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+            />
+          </label>
+          <label className="erp-field">
+            <span>Yeni şifre (tekrar)</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={form.confirmPassword}
+              onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+            />
+          </label>
+          </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-success" disabled={saving}>
-              {saving ? "Kaydediliyor…" : "Giriş bilgilerini güncelle"}
+              {saving ? "Kaydediliyor…" : "Güncelle"}
             </button>
           </div>
         </form>
