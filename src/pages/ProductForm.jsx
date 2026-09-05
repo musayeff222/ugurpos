@@ -6,6 +6,7 @@ import PageHeader from "../components/ui/PageHeader";
 import ProductImageField from "../components/ProductImageField";
 import ProductGroupField from "../components/ProductGroupField";
 import { DEFAULT_PRODUCT_UNIT, PRODUCT_UNITS } from "../data/productUnits";
+import { getProductImageSrc } from "../utils/productImage";
 
 const emptyForm = {
   stockCode: "",
@@ -27,6 +28,7 @@ export default function ProductForm() {
   const navigate = useNavigate();
   const editId = params.get("id");
   const existing = state.products.find((p) => p.id === editId);
+  const fromCatalog = !!existing?.firmProductId;
   const [form, setForm] = useState(emptyForm);
   const [imageValue, setImageValue] = useState(undefined);
   const [message, setMessage] = useState("");
@@ -110,7 +112,7 @@ export default function ProductForm() {
           barcode: existing.barcode,
           stockCode: form.stockCode || existing.stockCode,
         });
-        await persistProductImage(existing.id);
+        if (!fromCatalog) await persistProductImage(existing.id);
         setImageValue(undefined);
         setMessage("Ürün güncellendi.");
       } else {
@@ -136,6 +138,12 @@ export default function ProductForm() {
         }
       />
       {message && <div className="alert alert-info">{message}</div>}
+      {fromCatalog && (
+        <p className="hint-text" style={{ marginBottom: 12, color: "#666", fontSize: 13 }}>
+          Bu ürün merkez katalogdandır. Ad, fiyat, grup ve resim admin panelinden gelir. Burada yalnızca stok
+          düzeltilebilir.
+        </p>
+      )}
       {!existing && (
         <p className="hint-text" style={{ marginBottom: 12, color: "#666", fontSize: 13 }}>
           Barkod ve stok kodu kayıt sırasında otomatik oluşturulur.
@@ -152,22 +160,39 @@ export default function ProductForm() {
         )}
 
         <label>Ürün Resmi</label>
-        <ProductImageField product={existing} value={imageValue} onChange={setImageValue} />
+        {fromCatalog ? (
+          existing?.imageUrl || existing?.hasImage ? (
+            <img src={getProductImageSrc(existing)} alt="" style={{ maxWidth: 160, borderRadius: 4 }} />
+          ) : (
+            <p className="hint-text">Resim admin panelinden gelir.</p>
+          )
+        ) : (
+          <ProductImageField product={existing} value={imageValue} onChange={setImageValue} />
+        )}
 
         <label>Ürün Adı *</label>
-        <input value={form.name} onChange={(e) => setField("name", e.target.value)} required />
-
-        <label>Kateqoriya / Qrup *</label>
-        <ProductGroupField
-          showLabel={false}
-          value={form.groupId}
-          groups={state.groups}
-          onChange={(groupId) => setField("groupId", groupId)}
-          onCreateGroup={addGroup}
+        <input
+          value={form.name}
+          onChange={(e) => setField("name", e.target.value)}
+          required
+          disabled={fromCatalog}
         />
 
+        <label>Kateqoriya / Qrup *</label>
+        {fromCatalog ? (
+          <input value={state.groups.find((g) => g.id === form.groupId)?.name || ""} disabled />
+        ) : (
+          <ProductGroupField
+            showLabel={false}
+            value={form.groupId}
+            groups={state.groups}
+            onChange={(groupId) => setField("groupId", groupId)}
+            onCreateGroup={addGroup}
+          />
+        )}
+
         <label>Ürün Birimi</label>
-        <select value={form.unit} onChange={(e) => setField("unit", e.target.value)} required>
+        <select value={form.unit} onChange={(e) => setField("unit", e.target.value)} required disabled={fromCatalog}>
           {PRODUCT_UNITS.map((unit) => (
             <option key={unit} value={unit}>
               {unit}
@@ -182,19 +207,42 @@ export default function ProductForm() {
         <input type="number" value={form.criticalStock} onChange={(e) => setField("criticalStock", e.target.value)} />
 
         <label>KDV %</label>
-        <input type="number" value={form.vat} onChange={(e) => setField("vat", e.target.value)} />
+        <input type="number" value={form.vat} onChange={(e) => setField("vat", e.target.value)} disabled={fromCatalog} />
 
         <label>Alış Fiyatı</label>
-        <input type="number" step="0.01" value={form.buyPrice} onChange={(e) => setField("buyPrice", e.target.value)} />
+        <input
+          type="number"
+          step="0.01"
+          value={form.buyPrice}
+          onChange={(e) => setField("buyPrice", e.target.value)}
+          disabled={fromCatalog}
+        />
 
         <label>Fiyat 1</label>
-        <input type="number" step="0.01" value={form.price1} onChange={(e) => setField("price1", e.target.value)} />
+        <input
+          type="number"
+          step="0.01"
+          value={form.price1}
+          onChange={(e) => setField("price1", e.target.value)}
+          disabled={fromCatalog}
+        />
 
         <label>Fiyat 2</label>
-        <input type="number" step="0.01" value={form.price2} onChange={(e) => setField("price2", e.target.value)} />
+        <input
+          type="number"
+          step="0.01"
+          value={form.price2}
+          onChange={(e) => setField("price2", e.target.value)}
+          disabled={fromCatalog}
+        />
 
         <label className="checkbox-row">
-          <input type="checkbox" checked={form.onSalePage} onChange={(e) => setField("onSalePage", e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={form.onSalePage}
+            onChange={(e) => setField("onSalePage", e.target.checked)}
+            disabled={fromCatalog}
+          />
           Satış sayfasında göster
         </label>
 

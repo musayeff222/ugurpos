@@ -206,9 +206,12 @@ router.post("/products/:id/image-file", (req, res) => {
 
     const db = getDb();
     const existing = db
-      .prepare("SELECT id FROM products WHERE id = ? AND branch_id = ?")
+      .prepare("SELECT id, firm_product_id FROM products WHERE id = ? AND branch_id = ?")
       .get(req.params.id, req.branchId);
     if (!existing) return res.status(404).json({ error: "Not found" });
+    if (existing.firm_product_id) {
+      return res.status(400).json({ error: "Katalog ürün resmi yalnızca admin panelinden değişir" });
+    }
     if (!req.file) return res.status(400).json({ error: "Resim dosyasi gerekli" });
 
     try {
@@ -232,6 +235,17 @@ router.patch("/products/:id", (req, res) => {
   const db = getDb();
   const existing = db.prepare("SELECT * FROM products WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
   if (!existing) return res.status(404).json({ error: "Not found" });
+
+  if (existing.firm_product_id) {
+    db.prepare("UPDATE products SET stock=?, critical_stock=? WHERE id=? AND branch_id=?").run(
+      req.body.stock != null ? Number(req.body.stock) : existing.stock,
+      req.body.criticalStock != null ? Number(req.body.criticalStock) : existing.critical_stock,
+      req.params.id,
+      req.branchId
+    );
+    return res.json(rowToProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
+  }
+
   const p = { ...rowToProduct(existing), ...req.body };
   db.prepare(`
     UPDATE products SET barcode=?, stock_code=?, name=?, group_id=?, stock=?, critical_stock=?, vat=?,
@@ -267,10 +281,11 @@ router.delete("/products", (req, res) => {
   const del = db.prepare("DELETE FROM products WHERE id = ? AND branch_id = ?");
   ids.forEach((id) => {
     const row = find.get(id, req.branchId);
-    if (row) {
-      deleteProductImage(req.branchId, id);
-      del.run(id, req.branchId);
-    }
+    if (!row) return;
+    const linked = db.prepare("SELECT firm_product_id FROM products WHERE id = ?").get(id);
+    if (linked?.firm_product_id) return;
+    deleteProductImage(req.branchId, id);
+    del.run(id, req.branchId);
   });
   res.json({ ok: true });
 });
@@ -287,7 +302,12 @@ router.post("/groups", (req, res) => {
 });
 
 router.delete("/groups/:id", (req, res) => {
-  getDb().prepare("DELETE FROM `groups` WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
+  const db = getDb();
+  const group = db.prepare("SELECT firm_group_id FROM `groups` WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
+  if (group?.firm_group_id) {
+    return res.status(400).json({ error: "Merkez katalog grubu şubeden silinemez" });
+  }
+  db.prepare("DELETE FROM `groups` WHERE id = ? AND branch_id = ?").run(req.params.id, req.branchId);
   res.json({ ok: true });
 });
 

@@ -3,6 +3,7 @@ import { migrateQrMenu } from "./migrate-qr-menu.js";
 import { migrateActivityLog } from "./migrate-activity-log.js";
 import { migrateBusiness } from "./migrate-business.js";
 import { migrateOfflineSync } from "./migrate-offline-sync.js";
+import { migrateFirmCatalog } from "./migrate-firm-catalog.js";
 import { initMysqlSchema } from "./schema-mysql.js";
 import { hasColumn, addColumnIfMissing } from "./columns.js";
 
@@ -14,6 +15,7 @@ export function initSchema(db) {
     migrateActivityLog(db);
     migrateBusiness(db);
     migrateOfflineSync(db);
+    migrateFirmCatalog(db);
     return;
   }
 
@@ -246,4 +248,5 @@ function initSqliteSchema(db) {
   migrateActivityLog(db);
   migrateBusiness(db);
   migrateOfflineSync(db);
+  migrateFirmCatalog(db);
 }

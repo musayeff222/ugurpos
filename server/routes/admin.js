@@ -4,6 +4,29 @@ import { getDb, uid, getSaleWithItems } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
 import { adminMiddleware } from "../middleware/admin.js";
 import { seedBranchDefaults } from "../utils/branchDefaults.js";
+import {
+  generateFirmBarcode,
+  generateFirmStockCode,
+  listFirmGroups,
+  listFirmProducts,
+  rowToFirmGroup,
+  rowToFirmProduct,
+  syncFirmCatalogToBranch,
+  syncFirmGroupToAllBranches,
+  syncFirmProductToAllBranches,
+  deactivateFirmProduct,
+  removeFirmGroup,
+  applyCatalogImageAndSync,
+  clearCatalogImageAndSync,
+} from "../utils/firmCatalog.js";
+import {
+  saveCatalogImage,
+  saveCatalogImageFromFile,
+  resolveCatalogImageFile,
+  contentTypeForImagePath,
+  deleteCatalogImage,
+} from "../utils/catalogImage.js";
+import { catalogImageUpload } from "../middleware/imageUpload.js";
 import { hashBranchPassword, getNextBranchNumber, isValidBranchEmail, normalizeBranchEmail, validateBranchNo } from "../utils/branchAuth.js";
 import { signAdminToken } from "../middleware/auth.js";
 import { ensureFirmSettings, enrichMenuBranch, rowToFirmMenu } from "../utils/qrMenu.js";
@@ -247,6 +270,7 @@ router.post("/branches", (req, res) => {
       "INSERT INTO branches (id, firm_id, name, code, email, password_hash, address, active, menu_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)"
     ).run(id, req.user.firmId, name.trim(), branchNo, normalizedEmail, passwordHash, address?.trim() || "");
     seedBranchDefaults(db, id);
+    syncFirmCatalogToBranch(db, req.user.firmId, id);
   });
 
   tx();
@@ -725,5 +749,176 @@ function updateAdminAccount(req, res) {
     message: "Admin giriş bilgileri güncellendi",
   });
 }
+
+router.get("/catalog/groups", (req, res) => {
+  res.json(listFirmGroups(getDb(), req.user.firmId));
+});
+
+router.post("/catalog/groups", (req, res) => {
+  const name = String(req.body.name || "").trim();
+  if (!name) return res.status(400).json({ error: "Grup adı zorunludur" });
+  const db = getDb();
+  const exists = db
+    .prepare("SELECT id FROM firm_groups WHERE firm_id = ? AND name = ?")
+    .get(req.user.firmId, name);
+  if (exists) return res.status(409).json({ error: "Bu grup zaten var" });
+  const id = uid("fg");
+  db.prepare("INSERT INTO firm_groups (id, firm_id, name) VALUES (?, ?, ?)").run(id, req.user.firmId, name);
+  const group = { id, name };
+  syncFirmGroupToAllBranches(db, req.user.firmId, group);
+  res.status(201).json(rowToFirmGroup(group));
+});
+
+router.patch("/catalog/groups/:id", (req, res) => {
+  const db = getDb();
+  const existing = db
+    .prepare("SELECT * FROM firm_groups WHERE id = ? AND firm_id = ?")
+    .get(req.params.id, req.user.firmId);
+  if (!existing) return res.status(404).json({ error: "Grup bulunamadı" });
+  const name = String(req.body.name || "").trim();
+  if (!name) return res.status(400).json({ error: "Grup adı zorunludur" });
+  db.prepare("UPDATE firm_groups SET name = ? WHERE id = ?").run(name, existing.id);
+  syncFirmGroupToAllBranches(db, req.user.firmId, { id: existing.id, name });
+  res.json({ id: existing.id, name });
+});
+
+router.delete("/catalog/groups/:id", (req, res) => {
+  const result = removeFirmGroup(getDb(), req.user.firmId, req.params.id);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json({ ok: true });
+});
+
+router.get("/catalog/products", (req, res) => {
+  res.json(listFirmProducts(getDb(), req.user.firmId));
+});
+
+router.get("/catalog/products/:id/image", (req, res) => {
+  const db = getDb();
+  const row = db
+    .prepare("SELECT image_path FROM firm_products WHERE id = ? AND firm_id = ?")
+    .get(req.params.id, req.user.firmId);
+  if (!row?.image_path) return res.status(404).end();
+  const filePath = resolveCatalogImageFile(req.user.firmId, row.image_path);
+  if (!filePath) return res.status(404).end();
+  res.setHeader("Content-Type", contentTypeForImagePath(row.image_path));
+  res.setHeader("Cache-Control", "private, max-age=3600");
+  res.sendFile(filePath);
+});
+
+router.post("/catalog/products", (req, res) => {
+  const db = getDb();
+  const p = req.body;
+  const name = String(p.name || "").trim();
+  if (!name) return res.status(400).json({ error: "Ürün adı zorunludur" });
+  if (!p.groupId) return res.status(400).json({ error: "Grup seçin" });
+  const group = db
+    .prepare("SELECT * FROM firm_groups WHERE id = ? AND firm_id = ?")
+    .get(p.groupId, req.user.firmId);
+  if (!group) return res.status(400).json({ error: "Grup bulunamadı" });
+
+  const id = uid("fp");
+  const barcode = (p.barcode && String(p.barcode).trim()) || generateFirmBarcode(db, req.user.firmId);
+  const stockCode = (p.stockCode && String(p.stockCode).trim()) || generateFirmStockCode(db, req.user.firmId);
+  db.prepare(
+    `INSERT INTO firm_products (id, firm_id, group_id, barcode, stock_code, name, vat, buy_price, price1, price2, unit, on_sale_page, active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
+  ).run(
+    id,
+    req.user.firmId,
+    p.groupId,
+    barcode,
+    stockCode,
+    name,
+    Number(p.vat) || 20,
+    Number(p.buyPrice) || 0,
+    Number(p.price1) || 0,
+    Number(p.price2) || 0,
+    p.unit || "Adet",
+    p.onSalePage === false ? 0 : 1
+  );
+
+  if (p.imageData && p.imageMime) {
+    const filename = saveCatalogImage(req.user.firmId, id, p.imageData, p.imageMime);
+    db.prepare("UPDATE firm_products SET image_path = ? WHERE id = ?").run(filename, id);
+  } else if (p.removeImage) {
+    deleteCatalogImage(req.user.firmId, id);
+  }
+
+  syncFirmProductToAllBranches(db, req.user.firmId, id);
+  const row = db.prepare("SELECT * FROM firm_products WHERE id = ?").get(id);
+  res.status(201).json(rowToFirmProduct(row, group.name));
+});
+
+router.patch("/catalog/products/:id", (req, res) => {
+  const db = getDb();
+  const existing = db
+    .prepare("SELECT * FROM firm_products WHERE id = ? AND firm_id = ?")
+    .get(req.params.id, req.user.firmId);
+  if (!existing) return res.status(404).json({ error: "Ürün bulunamadı" });
+  const p = req.body;
+  const name = p.name != null ? String(p.name).trim() : existing.name;
+  if (!name) return res.status(400).json({ error: "Ürün adı zorunludur" });
+  const groupId = p.groupId || existing.group_id;
+  const group = db
+    .prepare("SELECT * FROM firm_groups WHERE id = ? AND firm_id = ?")
+    .get(groupId, req.user.firmId);
+  if (!group) return res.status(400).json({ error: "Grup bulunamadı" });
+
+  db.prepare(
+    `UPDATE firm_products SET group_id=?, name=?, vat=?, buy_price=?, price1=?, price2=?, unit=?, on_sale_page=?, active=?
+     WHERE id=?`
+  ).run(
+    groupId,
+    name,
+    p.vat != null ? Number(p.vat) : existing.vat,
+    p.buyPrice != null ? Number(p.buyPrice) : existing.buy_price,
+    p.price1 != null ? Number(p.price1) : existing.price1,
+    p.price2 != null ? Number(p.price2) : existing.price2,
+    p.unit || existing.unit || "Adet",
+    p.onSalePage === false ? 0 : p.onSalePage === true ? 1 : existing.on_sale_page,
+    p.active === false ? 0 : p.active === true ? 1 : existing.active,
+    existing.id
+  );
+
+  if (p.removeImage) {
+    clearCatalogImageAndSync(db, req.user.firmId, existing.id);
+  } else if (p.imageData && p.imageMime) {
+    const filename = saveCatalogImage(req.user.firmId, existing.id, p.imageData, p.imageMime);
+    applyCatalogImageAndSync(db, req.user.firmId, existing.id, filename);
+  } else {
+    syncFirmProductToAllBranches(db, req.user.firmId, existing.id);
+  }
+
+  const row = db.prepare("SELECT * FROM firm_products WHERE id = ?").get(existing.id);
+  res.json(rowToFirmProduct(row, group.name));
+});
+
+router.post("/catalog/products/:id/image-file", (req, res) => {
+  catalogImageUpload.single("image")(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message || "Resim yüklenemedi" });
+    const db = getDb();
+    const existing = db
+      .prepare("SELECT * FROM firm_products WHERE id = ? AND firm_id = ?")
+      .get(req.params.id, req.user.firmId);
+    if (!existing) return res.status(404).json({ error: "Ürün bulunamadı" });
+    if (!req.file) return res.status(400).json({ error: "Resim dosyası gerekli" });
+    try {
+      const filename = saveCatalogImageFromFile(req.user.firmId, existing.id, req.file.path, req.file.mimetype);
+      applyCatalogImageAndSync(db, req.user.firmId, existing.id, filename);
+      const row = db.prepare("SELECT * FROM firm_products WHERE id = ?").get(existing.id);
+      const group = row.group_id
+        ? db.prepare("SELECT name FROM firm_groups WHERE id = ?").get(row.group_id)
+        : null;
+      res.json(rowToFirmProduct(row, group?.name || ""));
+    } catch (saveErr) {
+      return res.status(400).json({ error: saveErr.message || "Resim kaydedilemedi" });
+    }
+  });
+});
+
+router.delete("/catalog/products/:id", (req, res) => {
+  deactivateFirmProduct(getDb(), req.user.firmId, req.params.id);
+  res.json({ ok: true });
+});
 
 export default router;

@@ -60,6 +60,11 @@ export const productImageUpload = createImageUploadMiddleware(
   (req) => `${req.params.id || `new-${Date.now()}`}`
 );
 
+export const catalogImageUpload = createImageUploadMiddleware(
+  (req) => ["catalog", req.user.firmId],
+  (req) => `${req.params.id || `new-${Date.now()}`}`
+);
+
 export function getUploadsRootAbsolute() {
   return path.resolve(resolveUploadsRoot());
 }

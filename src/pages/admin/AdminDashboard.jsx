@@ -40,6 +40,9 @@ export default function AdminDashboard() {
           <span>Firma özeti · bugün</span>
         </div>
         <div className="crm-listbar__tools">
+          <Link to="/admin/products" className="btn btn-default btn-sm">
+            Ürünler
+          </Link>
           <Link to="/admin/branches/new" className="btn btn-primary btn-sm">
             Yeni hesap
           </Link>

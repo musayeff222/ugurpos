@@ -284,6 +284,7 @@ export function rowToProduct(row) {
     active: !!row.active,
     hasImage: !!(uploadUrl || seedUrl),
     imageUrl,
+    firmProductId: row.firm_product_id || null,
   };
 }
 

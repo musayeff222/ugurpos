@@ -76,6 +76,34 @@ export const api = {
   updateAdminAccount: (payload) =>
     request("/admin/account", { method: "PATCH", body: JSON.stringify(payload) }),
 
+  getAdminCatalogGroups: () => request("/admin/catalog/groups"),
+  createAdminCatalogGroup: (name) =>
+    request("/admin/catalog/groups", { method: "POST", body: JSON.stringify({ name }) }),
+  updateAdminCatalogGroup: (id, name) =>
+    request(`/admin/catalog/groups/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
+  deleteAdminCatalogGroup: (id) => request(`/admin/catalog/groups/${id}`, { method: "DELETE" }),
+  getAdminCatalogProducts: () => request("/admin/catalog/products"),
+  createAdminCatalogProduct: (product) =>
+    request("/admin/catalog/products", { method: "POST", body: JSON.stringify(product) }),
+  updateAdminCatalogProduct: (id, patch) =>
+    request(`/admin/catalog/products/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  deleteAdminCatalogProduct: (id) => request(`/admin/catalog/products/${id}`, { method: "DELETE" }),
+  uploadAdminCatalogImage: async (id, file) => {
+    const form = new FormData();
+    form.append("image", file);
+    const headers = {};
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`/api/admin/catalog/products/${id}/image-file`, { method: "POST", headers, body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || res.statusText || "Resim yüklenemedi");
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  },
+
   getAdminQrMenu: () => request("/admin/qr-menu"),
   updateAdminQrMenu: (patch) =>
     request("/admin/qr-menu", { method: "PATCH", body: JSON.stringify(patch) }),
