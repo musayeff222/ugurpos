@@ -1,17 +1,43 @@
+import { useMemo, useState } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useAdminAlerts } from "../context/AdminAlertsContext";
 import { useOffline } from "../offline/OfflineContext";
+import SyncStatus from "../components/SyncStatus";
 import "../styles/admin.css";
 
 const adminNav = [
-  { to: "/admin", label: "Özet", icon: "fa-home", end: true },
-  { to: "/admin/branches", label: "Şubeler", icon: "fa-building" },
-  { to: "/admin/activity", label: "Hareketler", icon: "fa-bell", badge: "activity" },
-  { to: "/admin/cash-reports", label: "Kasa", icon: "fa-money" },
-  { to: "/admin/qr-menu", label: "Web Sipariş", icon: "fa-shopping-bag", badge: "orders" },
-  { to: "/admin/settings", label: "Ayarlar", icon: "fa-cog" },
+  {
+    title: "Komuta",
+    items: [
+      { to: "/admin", label: "Komuta merkezi", icon: "fa-th-large", end: true },
+      { to: "/admin/branches", label: "Şubeler", icon: "fa-sitemap" },
+      { to: "/admin/activity", label: "Hareketler", icon: "fa-bolt", badge: "activity" },
+    ],
+  },
+  {
+    title: "Finans & Satış",
+    items: [
+      { to: "/admin/cash-reports", label: "Kasa & raporlar", icon: "fa-line-chart" },
+      { to: "/admin/qr-menu", label: "Web sipariş", icon: "fa-shopping-bag", badge: "orders" },
+    ],
+  },
+  {
+    title: "Sistem",
+    items: [{ to: "/admin/settings", label: "Firma ayarları", icon: "fa-sliders" }],
+  },
 ];
+
+const flatNav = adminNav.flatMap((group) => group.items);
+
+function initials(text) {
+  const value = String(text || "SA")
+    .replace(/@.*/, "")
+    .trim();
+  const parts = value.split(/[\s._-]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return value.slice(0, 2).toUpperCase() || "SA";
+}
 
 export default function AdminLayout() {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
@@ -19,6 +45,7 @@ export default function AdminLayout() {
   const { isOnline } = useOffline();
   const location = useLocation();
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   if (!isAuthenticated) {
     return <Navigate to="/login/admin" replace state={{ from: location }} />;
@@ -45,9 +72,17 @@ export default function AdminLayout() {
     (item.to === "/admin/cash-reports" && location.pathname.startsWith("/admin/cash-reports")) ||
     (item.to === "/admin/settings" && location.pathname.startsWith("/admin/settings"));
 
+  const activeItem = flatNav.find((item) => isNavActive(item));
   const pageTitle =
-    adminNav.find((item) => isNavActive(item))?.label ||
-    (location.pathname.includes("/branches/new") ? "Yeni Şube" : "Admin");
+    activeItem?.label || (location.pathname.includes("/branches/new") ? "Yeni şube" : "Super Admin");
+
+  const breadcrumb = useMemo(() => {
+    if (location.pathname === "/admin") return ["Super Admin", "Komuta merkezi"];
+    if (location.pathname.startsWith("/admin/branches/new")) return ["Super Admin", "Şubeler", "Yeni şube"];
+    if (location.pathname.startsWith("/admin/branches/")) return ["Super Admin", "Şubeler", "Şube detayı"];
+    if (location.pathname.startsWith("/admin/branches")) return ["Super Admin", "Şubeler"];
+    return ["Super Admin", pageTitle];
+  }, [location.pathname, pageTitle]);
 
   const alertLink =
     latestAlert?.type === "qr_order"
@@ -56,30 +91,47 @@ export default function AdminLayout() {
         ? "/admin/activity"
         : "/admin/activity";
 
+  const renderNav = (onNavigate) =>
+    adminNav.map((group) => (
+      <div key={group.title} className="erp-nav-group">
+        <p className="erp-nav-title">{group.title}</p>
+        {group.items.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={isNavActive(item) ? "active" : ""}
+            onClick={onNavigate}
+          >
+            <i className={`fa ${item.icon}`} aria-hidden />
+            <span>{item.label}</span>
+            {item.badge === "orders" && pendingQrOrders > 0 && (
+              <em className="admin-nav-badge">{pendingQrOrders}</em>
+            )}
+          </Link>
+        ))}
+      </div>
+    ));
+
   return (
-    <div className="admin-shell">
-      <aside className="admin-sidebar admin-sidebar--desktop">
-        <div className="admin-brand">
-          <strong>UgurPOS</strong>
-          <span>{user?.firmName || "Yönetim"}</span>
+    <div className={`admin-shell erp-shell ${menuOpen ? "erp-shell--menu" : ""}`}>
+      <aside className="admin-sidebar admin-sidebar--desktop erp-sidebar">
+        <div className="erp-brand">
+          <div className="erp-brand__mark">UP</div>
+          <div>
+            <strong>UgurPOS</strong>
+            <span>Super Admin ERP</span>
+          </div>
         </div>
-        <nav className="admin-nav">
-          {adminNav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={isNavActive(item) ? "active" : ""}
-            >
-              <i className={`fa ${item.icon}`} aria-hidden />
-              {item.label}
-              {item.badge === "orders" && pendingQrOrders > 0 && (
-                <span className="admin-nav-badge">{pendingQrOrders}</span>
-              )}
-            </Link>
-          ))}
-        </nav>
-        <div className="admin-sidebar-footer">
+        <nav className="admin-nav erp-nav">{renderNav()}</nav>
+        <div className="admin-sidebar-footer erp-sidebar-footer">
+          <div className="erp-user-chip">
+            <span className="erp-avatar">{initials(user?.email)}</span>
+            <div>
+              <strong>{user?.firmName || "Yönetim"}</strong>
+              <small>{user?.email}</small>
+            </div>
+          </div>
           <Link to="/login" className="admin-sidebar-link" target="_blank" rel="noopener noreferrer">
             <i className="fa fa-external-link" /> POS girişi
           </Link>
@@ -89,11 +141,21 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <main className="admin-main">
+      <main className="admin-main erp-main">
         <header className="admin-mobile-header">
+          <button
+            type="button"
+            className={`menu-hamburger ${menuOpen ? "is-open" : ""}`}
+            aria-label="Menü"
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
           <div className="admin-mobile-header__title">
             <strong>{pageTitle}</strong>
-            <span>{user?.firmName}</span>
+            <span>Super Admin</span>
           </div>
           <div className="admin-mobile-header__actions">
             <Link to="/admin/branches/new" className="admin-icon-btn" title="Yeni şube">
@@ -105,17 +167,37 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        <header className="admin-topbar admin-topbar--desktop">
-          <div className="admin-topbar__info">
-            <strong>{user?.firmName}</strong>
-            <span>{user?.email}</span>
+        {menuOpen && (
+          <div className="erp-drawer">
+            <nav className="admin-nav erp-nav">{renderNav(() => setMenuOpen(false))}</nav>
           </div>
-          <Link to="/login" className="admin-pos-link" target="_blank" rel="noopener noreferrer">
-            POS giriş sayfası ↗
-          </Link>
+        )}
+
+        <header className="admin-topbar admin-topbar--desktop erp-topbar">
+          <div className="erp-topbar__left">
+            <p className="erp-breadcrumb">{breadcrumb.join(" / ")}</p>
+            <h1>{pageTitle}</h1>
+          </div>
+          <div className="erp-topbar__right">
+            <SyncStatus />
+            <Link to="/admin/activity" className="erp-bell" aria-label="Bildirimler">
+              <i className="fa fa-bell-o" />
+              {pendingQrOrders > 0 && <span>{pendingQrOrders}</span>}
+            </Link>
+            <Link to="/login" className="admin-pos-link erp-pos-btn" target="_blank" rel="noopener noreferrer">
+              <i className="fa fa-desktop" /> POS
+            </Link>
+            <div className="erp-user-chip erp-user-chip--top">
+              <span className="erp-avatar">{initials(user?.email)}</span>
+              <div>
+                <strong>Super Admin</strong>
+                <small>{user?.email}</small>
+              </div>
+            </div>
+          </div>
         </header>
 
-        <div className="admin-content">
+        <div className="admin-content erp-content">
           {latestAlert && !location.pathname.startsWith(alertLink) && (
             <Link to={alertLink} className="admin-alert-toast" onClick={clearLatest}>
               <strong>{latestAlert.title}</strong>
@@ -128,7 +210,7 @@ export default function AdminLayout() {
       </main>
 
       <nav className="admin-bottom-nav" aria-label="Admin menü">
-        {adminNav.map((item) => (
+        {flatNav.map((item) => (
           <Link
             key={item.to}
             to={item.to}
@@ -136,7 +218,7 @@ export default function AdminLayout() {
             className={`admin-bottom-nav__item ${isNavActive(item) ? "active" : ""}`}
           >
             <i className={`fa ${item.icon}`} aria-hidden />
-            <span>{item.label}</span>
+            <span>{item.label.split(" ")[0]}</span>
             {item.badge === "orders" && pendingQrOrders > 0 && (
               <span className="admin-nav-badge admin-nav-badge--bottom">{pendingQrOrders}</span>
             )}

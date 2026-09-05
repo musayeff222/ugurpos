@@ -46,9 +46,9 @@ export default function AdminLogin() {
         <div className="login-grid admin-login-grid">
           <div className="login-card admin-login-card">
             <form onSubmit={handleSubmit}>
-              <div className="admin-login-badge">Yönetim Paneli</div>
-              <h4>Admin Girişi</h4>
-              <p className="login-hint">Şube yönetimi ve firma ayarları için ayrı giriş ekranı.</p>
+              <div className="admin-login-badge">Super Admin ERP</div>
+              <h4>Merkezi yönetim</h4>
+              <p className="login-hint">Tüm şubeler, finans, CRM ve web sipariş tek panelden.</p>
 
               <div className="form-group">
                 <input
@@ -72,7 +72,7 @@ export default function AdminLogin() {
               {error && <p className="login-error">{error}</p>}
 
               <button type="submit" className="btn-login admin-login-btn">
-                Admin Paneline Gir
+                Super Admin paneline gir
               </button>
 
               <div className="login-links">
@@ -82,9 +82,9 @@ export default function AdminLogin() {
           </div>
 
           <div className="login-promo admin-login-promo">
-            <h4>Merkezi yönetim</h4>
-            <p>Şube oluşturma, giriş kodları, parola yönetimi ve firma özeti bu panelden yapılır.</p>
-            <p>POS satış ekranı şube personeli için ayrı adreste: <strong>/login</strong></p>
+            <h4>UgurPOS Super Admin</h4>
+            <p>ERP / CRM komuta merkezi: şube, kasa, stok, personel ve omnichannel sipariş.</p>
+            <p>Şube kassası ayrı adreste: <strong>/login</strong></p>
           </div>
         </div>
       </div>

@@ -61,16 +61,55 @@ router.get("/summary", (req, res) => {
     )
     .all(firmId);
 
+  const mapped = branches.map((b) => {
+    const stats = branchStats(db, b.id);
+    return {
+      ...rowToBranch(b),
+      productCount: Number(b.product_count),
+      saleCount: Number(b.sale_count),
+      stats,
+    };
+  });
+
+  const totals = mapped.reduce(
+    (acc, b) => {
+      acc.todayCount += Number(b.stats?.todayCount || 0);
+      acc.todayTotal += Number(b.stats?.todayTotal || 0);
+      acc.monthCount += Number(b.stats?.monthCount || 0);
+      acc.monthTotal += Number(b.stats?.monthTotal || 0);
+      acc.productCount += Number(b.productCount || 0);
+      acc.customerCount += Number(b.stats?.customerCount || 0);
+      return acc;
+    },
+    { todayCount: 0, todayTotal: 0, monthCount: 0, monthTotal: 0, productCount: 0, customerCount: 0 }
+  );
+
+  let pendingQrOrders = 0;
+  try {
+    pendingQrOrders = Number(
+      db
+        .prepare(
+          `SELECT COUNT(*) as c FROM qr_orders qo
+           INNER JOIN branches b ON b.id = qo.branch_id
+           WHERE b.firm_id = ? AND qo.status = 'pending'`
+        )
+        .get(firmId).c
+    );
+  } catch {
+    pendingQrOrders = 0;
+  }
+
+  const recentActivity = listActivityLogs(db, firmId, { limit: 8 }).map(rowToActivityLog);
+
   res.json({
     firmId,
     firmName: req.user.firmName,
     branchCount,
     userCount,
-    branches: branches.map((b) => ({
-      ...rowToBranch(b),
-      productCount: b.product_count,
-      saleCount: b.sale_count,
-    })),
+    ...totals,
+    pendingQrOrders,
+    recentActivity,
+    branches: mapped,
   });
 });
 
