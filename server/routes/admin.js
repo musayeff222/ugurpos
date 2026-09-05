@@ -255,6 +255,8 @@ router.get("/branches/:id/workspace", (req, res) => {
       role: row.role || "",
       active: !!row.active,
       salary: Number(row.salary || 0),
+      phone: row.phone || "",
+      startedAt: row.started_at || "",
       ...staffSalesTotals(db, branch.id, row),
     }));
 
@@ -363,6 +365,127 @@ router.patch("/branches/:id/staff/:staffId", (req, res) => {
   if (Number.isNaN(salary) || salary < 0) return res.status(400).json({ error: "Geçerli maaş girin" });
   db.prepare("UPDATE staff SET salary = ? WHERE id = ?").run(salary, staff.id);
   res.json({ id: staff.id, salary });
+});
+
+function normalizeStaffRole(role) {
+  const value = String(role || "").toLocaleLowerCase("tr");
+  if (value.includes("garson")) return "Garson";
+  if (value.includes("personal") || value.includes("personel")) return "Personal";
+  return "Kasiyer";
+}
+
+function rowToAdminStaff(row, branch) {
+  return {
+    id: row.id,
+    name: row.name,
+    surname: row.surname || "",
+    phone: row.phone || "",
+    login: row.login || "",
+    role: row.role || "Kasiyer",
+    salary: Number(row.salary || 0),
+    startedAt: row.started_at || "",
+    active: !!row.active,
+    branchId: row.branch_id,
+    branchName: branch ? branch.name : "",
+    hasPassword: !!row.password_hash,
+  };
+}
+
+router.get("/staff", (req, res) => {
+  const db = getDb();
+  const branches = db.prepare("SELECT * FROM branches WHERE firm_id = ?").all(req.user.firmId);
+  const branchMap = Object.fromEntries(branches.map((b) => [b.id, b]));
+  const rows = db.prepare("SELECT * FROM staff ORDER BY name").all();
+  res.json(
+    rows.filter((row) => branchMap[row.branch_id]).map((row) => rowToAdminStaff(row, branchMap[row.branch_id]))
+  );
+});
+
+router.post("/staff", (req, res) => {
+  const db = getDb();
+  const { name, surname, phone, branchId, login, password, role, salary, startedAt } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: "Ad zorunludur" });
+  if (!branchId) return res.status(400).json({ error: "Şube seçin" });
+  if (!login?.trim()) return res.status(400).json({ error: "Login zorunludur" });
+  if (!password?.trim()) return res.status(400).json({ error: "Parola zorunludur" });
+  const branch = getBranchOr404(db, branchId, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+  const normalizedLogin = login.trim().toLowerCase();
+  const taken = db.prepare("SELECT id FROM staff WHERE login = ?").get(normalizedLogin);
+  if (taken) return res.status(409).json({ error: "Bu login zaten kullanılıyor" });
+  const nextRole = normalizeStaffRole(role);
+  const canCash = nextRole === "Kasiyer" ? 1 : 0;
+  const id = uid("s");
+  db.prepare(
+    `INSERT INTO staff (id, name, surname, login, password_hash, code, role, active, can_cash_expense, branch_id, salary, phone, started_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    name.trim(),
+    surname?.trim() || "",
+    normalizedLogin,
+    hashBranchPassword(password),
+    "",
+    nextRole,
+    canCash,
+    branch.id,
+    Number(salary) || 0,
+    phone?.trim() || "",
+    startedAt?.trim() || ""
+  );
+  const row = db.prepare("SELECT * FROM staff WHERE id = ?").get(id);
+  res.status(201).json(rowToAdminStaff(row, branch));
+});
+
+router.patch("/staff/:id", (req, res) => {
+  const db = getDb();
+  const existing = db.prepare("SELECT * FROM staff WHERE id = ?").get(req.params.id);
+  if (!existing) return res.status(404).json({ error: "Çalışan bulunamadı" });
+  const currentBranch = getBranchOr404(db, existing.branch_id, req.user.firmId);
+  if (!currentBranch) return res.status(404).json({ error: "Çalışan bulunamadı" });
+  const s = req.body;
+  let nextBranch = currentBranch;
+  if (s.branchId && s.branchId !== existing.branch_id) {
+    nextBranch = getBranchOr404(db, s.branchId, req.user.firmId);
+    if (!nextBranch) return res.status(404).json({ error: "Şube bulunamadı" });
+  }
+  const nextLogin = s.login !== undefined ? String(s.login).trim().toLowerCase() : existing.login;
+  if (nextLogin && nextLogin !== existing.login) {
+    const taken = db.prepare("SELECT id FROM staff WHERE login = ? AND id != ?").get(nextLogin, existing.id);
+    if (taken) return res.status(409).json({ error: "Bu login zaten kullanılıyor" });
+  }
+  const nextRole = s.role !== undefined ? normalizeStaffRole(s.role) : existing.role || "Kasiyer";
+  const passwordHash = s.password?.trim() ? hashBranchPassword(s.password) : existing.password_hash;
+  db.prepare(
+    `UPDATE staff SET name=?, surname=?, login=?, password_hash=?, role=?, active=?, can_cash_expense=?, branch_id=?, salary=?, phone=?, started_at=?
+     WHERE id=?`
+  ).run(
+    s.name?.trim() || existing.name,
+    s.surname !== undefined ? s.surname.trim() : existing.surname || "",
+    nextLogin,
+    passwordHash,
+    nextRole,
+    s.active === false ? 0 : s.active === true ? 1 : existing.active ? 1 : 0,
+    nextRole === "Kasiyer" ? 1 : 0,
+    nextBranch.id,
+    s.salary != null ? Number(s.salary) || 0 : Number(existing.salary || 0),
+    s.phone !== undefined ? s.phone.trim() : existing.phone || "",
+    s.startedAt !== undefined ? s.startedAt : existing.started_at || "",
+    existing.id
+  );
+  const row = db.prepare("SELECT * FROM staff WHERE id = ?").get(existing.id);
+  res.json(rowToAdminStaff(row, nextBranch));
+});
+
+router.delete("/staff/:id", (req, res) => {
+  const db = getDb();
+  const existing = db.prepare("SELECT * FROM staff WHERE id = ?").get(req.params.id);
+  if (!existing) return res.status(404).json({ error: "Çalışan bulunamadı" });
+  if (!getBranchOr404(db, existing.branch_id, req.user.firmId)) {
+    return res.status(404).json({ error: "Çalışan bulunamadı" });
+  }
+  db.prepare("DELETE FROM staff WHERE id = ?").run(existing.id);
+  res.json({ ok: true });
 });
 
 router.get("/branches/:id/activity", (req, res) => {

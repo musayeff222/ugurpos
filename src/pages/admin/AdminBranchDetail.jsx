@@ -489,7 +489,9 @@ export default function AdminBranchDetail() {
                   <thead>
                     <tr>
                       <th>İsim</th>
+                      <th>Telefon</th>
                       <th>Rol</th>
+                      <th>İşe başlama</th>
                       <th>Maaş</th>
                       <th>Günlük satış</th>
                       <th>Aylık satış</th>
@@ -505,7 +507,9 @@ export default function AdminBranchDetail() {
                           </strong>
                           <small>{person.active ? "Aktif" : "Pasif"}</small>
                         </td>
+                        <td>{person.phone || "—"}</td>
                         <td>{person.role || "—"}</td>
+                        <td>{person.startedAt ? formatDateTime(person.startedAt) : "—"}</td>
                         <td>
                           <input
                             className="crm-inline-input"
@@ -539,8 +543,8 @@ export default function AdminBranchDetail() {
                     ))}
                     {!workspace?.staff?.length && (
                       <tr>
-                        <td colSpan={6} className="erp-table__empty">
-                          Çalışan yok. Şubeye geçip personel ekleyebilirsiniz.
+                        <td colSpan={8} className="erp-table__empty">
+                          Çalışan yok. Admin → Çalışanlar sayfasından ekleyin.
                         </td>
                       </tr>
                     )}

@@ -49,6 +49,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminActivity from "./pages/admin/AdminActivity";
 import AdminCashReports from "./pages/admin/AdminCashReports";
 import AdminCatalog from "./pages/admin/AdminCatalog";
+import AdminStaff from "./pages/admin/AdminStaff";
 import PublicMenuLanding from "./pages/public/PublicMenuLanding";
 import PublicBranchMenu from "./pages/public/PublicBranchMenu";
 import PublicBranchCart from "./pages/public/PublicBranchCart";
@@ -89,6 +90,7 @@ export default function App() {
         <Route path="activity" element={<AdminActivity />} />
         <Route path="cash-reports" element={<AdminCashReports />} />
         <Route path="products" element={<AdminCatalog />} />
+        <Route path="staff" element={<AdminStaff />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />

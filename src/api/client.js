@@ -68,6 +68,11 @@ export const api = {
   createBranch: (branch) => request("/admin/branches", { method: "POST", body: JSON.stringify(branch) }),
   updateBranch: (id, patch) => request(`/admin/branches/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteBranch: (id) => request(`/admin/branches/${id}`, { method: "DELETE" }),
+  getAdminStaff: () => request("/admin/staff"),
+  createAdminStaff: (payload) => request("/admin/staff", { method: "POST", body: JSON.stringify(payload) }),
+  updateAdminStaff: (id, payload) =>
+    request(`/admin/staff/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteAdminStaff: (id) => request(`/admin/staff/${id}`, { method: "DELETE" }),
 
   getAdminActivity: () => request("/admin/activity"),
   getAdminActivityPoll: (after) =>

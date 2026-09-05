@@ -13,6 +13,7 @@ const adminNav = [
       { to: "/admin", label: "Ana sayfa", icon: "fa-home", end: true },
       { to: "/admin/branches", label: "Hesaplar", icon: "fa-building" },
       { to: "/admin/products", label: "Ürünler", icon: "fa-cube" },
+      { to: "/admin/staff", label: "Çalışanlar", icon: "fa-users" },
       { to: "/admin/activity", label: "Aktiviteler", icon: "fa-list-alt", badge: "activity" },
     ],
   },
@@ -70,6 +71,7 @@ export default function AdminLayout() {
     location.pathname === item.to ||
     (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches")) ||
     (item.to === "/admin/products" && location.pathname.startsWith("/admin/products")) ||
+    (item.to === "/admin/staff" && location.pathname.startsWith("/admin/staff")) ||
     (item.to === "/admin/qr-menu" && location.pathname.startsWith("/admin/qr-menu")) ||
     (item.to === "/admin/activity" && location.pathname.startsWith("/admin/activity")) ||
     (item.to === "/admin/cash-reports" && location.pathname.startsWith("/admin/cash-reports")) ||

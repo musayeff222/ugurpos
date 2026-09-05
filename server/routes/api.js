@@ -739,6 +739,9 @@ router.get("/staff", (req, res) => {
         role: r.role,
         active: !!r.active,
         canCashExpense: !!r.can_cash_expense,
+        salary: Number(r.salary || 0),
+        phone: r.phone || "",
+        startedAt: r.started_at || "",
       }))
   );
 });

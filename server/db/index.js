@@ -400,6 +400,8 @@ export function getAllState(database, branchId) {
       active: !!r.active,
       canCashExpense: !!r.can_cash_expense,
       salary: Number(r.salary || 0),
+      phone: r.phone || "",
+      startedAt: r.started_at || "",
     }));
   const paymentMethods = database
     .prepare("SELECT * FROM payment_methods WHERE branch_id = ?")

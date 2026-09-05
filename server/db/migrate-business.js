@@ -5,6 +5,8 @@ export function migrateBusiness(db) {
   addColumnIfMissing(db, "branches", "business_close_time", db.dialect === "mysql" ? "VARCHAR(8) DEFAULT '17:00'" : "TEXT DEFAULT '17:00'");
   addColumnIfMissing(db, "staff", "can_cash_expense", db.dialect === "mysql" ? "TINYINT DEFAULT 0" : "INTEGER DEFAULT 0");
   addColumnIfMissing(db, "staff", "salary", db.dialect === "mysql" ? "DOUBLE DEFAULT 0" : "REAL DEFAULT 0");
+  addColumnIfMissing(db, "staff", "phone", db.dialect === "mysql" ? "VARCHAR(64)" : "TEXT");
+  addColumnIfMissing(db, "staff", "started_at", db.dialect === "mysql" ? "VARCHAR(32)" : "TEXT");
   addColumnIfMissing(db, "sales", "cash_amount", db.dialect === "mysql" ? "DOUBLE DEFAULT 0" : "REAL DEFAULT 0");
   addColumnIfMissing(db, "sales", "pos_amount", db.dialect === "mysql" ? "DOUBLE DEFAULT 0" : "REAL DEFAULT 0");
 
