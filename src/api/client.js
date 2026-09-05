@@ -53,6 +53,17 @@ export const api = {
   getAdminBranches: () => request("/admin/branches"),
   getAdminBranch: (id) => request(`/admin/branches/${id}`),
   getAdminBranchActivity: (id) => request(`/admin/branches/${id}/activity`),
+  getAdminBranchWorkspace: (id) => request(`/admin/branches/${id}/workspace`),
+  updateAdminBranchProduct: (branchId, productId, patch) =>
+    request(`/admin/branches/${branchId}/products/${productId}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+  updateAdminBranchStaff: (branchId, staffId, patch) =>
+    request(`/admin/branches/${branchId}/staff/${staffId}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
   enterBranchAsAdmin: (id) => request(`/admin/branches/${id}/enter`, { method: "POST" }),
   createBranch: (branch) => request("/admin/branches", { method: "POST", body: JSON.stringify(branch) }),
   updateBranch: (id, patch) => request(`/admin/branches/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),

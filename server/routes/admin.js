@@ -159,6 +159,212 @@ router.get("/branches/:id", (req, res) => {
   });
 });
 
+function staffSalesTotals(db, branchId, staff) {
+  const today = new Date().toISOString().slice(0, 10);
+  const month = today.slice(0, 7);
+  const fullName = `${staff.name || ""} ${staff.surname || ""}`.trim();
+  const names = [...new Set([fullName, staff.name].filter(Boolean))];
+  if (!names.length) {
+    return { todayTotal: 0, todayCount: 0, monthTotal: 0, monthCount: 0 };
+  }
+  const placeholders = names.map(() => "?").join(", ");
+  const todayRow = db
+    .prepare(
+      `SELECT COALESCE(SUM(total),0) as t, COUNT(*) as c FROM sales
+       WHERE branch_id = ? AND ${SQL.date("created_at")}=? AND payment_type != 'refund'
+         AND staff_name IN (${placeholders})`
+    )
+    .get(branchId, today, ...names);
+  const monthRow = db
+    .prepare(
+      `SELECT COALESCE(SUM(total),0) as t, COUNT(*) as c FROM sales
+       WHERE branch_id = ? AND ${SQL.month("created_at")}=? AND payment_type != 'refund'
+         AND staff_name IN (${placeholders})`
+    )
+    .get(branchId, month, ...names);
+  return {
+    todayTotal: Number(todayRow?.t || 0),
+    todayCount: Number(todayRow?.c || 0),
+    monthTotal: Number(monthRow?.t || 0),
+    monthCount: Number(monthRow?.c || 0),
+  };
+}
+
+router.get("/branches/:id/workspace", (req, res) => {
+  const db = getDb();
+  const branch = getBranchOr404(db, req.params.id, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+
+  const products = db
+    .prepare(
+      `SELECT p.*, g.name as group_name FROM products p
+       LEFT JOIN \`groups\` g ON g.id = p.group_id
+       WHERE p.branch_id = ? ORDER BY p.name`
+    )
+    .all(branch.id)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      groupName: p.group_name || "",
+      stock: Number(p.stock || 0),
+      criticalStock: Number(p.critical_stock || 0),
+      price1: Number(p.price1 || 0),
+      buyPrice: Number(p.buy_price || 0),
+      active: !!p.active,
+      firmProductId: p.firm_product_id || null,
+    }));
+
+  const saleIds = db
+    .prepare("SELECT id FROM sales WHERE branch_id = ? ORDER BY created_at DESC LIMIT 40")
+    .all(branch.id);
+  const sales = saleIds.map(({ id }) => {
+    const sale = getSaleWithItems(db, id);
+    return {
+      id: sale.id,
+      code: sale.code,
+      createdAt: sale.createdAt,
+      paymentType: sale.paymentType,
+      total: sale.total,
+      cashAmount: sale.cashAmount,
+      posAmount: sale.posAmount,
+      staffName: sale.staffName,
+      itemCount: sale.items.length,
+      items: sale.items,
+    };
+  });
+
+  const withdrawals = db
+    .prepare("SELECT * FROM cash_withdrawals WHERE branch_id = ? ORDER BY created_at DESC LIMIT 50")
+    .all(branch.id)
+    .map((row) => ({
+      id: row.id,
+      amount: Number(row.amount || 0),
+      reason: row.reason,
+      note: row.note || "",
+      staffName: row.staff_name,
+      createdAt: row.created_at,
+    }));
+
+  const staff = db
+    .prepare("SELECT * FROM staff WHERE branch_id = ? ORDER BY name")
+    .all(branch.id)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      surname: row.surname || "",
+      role: row.role || "",
+      active: !!row.active,
+      salary: Number(row.salary || 0),
+      ...staffSalesTotals(db, branch.id, row),
+    }));
+
+  const pay = db
+    .prepare(
+      `SELECT payment_type, COUNT(*) as c, COALESCE(SUM(total),0) as t
+       FROM sales WHERE branch_id = ? GROUP BY payment_type`
+    )
+    .all(branch.id);
+  const payMap = Object.fromEntries(pay.map((r) => [r.payment_type, { count: Number(r.c), total: Number(r.t) }]));
+
+  const sold = db
+    .prepare(
+      `SELECT COALESCE(SUM(si.qty),0) as qty, COALESCE(SUM(si.qty * si.price),0) as sold,
+              COALESCE(SUM(si.qty * COALESCE(p.buy_price,0)),0) as cost
+       FROM sale_items si
+       JOIN sales s ON s.id = si.sale_id
+       LEFT JOIN products p ON p.id = si.product_id
+       WHERE s.branch_id = ? AND s.payment_type != 'refund'`
+    )
+    .get(branch.id);
+
+  const refunds = db
+    .prepare(
+      `SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales
+       WHERE branch_id = ? AND payment_type = 'refund'`
+    )
+    .get(branch.id);
+
+  const refundRequests = db
+    .prepare("SELECT * FROM refund_requests WHERE branch_id = ? ORDER BY date DESC LIMIT 20")
+    .all(branch.id)
+    .map((r) => ({
+      id: r.id,
+      productName: r.product_name || "",
+      reason: r.reason || "",
+      status: r.status,
+      date: r.date,
+    }));
+
+  res.json({
+    products,
+    sales,
+    withdrawals,
+    staff,
+    refundRequests,
+    report: {
+      cash: payMap.cash || { count: 0, total: 0 },
+      pos: payMap.pos || { count: 0, total: 0 },
+      open: payMap.open || { count: 0, total: 0 },
+      partial: payMap.partial || { count: 0, total: 0 },
+      refund: { count: Number(refunds?.c || 0), total: Number(refunds?.t || 0) },
+      soldQty: Number(sold?.qty || 0),
+      soldAmount: Number(sold?.sold || 0),
+      costAmount: Number(sold?.cost || 0),
+      profit: Number(sold?.sold || 0) - Number(sold?.cost || 0),
+      withdrawalTotal: withdrawals.reduce((sum, row) => sum + row.amount, 0),
+    },
+  });
+});
+
+router.patch("/branches/:id/products/:productId", (req, res) => {
+  const db = getDb();
+  const branch = getBranchOr404(db, req.params.id, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+  const product = db
+    .prepare("SELECT * FROM products WHERE id = ? AND branch_id = ?")
+    .get(req.params.productId, branch.id);
+  if (!product) return res.status(404).json({ error: "Ürün bulunamadı" });
+
+  const nextPrice = req.body.price1 != null ? Number(req.body.price1) : Number(product.price1 || 0);
+  if (Number.isNaN(nextPrice) || nextPrice < 0) {
+    return res.status(400).json({ error: "Geçerli fiyat girin" });
+  }
+  let nextStock = Number(product.stock || 0);
+  if (req.body.addStock != null) {
+    const add = Number(req.body.addStock);
+    if (Number.isNaN(add)) return res.status(400).json({ error: "Geçerli stok girin" });
+    nextStock += add;
+  } else if (req.body.stock != null) {
+    nextStock = Number(req.body.stock);
+    if (Number.isNaN(nextStock)) return res.status(400).json({ error: "Geçerli stok girin" });
+  }
+  db.prepare("UPDATE products SET price1 = ?, stock = ? WHERE id = ? AND branch_id = ?").run(
+    nextPrice,
+    nextStock,
+    product.id,
+    branch.id
+  );
+  const updated = db.prepare("SELECT * FROM products WHERE id = ?").get(product.id);
+  res.json({
+    id: updated.id,
+    name: updated.name,
+    stock: Number(updated.stock || 0),
+    price1: Number(updated.price1 || 0),
+  });
+});
+
+router.patch("/branches/:id/staff/:staffId", (req, res) => {
+  const db = getDb();
+  const branch = getBranchOr404(db, req.params.id, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+  const staff = db.prepare("SELECT * FROM staff WHERE id = ? AND branch_id = ?").get(req.params.staffId, branch.id);
+  if (!staff) return res.status(404).json({ error: "Çalışan bulunamadı" });
+  const salary = Number(req.body.salary);
+  if (Number.isNaN(salary) || salary < 0) return res.status(400).json({ error: "Geçerli maaş girin" });
+  db.prepare("UPDATE staff SET salary = ? WHERE id = ?").run(salary, staff.id);
+  res.json({ id: staff.id, salary });
+});
+
 router.get("/branches/:id/activity", (req, res) => {
   const db = getDb();
   const branch = getBranchOr404(db, req.params.id, req.user.firmId);

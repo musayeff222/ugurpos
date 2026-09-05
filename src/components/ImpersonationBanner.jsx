@@ -6,17 +6,19 @@ export default function ImpersonationBanner() {
   const navigate = useNavigate();
 
   const handleReturn = () => {
+    const lastBranch = sessionStorage.getItem("ugurpos_admin_last_branch");
     const restored = returnToAdminPanel();
-    if (restored) navigate("/admin/branches");
+    if (restored && lastBranch) navigate(`/admin/branches/${lastBranch}`);
+    else if (restored) navigate("/admin/branches");
     else navigate("/login/admin");
   };
 
   return (
     <div className="impersonation-banner">
       <span>
-        <i className="fa fa-eye" /> Admin modu — <strong>{activeBranchName}</strong> şubesini görüntülüyorsunuz
+        <i className="fa fa-user-secret" /> Admin olarak <strong>{activeBranchName}</strong> şubesindesiniz
       </span>
-      <button type="button" className="btn btn-default btn-xs" onClick={handleReturn}>
+      <button type="button" className="btn impersonation-banner__back" onClick={handleReturn}>
         Admin panele dön
       </button>
     </div>
