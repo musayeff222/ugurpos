@@ -97,18 +97,17 @@ export default function AdminCashReports() {
 
   return (
     <div className="admin-page erp-page">
-      <section className="erp-hero">
+      <div className="crm-listbar">
         <div>
-          <p className="erp-kicker">Finans</p>
-          <h2>Kasa & iş günü</h2>
-          <p>Şube kasası, çekimler ve gün sonu arşivi.</p>
+          <h2>Raporlar</h2>
+          <span>Kasa çekimleri ve iş günü arşivi</span>
         </div>
-        <div className="erp-hero__actions">
-          <button type="button" className="btn btn-default" onClick={load}>
+        <div className="crm-listbar__tools">
+          <button type="button" className="btn btn-default btn-sm" onClick={load}>
             Yenile
           </button>
         </div>
-      </section>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 

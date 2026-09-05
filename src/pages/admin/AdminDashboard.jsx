@@ -5,9 +5,9 @@ import { formatMoney } from "../../utils/format";
 import { getBranchLabel } from "../../utils/branchDisplay";
 
 const TYPE_LABELS = {
-  branch_login: "Şube girişi",
-  admin_login: "Admin girişi",
-  qr_order: "Web siparişi",
+  branch_login: "Giriş",
+  admin_login: "Yönetici",
+  qr_order: "Sipariş",
 };
 
 export default function AdminDashboard() {
@@ -21,94 +21,56 @@ export default function AdminDashboard() {
       .catch((e) => setError(e.message));
   }, []);
 
-  const kpis = summary
+  const metrics = summary
     ? [
-        { label: "Aktif şube", value: summary.branchCount, hint: "Canlı operasyon", icon: "fa-sitemap", tone: "blue" },
-        { label: "Bugünkü ciro", value: formatMoney(summary.todayTotal || 0), hint: `${summary.todayCount || 0} satış`, icon: "fa-money", tone: "green" },
-        { label: "Aylık ciro", value: formatMoney(summary.monthTotal || 0), hint: `${summary.monthCount || 0} satış`, icon: "fa-bar-chart", tone: "navy" },
-        { label: "Bekleyen sipariş", value: summary.pendingQrOrders || 0, hint: "Web / QR", icon: "fa-shopping-bag", tone: "amber" },
-        { label: "Toplam ürün", value: summary.productCount || 0, hint: "Tüm şubeler", icon: "fa-cube", tone: "teal" },
-        { label: "Müşteri", value: summary.customerCount || 0, hint: "CRM kayıtları", icon: "fa-users", tone: "purple" },
+        { label: "Aktif hesap", value: summary.branchCount, hint: "şube" },
+        { label: "Bugünkü ciro", value: formatMoney(summary.todayTotal || 0), hint: `${summary.todayCount || 0} satış` },
+        { label: "Aylık ciro", value: formatMoney(summary.monthTotal || 0), hint: `${summary.monthCount || 0} satış` },
+        { label: "Açık sipariş", value: summary.pendingQrOrders || 0, hint: "web / QR" },
+        { label: "Ürün", value: summary.productCount || 0, hint: "katalog" },
+        { label: "Müşteri", value: summary.customerCount || 0, hint: "kayıt" },
       ]
     : [];
 
   return (
     <div className="admin-page erp-page">
-      <section className="erp-hero">
+      <div className="crm-listbar">
         <div>
-          <p className="erp-kicker">Super Admin · ERP / CRM</p>
-          <h2>Komuta merkezi</h2>
-          <p>Tüm şubelerin satış, kasa, stok ve web siparişini tek panelden yönetin.</p>
+          <h2>Ana sayfa</h2>
+          <span>Firma özeti · bugün</span>
         </div>
-        <div className="erp-hero__actions">
-          <Link to="/admin/branches/new" className="btn btn-success">
-            + Yeni şube
-          </Link>
-          <Link to="/admin/cash-reports" className="btn btn-default">
-            Finans raporları
+        <div className="crm-listbar__tools">
+          <Link to="/admin/branches/new" className="btn btn-primary btn-sm">
+            Yeni hesap
           </Link>
         </div>
-      </section>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
       {summary && (
         <>
-          <div className="erp-kpi-grid">
-            {kpis.map((kpi) => (
-              <article key={kpi.label} className={`erp-kpi erp-kpi--${kpi.tone}`}>
-                <i className={`fa ${kpi.icon}`} aria-hidden />
-                <div>
-                  <span>{kpi.label}</span>
-                  <strong>{kpi.value}</strong>
-                  <small>{kpi.hint}</small>
-                </div>
+          <div className="crm-metrics">
+            {metrics.map((kpi) => (
+              <article key={kpi.label}>
+                <span>{kpi.label}</span>
+                <strong>{kpi.value}</strong>
+                <small>{kpi.hint}</small>
               </article>
             ))}
-          </div>
-
-          <div className="erp-modules">
-            <Link to="/admin/branches" className="erp-module">
-              <i className="fa fa-sitemap" />
-              <div>
-                <strong>Şube CRM</strong>
-                <span>Şube, personel ve stok</span>
-              </div>
-            </Link>
-            <Link to="/admin/cash-reports" className="erp-module">
-              <i className="fa fa-money" />
-              <div>
-                <strong>Finans</strong>
-                <span>Kasa, gider, gün sonu</span>
-              </div>
-            </Link>
-            <Link to="/admin/qr-menu" className="erp-module">
-              <i className="fa fa-qrcode" />
-              <div>
-                <strong>Omnichannel</strong>
-                <span>QR menü ve web sipariş</span>
-              </div>
-            </Link>
-            <Link to="/admin/settings" className="erp-module">
-              <i className="fa fa-shield" />
-              <div>
-                <strong>Sistem</strong>
-                <span>Firma ve güvenlik</span>
-              </div>
-            </Link>
           </div>
 
           <div className="erp-split">
             <section className="erp-panel">
               <header className="erp-panel__head">
-                <h3>Şube performansı</h3>
-                <Link to="/admin/branches">Tümünü gör</Link>
+                <h3>Son görüntülenen hesaplar</h3>
+                <Link to="/admin/branches">Tüm liste</Link>
               </header>
               <div className="admin-table-wrap">
                 <table className="erp-table">
                   <thead>
                     <tr>
-                      <th>Şube</th>
+                      <th>Hesap adı</th>
                       <th>Durum</th>
                       <th>Bugün</th>
                       <th>Ürün</th>
@@ -119,9 +81,12 @@ export default function AdminDashboard() {
                     {summary.branches.map((b) => (
                       <tr key={b.id}>
                         <td>
-                          <Link to={`/admin/branches/${b.id}`}>
-                            <strong>{getBranchLabel(b)}</strong>
-                            <small>{b.email || "E-posta yok"}</small>
+                          <Link className="crm-account" to={`/admin/branches/${b.id}`}>
+                            <span className="crm-avatar">{String(getBranchLabel(b)).slice(0, 2).toUpperCase()}</span>
+                            <span>
+                              <strong>{getBranchLabel(b)}</strong>
+                              <small>{b.email || "—"}</small>
+                            </span>
                           </Link>
                         </td>
                         <td>
@@ -137,8 +102,7 @@ export default function AdminDashboard() {
                     {summary.branches.length === 0 && (
                       <tr>
                         <td colSpan={5} className="erp-table__empty">
-                          Henüz şube yok.{" "}
-                          <Link to="/admin/branches/new">İlk şubeyi oluştur</Link>
+                          Kayıt yok. <Link to="/admin/branches/new">Hesap oluştur</Link>
                         </td>
                       </tr>
                     )}
@@ -149,8 +113,8 @@ export default function AdminDashboard() {
 
             <section className="erp-panel">
               <header className="erp-panel__head">
-                <h3>Son hareketler</h3>
-                <Link to="/admin/activity">Akış</Link>
+                <h3>Aktivite geçmişi</h3>
+                <Link to="/admin/activity">Tümü</Link>
               </header>
               <div className="erp-timeline">
                 {(summary.recentActivity || []).map((item) => (
@@ -163,7 +127,7 @@ export default function AdminDashboard() {
                   </article>
                 ))}
                 {(!summary.recentActivity || summary.recentActivity.length === 0) && (
-                  <p className="hint-text">Henüz hareket yok.</p>
+                  <p className="hint-text">Aktivite yok.</p>
                 )}
               </div>
             </section>

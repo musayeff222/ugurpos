@@ -55,13 +55,12 @@ export default function AdminSettings() {
 
   return (
     <div className="admin-page erp-page">
-      <section className="erp-hero">
+      <div className="crm-listbar">
         <div>
-          <p className="erp-kicker">Sistem</p>
-          <h2>Firma ayarları</h2>
-          <p>Super Admin e-posta ve şifre. POS / şube girişi ayrı kalır.</p>
+          <h2>Kurulum</h2>
+          <span>Yönetici hesabı · POS girişi ayrı</span>
         </div>
-      </section>
+      </div>
 
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}

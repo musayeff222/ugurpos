@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { formatMoney } from "../../utils/format";
 import { getBranchLabel } from "../../utils/branchDisplay";
@@ -7,6 +7,13 @@ import { getBranchLabel } from "../../utils/branchDisplay";
 export default function AdminBranches() {
   const [branches, setBranches] = useState([]);
   const [error, setError] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const q = searchParams.get("q") || "";
+  const [draft, setDraft] = useState(q);
+
+  useEffect(() => {
+    setDraft(q);
+  }, [q]);
 
   useEffect(() => {
     api
@@ -15,42 +22,74 @@ export default function AdminBranches() {
       .catch((e) => setError(e.message));
   }, []);
 
+  const rows = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return branches;
+    return branches.filter((b) => {
+      const label = getBranchLabel(b).toLowerCase();
+      return (
+        label.includes(term) ||
+        String(b.email || "").toLowerCase().includes(term) ||
+        String(b.branchNo || "").includes(term)
+      );
+    });
+  }, [branches, q]);
+
+  const applySearch = (e) => {
+    e.preventDefault();
+    const next = draft.trim();
+    if (next) setSearchParams({ q: next });
+    else setSearchParams({});
+  };
+
   return (
     <div className="admin-page erp-page">
-      <section className="erp-hero">
+      <div className="crm-listbar">
         <div>
-          <p className="erp-kicker">Şube CRM</p>
-          <h2>Şubeler</h2>
-          <p>{branches.length} şube · stok, satış ve kasa tek yerde</p>
+          <h2>Hesaplar</h2>
+          <span>
+            {rows.length} / {branches.length} kayıt
+          </span>
         </div>
-        <div className="erp-hero__actions">
-          <Link to="/admin/branches/new" className="btn btn-success">
-            + Yeni şube
+        <div className="crm-listbar__tools">
+          <form className="crm-global-search crm-global-search--inline" onSubmit={applySearch}>
+            <i className="fa fa-search" aria-hidden />
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Ada, e-posta, no..."
+            />
+          </form>
+          <Link to="/admin/branches/new" className="btn btn-primary btn-sm">
+            Yeni
           </Link>
         </div>
-      </section>
+      </div>
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <section className="erp-panel">
+      <section className="erp-panel erp-panel--flush">
         <div className="admin-table-wrap admin-table-wrap--desktop-only">
           <table className="erp-table">
             <thead>
               <tr>
-                <th>Şube</th>
+                <th>Hesap adı</th>
                 <th>Durum</th>
                 <th>Bugünkü ciro</th>
                 <th>Ürün</th>
                 <th>Müşteri</th>
-                <th></th>
+                <th>Sahip</th>
               </tr>
             </thead>
             <tbody>
-              {branches.map((b) => (
+              {rows.map((b) => (
                 <tr key={b.id}>
                   <td>
-                    <Link to={`/admin/branches/${b.id}`}>
-                      <strong>{getBranchLabel(b)}</strong>
-                      <small>{b.email || "E-posta yok"}</small>
+                    <Link className="crm-account" to={`/admin/branches/${b.id}`}>
+                      <span className="crm-avatar">{String(getBranchLabel(b)).slice(0, 2).toUpperCase()}</span>
+                      <span>
+                        <strong>{getBranchLabel(b)}</strong>
+                        <small>{b.email || "E-posta yok"}</small>
+                      </span>
                     </Link>
                   </td>
                   <td>
@@ -60,16 +99,20 @@ export default function AdminBranches() {
                   <td>{b.stats?.productCount || 0}</td>
                   <td>{b.stats?.customerCount || 0}</td>
                   <td>
-                    <Link to={`/admin/branches/${b.id}`} className="btn btn-default btn-sm">
-                      Aç
-                    </Link>
+                    <Link to={`/admin/branches/${b.id}`}>Aç</Link>
                   </td>
                 </tr>
               ))}
-              {branches.length === 0 && (
+              {rows.length === 0 && (
                 <tr>
                   <td colSpan={6} className="erp-table__empty">
-                    Henüz şube yok. <Link to="/admin/branches/new">İlk şubeyi oluştur</Link>
+                    {branches.length === 0 ? (
+                      <>
+                        Kayıt yok. <Link to="/admin/branches/new">İlk hesabı oluştur</Link>
+                      </>
+                    ) : (
+                      "Bu aramada sonuç yok."
+                    )}
                   </td>
                 </tr>
               )}
@@ -78,7 +121,7 @@ export default function AdminBranches() {
         </div>
 
         <div className="admin-branch-grid admin-mobile-list">
-          {branches.map((b) => (
+          {rows.map((b) => (
             <Link
               key={b.id}
               to={`/admin/branches/${b.id}`}

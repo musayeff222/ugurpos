@@ -41,52 +41,43 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="erp-login">
-      <aside className="erp-login__brand">
-        <div className="erp-brand">
+    <div className="crm-login">
+      <form onSubmit={handleSubmit}>
+        <div className="erp-brand crm-login__brand">
           <div className="erp-brand__mark">UP</div>
           <div>
             <strong>UgurPOS</strong>
-            <span>Super Admin ERP</span>
+            <span>Console</span>
           </div>
         </div>
-        <h1>Bütün şubeler. Tek komuta.</h1>
-        <ul>
-          <li>Şube CRM ve stok</li>
-          <li>Kasa, ciro, gün sonu</li>
-          <li>QR / web sipariş</li>
-          <li>Canlı hareket akışı</li>
-        </ul>
-        <Link to="/login">POS / şube girişi →</Link>
-      </aside>
-      <main className="erp-login__form">
-        <form onSubmit={handleSubmit}>
-          <p className="erp-kicker">Güvenli giriş</p>
-          <h2>Super Admin</h2>
-          <label className="erp-field">
-            <span>Yönetici e-posta</span>
-            <input
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="username"
-            />
-          </label>
-          <label className="erp-field">
-            <span>Parola</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </label>
-          {error && <p className="login-error">{error}</p>}
-          <button type="submit" className="btn-login admin-login-btn">
-            Panele gir
-          </button>
-        </form>
-      </main>
+        <h1>Yönetici oturumu</h1>
+        <p className="crm-login__hint">Firma konsolu · şube POS’undan ayrıdır</p>
+        <label className="erp-field">
+          <span>Kullanıcı adı</span>
+          <input
+            type="text"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
+          />
+        </label>
+        <label className="erp-field">
+          <span>Parola</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+        </label>
+        {error && <p className="login-error">{error}</p>}
+        <button type="submit" className="btn-login admin-login-btn">
+          Oturum aç
+        </button>
+        <Link className="crm-login__pos" to="/login">
+          POS / şube girişi
+        </Link>
+      </form>
     </div>
   );
 }

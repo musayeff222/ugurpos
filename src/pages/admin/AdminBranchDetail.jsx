@@ -120,91 +120,76 @@ export default function AdminBranchDetail() {
 
   if (!branch && !error) return <div className="erp-panel">Yükleniyor...</div>;
 
+  const label = branch ? getBranchLabel(branch) : "Hesap";
+
   return (
     <div className="admin-page erp-page">
-      <section className="erp-hero">
-        <div>
-          <p className="erp-kicker">Şube CRM</p>
-          <h2>{branch ? getBranchLabel(branch) : "Şube"}</h2>
-          <p>{branch?.email || "Şube kartı, kasa ve POS erişimi"}</p>
-        </div>
-        <div className="erp-hero__actions">
-          <Link to="/admin/branches" className="btn btn-default">
-            ← Liste
-          </Link>
-          {branch?.active && (
-            <button type="button" className="btn btn-primary" onClick={handleEnterPos} disabled={entering}>
-              {entering ? "..." : "POS'a gir"}
-            </button>
-          )}
-        </div>
-      </section>
-
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 
       {branch && (
         <>
-          <div className="erp-kpi-grid erp-kpi-grid--4">
-            <article className="erp-kpi erp-kpi--green">
-              <i className="fa fa-money" />
+          <section className="crm-record">
+            <div className="crm-record__top">
+              <div className="crm-record__id">
+                <span className="crm-avatar crm-avatar--lg">{String(label).slice(0, 2).toUpperCase()}</span>
+                <div>
+                  <p className="crm-object">Hesap · Şube</p>
+                  <h2>{label}</h2>
+                  <p className="crm-record__meta">
+                    {branch.email || "—"}
+                    {branch.branchNo ? ` · #${branch.branchNo}` : ""}
+                    {branch.address ? ` · ${branch.address}` : ""}
+                  </p>
+                </div>
+                <span className={`admin-badge ${branch.active ? "ok" : "off"}`}>
+                  {branch.active ? "Aktif" : "Pasif"}
+                </span>
+              </div>
+              <div className="crm-record__actions">
+                <Link to="/admin/branches" className="btn btn-default btn-sm">
+                  Liste
+                </Link>
+                {branch.active && (
+                  <button type="button" className="btn btn-primary btn-sm" onClick={handleEnterPos} disabled={entering}>
+                    {entering ? "..." : "POS oturumu"}
+                  </button>
+                )}
+              </div>
+            </div>
+            <dl className="crm-highlights">
               <div>
-                <span>Bugün</span>
-                <strong>{formatMoney(branch.stats?.todayTotal || 0)}</strong>
+                <dt>Bugünkü ciro</dt>
+                <dd>{formatMoney(branch.stats?.todayTotal || 0)}</dd>
                 <small>{branch.stats?.todayCount || 0} satış</small>
               </div>
-            </article>
-            <article className="erp-kpi erp-kpi--navy">
-              <i className="fa fa-bar-chart" />
               <div>
-                <span>Bu ay</span>
-                <strong>{formatMoney(branch.stats?.monthTotal || 0)}</strong>
+                <dt>Aylık ciro</dt>
+                <dd>{formatMoney(branch.stats?.monthTotal || 0)}</dd>
                 <small>{branch.stats?.monthCount || 0} satış</small>
               </div>
-            </article>
-            <article className="erp-kpi erp-kpi--teal">
-              <i className="fa fa-cube" />
               <div>
-                <span>Ürün</span>
-                <strong>{branch.stats?.productCount || 0}</strong>
+                <dt>Ürün</dt>
+                <dd>{branch.stats?.productCount || 0}</dd>
                 <small>katalog</small>
               </div>
-            </article>
-            <article className="erp-kpi erp-kpi--purple">
-              <i className="fa fa-users" />
               <div>
-                <span>Müşteri</span>
-                <strong>{branch.stats?.customerCount || 0}</strong>
+                <dt>Müşteri</dt>
+                <dd>{branch.stats?.customerCount || 0}</dd>
                 <small>CRM</small>
               </div>
-            </article>
-          </div>
-
-          <div className="erp-meta">
-            <span>
-              <strong>E-posta</strong> {branch.email || "—"}
-            </span>
-            {branch.address && (
-              <span>
-                <strong>Adres</strong> {branch.address}
-              </span>
-            )}
-            {branch.lat != null && branch.lng != null && (
-              <span>
-                <strong>Konum</strong> {branch.lat}, {branch.lng}
-              </span>
-            )}
-          </div>
+            </dl>
+          </section>
 
           <ul className="admin-tabs erp-tabs">
             <li>
               <button type="button" className={tab === "edit" ? "active" : ""} onClick={() => setTab("edit")}>
-                Bilgiler
+                Ayrıntılar
               </button>
             </li>
             <li>
               <button type="button" className={tab === "activity" ? "active" : ""} onClick={() => setTab("activity")}>
-                Hareketler
+                İlgili satışlar
               </button>
             </li>
           </ul>

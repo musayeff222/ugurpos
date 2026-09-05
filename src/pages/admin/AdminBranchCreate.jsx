@@ -41,18 +41,17 @@ export default function AdminBranchCreate() {
 
   return (
     <div className="admin-page erp-page">
-      <section className="erp-hero">
+      <div className="crm-listbar">
         <div>
-          <p className="erp-kicker">Şube CRM</p>
-          <h2>Yeni şube</h2>
-          <p>POS girişi, stok ve kasa bu kayıttan sonra açılır. Şube numarası otomatik atanır.</p>
+          <h2>Yeni hesap</h2>
+          <span>Şube kaydı · numara otomatik</span>
         </div>
-        <div className="erp-hero__actions">
-          <Link to="/admin/branches" className="btn btn-default">
-            ← Şube listesi
+        <div className="crm-listbar__tools">
+          <Link to="/admin/branches" className="btn btn-default btn-sm">
+            İptal
           </Link>
         </div>
-      </section>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 

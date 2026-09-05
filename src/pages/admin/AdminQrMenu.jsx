@@ -336,13 +336,12 @@ export default function AdminQrMenu() {
 
   return (
     <div className="admin-page admin-qr-page erp-page">
-      <section className="erp-hero">
+      <div className="crm-listbar">
         <div>
-          <p className="erp-kicker">Omnichannel</p>
           <h2>{t("admin.qr.title")}</h2>
-          <p>{t("admin.qr.subtitle")}</p>
+          <span>{t("admin.qr.subtitle")}</span>
         </div>
-      </section>
+      </div>
 
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
