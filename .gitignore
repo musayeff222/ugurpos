@@ -1,4 +1,5 @@
 node_modules/
+desktop/dist/
 captured/
 login.html
 server/data/

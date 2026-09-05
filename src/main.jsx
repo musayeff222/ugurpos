@@ -6,23 +6,32 @@ import { AuthProvider } from "./context/AuthContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import { WebOrdersProvider } from "./context/WebOrdersContext";
 import { AdminAlertsProvider } from "./context/AdminAlertsContext";
+import { OfflineProvider } from "./offline/OfflineContext";
 import { StoreProvider } from "./store/StoreContext";
 import "./styles/global.css";
 import "./styles/forms.css";
+
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <LocaleProvider>
-          <WebOrdersProvider>
-            <AdminAlertsProvider>
-              <StoreProvider>
-                <App />
-              </StoreProvider>
-            </AdminAlertsProvider>
-          </WebOrdersProvider>
-        </LocaleProvider>
+        <OfflineProvider>
+          <LocaleProvider>
+            <WebOrdersProvider>
+              <AdminAlertsProvider>
+                <StoreProvider>
+                  <App />
+                </StoreProvider>
+              </AdminAlertsProvider>
+            </WebOrdersProvider>
+          </LocaleProvider>
+        </OfflineProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>

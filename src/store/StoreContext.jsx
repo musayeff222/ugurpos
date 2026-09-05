@@ -1,20 +1,46 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useOffline } from "../offline/OfflineContext";
 import { api } from "../api/client";
 import { createDefaultState } from "./defaults";
+import { loadStateCache, saveStateCache } from "../offline/cache";
+import { enqueueItem, mergeQueueIntoState } from "../offline/queue";
+import { isNetworkError } from "../offline/network";
+import { newClientId } from "../offline/ids";
+import { buildLocalCashWithdrawal, buildLocalExpense, buildLocalSale } from "../offline/localRecords";
 
 const StoreContext = createContext(null);
 
+function applyState(branchId, data) {
+  const merged = mergeQueueIntoState(data);
+  saveStateCache(branchId, merged);
+  return merged;
+}
+
 export function StoreProvider({ children }) {
-  const { isAuthenticated, activeBranchId } = useAuth();
+  const { isAuthenticated, activeBranchId, activeStaffName } = useAuth();
+  const { lastSyncAt } = useOffline();
   const [state, setState] = useState(createDefaultState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const refresh = async () => {
-    const data = await api.getState();
-    setState(data);
-    return data;
+    try {
+      const data = await api.getState();
+      const merged = applyState(activeBranchId, data);
+      setState(merged);
+      setError(null);
+      return merged;
+    } catch (err) {
+      const cached = loadStateCache(activeBranchId);
+      if (cached) {
+        const merged = mergeQueueIntoState(cached);
+        setState(merged);
+        if (!isNetworkError(err)) setError(err.message);
+        return merged;
+      }
+      throw err;
+    }
   };
 
   useEffect(() => {
@@ -24,12 +50,15 @@ export function StoreProvider({ children }) {
       return;
     }
     setLoading(true);
-    api
-      .getState()
-      .then(setState)
+    refresh()
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [isAuthenticated, activeBranchId]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !lastSyncAt) return;
+    refresh().catch(() => {});
+  }, [lastSyncAt]);
 
   const apiActions = useMemo(
     () => ({
@@ -84,9 +113,21 @@ export function StoreProvider({ children }) {
       },
 
       completeSale: async (payload) => {
-        const sale = await api.createSale(payload);
-        await refresh();
-        return sale;
+        const clientSaleId = payload.clientSaleId || newClientId("sale");
+        const createdAt = payload.createdAt || new Date().toISOString();
+        const body = { ...payload, clientSaleId, createdAt };
+        try {
+          const sale = await api.createSale(body);
+          await refresh();
+          return sale;
+        } catch (err) {
+          if (!isNetworkError(err)) throw err;
+          const local = buildLocalSale(body, clientSaleId);
+          enqueueItem({ id: clientSaleId, type: "sale", payload: body, local });
+          const next = applyState(activeBranchId, { ...state });
+          setState(next);
+          return local;
+        }
       },
 
       updateSalePayment: async (id, paymentType) => {
@@ -157,14 +198,38 @@ export function StoreProvider({ children }) {
       },
 
       addExpense: async (entry) => {
-        await api.createExpense(entry);
-        return refresh();
+        const clientId = entry.clientId || newClientId("exp");
+        const body = { ...entry, clientId };
+        try {
+          const created = await api.createExpense(body);
+          await refresh();
+          return created;
+        } catch (err) {
+          if (!isNetworkError(err)) throw err;
+          const local = buildLocalExpense(body, clientId);
+          enqueueItem({ id: clientId, type: "expense", payload: body, local });
+          const next = applyState(activeBranchId, { ...state });
+          setState(next);
+          return local;
+        }
       },
 
       addCashWithdrawal: async (payload) => {
-        const created = await api.createCashWithdrawal(payload);
-        await refresh();
-        return created;
+        const clientId = payload.clientId || newClientId("cw");
+        const createdAt = payload.createdAt || new Date().toISOString();
+        const body = { ...payload, clientId, createdAt };
+        try {
+          const created = await api.createCashWithdrawal(body);
+          await refresh();
+          return created;
+        } catch (err) {
+          if (!isNetworkError(err)) throw err;
+          const local = buildLocalCashWithdrawal(body, clientId, activeStaffName);
+          enqueueItem({ id: clientId, type: "cash-withdrawal", payload: body, local });
+          const next = applyState(activeBranchId, { ...state });
+          setState(next);
+          return local;
+        }
       },
 
       updateCashWithdrawal: async (id, payload) => {
@@ -258,7 +323,7 @@ export function StoreProvider({ children }) {
         return refresh();
       },
     }),
-    [state, loading, error]
+    [state, loading, error, activeBranchId, activeStaffName]
   );
 
   return <StoreContext.Provider value={apiActions}>{children}</StoreContext.Provider>;

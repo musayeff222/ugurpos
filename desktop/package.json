@@ -1,0 +1,46 @@
+{
+  "name": "ugurpos-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "author": "İstanbul Çiğköfte",
+  "description": "UgurPOS Windows kassa — cigkofte.az",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^36.7.5",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "az.cigkofte.ugurpos",
+    "productName": "UgurPOS",
+    "copyright": "İstanbul Çiğköfte",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "offline.html",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "UgurPOS",
+      "artifactName": "UgurPOS-Setup-${version}.exe"
+    }
+  }
+}

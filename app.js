@@ -72,7 +72,7 @@ try {
     console.log(`Static: ${distDir}`);
     console.log(`Uploads: ${uploadsDir}`);
     if (process.env.NODE_ENV !== "production") {
-      console.log("Login: admin@benimpos.com / admin123");
+      console.log("Login: admin@ugurpos.az / admin123");
     }
   });
 } catch (err) {

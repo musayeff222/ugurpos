@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useWebOrders } from "../context/WebOrdersContext";
+import { useOffline } from "../offline/OfflineContext";
+import { isOfflineAllowedPath } from "../offline/paths";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import MobileMenu from "../components/MobileMenu";
@@ -12,6 +14,7 @@ import "../styles/mobile-menu.css";
 
 export default function MainLayout() {
   const { isAuthenticated, isAdmin, isBranchUser, isImpersonating, isStaffUser, activeStaffRole, canCashExpense } = useAuth();
+  const { isOnline } = useOffline();
   const { latestOrder, clearLatest } = useWebOrders();
   const location = useLocation();
   const isDesktop = useIsDesktop();
@@ -32,14 +35,17 @@ export default function MainLayout() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (isAdmin && !isBranchUser && !isImpersonating) {
+  if (isAdmin && !isBranchUser && !isImpersonating && isOnline) {
     return <Navigate to="/admin" replace />;
   }
 
   const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
   const cashierAllowedPaths = ["/sales"];
   if (canCashExpense) cashierAllowedPaths.push("/cash-expense");
-  if (isCashier && !cashierAllowedPaths.includes(location.pathname)) {
+  if (isCashier && !cashierAllowedPaths.includes(location.pathname) && isOnline) {
+    return <Navigate to="/sales" replace />;
+  }
+  if (!isOnline && !isOfflineAllowedPath(location.pathname)) {
     return <Navigate to="/sales" replace />;
   }
 
@@ -59,6 +65,9 @@ export default function MainLayout() {
         {isDesktop || location.pathname !== "/menu" ? (
           <Topbar menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
         ) : null}
+        {!isOnline && (
+          <div className="offline-banner">İnternet yoxdur — yalnız satış və xərc</div>
+        )}
         <div className={`contentbar ${location.pathname === "/menu" ? "contentbar-menu" : ""}`}>
           {latestOrder && location.pathname !== "/web-orders" && (
             <Link to="/web-orders" className="web-order-toast" onClick={clearLatest}>

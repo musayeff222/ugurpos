@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useWebOrders } from "../context/WebOrdersContext";
+import { useOffline } from "../offline/OfflineContext";
 import LanguageSwitcher from "./public/LanguageSwitcher";
+import SyncStatus from "./SyncStatus";
 
 export default function Topbar({ menuOpen, onMenuToggle }) {
   const { user, logout, activeBranchName } = useAuth();
   const { pendingCount } = useWebOrders();
+  const { isOnline } = useOffline();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -39,11 +42,14 @@ export default function Topbar({ menuOpen, onMenuToggle }) {
         </div>
 
         <div className="infobar">
+          <SyncStatus />
           <LanguageSwitcher compact />
-          <Link to="/web-orders" className="icon-btn web-orders-bell" aria-label="Web siparişler">
-            <i className="fa fa-bell-o" />
-            {pendingCount > 0 && <span className="topbar-badge">{pendingCount}</span>}
-          </Link>
+          {isOnline && (
+            <Link to="/web-orders" className="icon-btn web-orders-bell" aria-label="Web siparişler">
+              <i className="fa fa-bell-o" />
+              {pendingCount > 0 && <span className="topbar-badge">{pendingCount}</span>}
+            </Link>
+          )}
 
           <span className="top-link branch-locked">
             {activeBranchName || user?.branchName || "Şube"} <i className="fa fa-lock" />

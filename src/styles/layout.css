@@ -217,6 +217,41 @@
   flex-wrap: wrap;
 }
 
+.offline-banner {
+  background: #fff4e5;
+  color: #9a5b00;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid #f0d9b5;
+}
+
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sync-status--online {
+  background: #e8f8ef;
+  color: #14804a;
+}
+
+.sync-status--offline {
+  background: #fff1f0;
+  color: #c0392b;
+}
+
+.sync-status--syncing {
+  background: #eef4ff;
+  color: #2f6fed;
+}
+
 .top-link,
 .icon-btn {
   border: none;

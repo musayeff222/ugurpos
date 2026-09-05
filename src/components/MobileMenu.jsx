@@ -3,6 +3,8 @@ import { useAuth } from "../context/AuthContext";
 import { useWebOrders } from "../context/WebOrdersContext";
 import { useLocale } from "../context/LocaleContext";
 import { mobileMenuItems } from "../data/mobileMenu";
+import { useOffline } from "../offline/OfflineContext";
+import { offlineNavigation } from "../offline/paths";
 import "../styles/mobile-menu.css";
 
 export default function MobileMenu({ overlay = false, onClose }) {
@@ -10,7 +12,11 @@ export default function MobileMenu({ overlay = false, onClose }) {
   const { user, logout, isStaffUser, activeStaffRole, canCashExpense } = useAuth();
   const { pendingCount } = useWebOrders();
   const { t } = useLocale();
+  const { isOnline } = useOffline();
   const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
+  const gridItems = !isOnline
+    ? offlineNavigation.filter((item) => item.path !== "/sales")
+    : mobileMenuItems.filter((item) => item.path !== "/sales");
 
   const handleItem = (path) => {
     navigate(path);
@@ -59,7 +65,7 @@ export default function MobileMenu({ overlay = false, onClose }) {
           <i className="fa fa-calculator" />
           <span>{t("nav.sales")}</span>
         </button>
-        {isCashier && canCashExpense && (
+        {(isCashier || !isOnline) && canCashExpense && (
           <button
             type="button"
             className="mobile-menu-sales-cta mobile-menu-sales-cta--secondary"
@@ -69,9 +75,9 @@ export default function MobileMenu({ overlay = false, onClose }) {
             <span>Kassadan Xərc</span>
           </button>
         )}
-        {!isCashier && (
+        {(!isCashier || !isOnline) && (
           <div className="mobile-menu-grid">
-            {mobileMenuItems.filter((item) => item.path !== "/sales").map((item) => (
+            {gridItems.map((item) => (
             <button
               key={item.path + item.label}
               type="button"

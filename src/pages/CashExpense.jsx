@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import Modal from "../components/ui/Modal";
 import { formatDateTime, formatMoney } from "../utils/format";
+import { getSalePaymentParts } from "../utils/salePayments";
+import { isNetworkError } from "../offline/network";
 import { runAsync } from "../utils/runAsync";
 import "../styles/report-mobile.css";
 
@@ -19,13 +21,23 @@ export default function CashExpense() {
   const [error, setError] = useState("");
   const [loadingBalance, setLoadingBalance] = useState(true);
 
+  const estimateLocalBalance = () => {
+    const cashSales = (state.sales || [])
+      .filter((sale) => sale.paymentType !== "refund")
+      .reduce((sum, sale) => sum + Number(getSalePaymentParts(sale).cash || 0), 0);
+    const withdrawn = (state.cashWithdrawals || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    return { balance: cashSales - withdrawn };
+  };
+
   const loadBalance = async () => {
     setLoadingBalance(true);
     try {
       const data = await api.getCashRegisterBalance();
       setBalance(data);
+      setError("");
     } catch (err) {
-      setError(err.message);
+      setBalance(estimateLocalBalance());
+      if (!isNetworkError(err)) setError(err.message);
     } finally {
       setLoadingBalance(false);
     }

@@ -15,7 +15,15 @@ async function request(path, options = {}) {
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`/api${path}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`/api${path}`, { ...options, headers });
+  } catch (cause) {
+    const err = new Error(cause?.message || "Şəbəkə yoxdur");
+    err.status = 0;
+    err.offline = true;
+    throw err;
+  }
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {

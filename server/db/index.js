@@ -48,6 +48,7 @@ export function getDb() {
     initSchema(db);
     migrateUploadsFromDataDir(DATA_DIR);
     seedIfEmpty(db);
+    ensureUgurposAdmin(db);
     normalizeFirmBranding(db);
     ensureCigkofteCatalog(db);
     ensureDefaultExpenseTypes(db);
@@ -157,7 +158,7 @@ function seedIfEmpty(database) {
   const hash = bcrypt.hashSync("admin123", 10);
   database.prepare(
     "INSERT INTO users (id, email, password_hash, firm_id, firm_name, branch, role, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-  ).run("u1", "admin@benimpos.com", hash, firmId, "İstanbul Çiğköfte", "ANA HESAP", "admin", branchId);
+  ).run("u1", "admin@ugurpos.az", hash, firmId, "İstanbul Çiğköfte", "ANA HESAP", "admin", branchId);
 
   const groups = [["g_cigkofte", "Çiğköfte"]];
   const insGroup = database.prepare("INSERT INTO `groups` (id, name, branch_id) VALUES (?, ?, ?)");
@@ -216,7 +217,39 @@ function seedIfEmpty(database) {
     ('i2', 'Yazarkasa', 'inactive', 'ÖKC entegrasyonu', ?)
   `).run(branchId, branchId);
 
-  console.log("Database seeded. Admin: admin@benimpos.com / admin123 | Şube varsayılan parola: sube123");
+  console.log("Database seeded. Admin: admin@ugurpos.az / admin123 | Şube varsayılan parola: sube123");
+}
+
+const ADMIN_EMAIL = "admin@ugurpos.az";
+const ADMIN_PASSWORD = "admin123";
+
+function ensureUgurposAdmin(database) {
+  try {
+    const hash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
+    const existing = database.prepare("SELECT * FROM users WHERE email = ?").get(ADMIN_EMAIL);
+    if (existing) {
+      database.prepare("UPDATE users SET password_hash = ?, role = ? WHERE email = ?").run(hash, "admin", ADMIN_EMAIL);
+      console.log(`[DB] Admin parol yenilendi: ${ADMIN_EMAIL}`);
+      return;
+    }
+
+    const anyAdmin = database.prepare("SELECT * FROM users WHERE role = 'admin' ORDER BY created_at LIMIT 1").get();
+    const firmId = anyAdmin?.firm_id || "U261269153";
+    const firmName = anyAdmin?.firm_name || "İstanbul Çiğköfte";
+    const branchId =
+      anyAdmin?.branch_id ||
+      database.prepare("SELECT id FROM branches WHERE firm_id = ? ORDER BY name LIMIT 1").get(firmId)?.id ||
+      null;
+
+    database
+      .prepare(
+        "INSERT INTO users (id, email, password_hash, firm_id, firm_name, branch, role, branch_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+      .run(uid("u"), ADMIN_EMAIL, hash, firmId, firmName, anyAdmin?.branch || "ANA HESAP", "admin", branchId);
+    console.log(`[DB] Admin hesab yaradildi: ${ADMIN_EMAIL}`);
+  } catch (err) {
+    console.warn("[DB] Admin parol yenilemesi atlandi:", err.message);
+  }
 }
 
 export function rowToProduct(row) {
@@ -287,6 +320,7 @@ export function getSaleWithItems(database, saleId) {
     total: sale.total,
     cashAmount: Number(sale.cash_amount || 0),
     posAmount: Number(sale.pos_amount || 0),
+    clientSaleId: sale.client_sale_id || null,
     items: items.map((i) => ({
       id: i.id,
       productId: i.product_id,
@@ -392,6 +426,7 @@ export function getAllState(database, branchId) {
       amount: r.amount,
       typeId: r.type_id,
       date: r.date,
+      clientId: r.client_id || null,
     }));
   const incomeTypes = database
     .prepare("SELECT * FROM income_types WHERE branch_id = ?")
@@ -511,6 +546,7 @@ export function getAllState(database, branchId) {
         reason: r.reason,
         note: r.note || "",
         createdAt: r.created_at,
+        clientId: r.client_id || null,
       }));
   } catch {
     cashWithdrawals = [];

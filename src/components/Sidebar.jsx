@@ -4,6 +4,8 @@ import { navigation } from "../data/navigation";
 import { useWebOrders } from "../context/WebOrdersContext";
 import { useLocale } from "../context/LocaleContext";
 import { useAuth } from "../context/AuthContext";
+import { useOffline } from "../offline/OfflineContext";
+import { offlineNavigation } from "../offline/paths";
 
 function navLabel(item, t) {
   return item.labelKey ? t(item.labelKey) : item.label;
@@ -67,8 +69,13 @@ export default function Sidebar({ onNavigate }) {
   const { pendingCount } = useWebOrders();
   const { t } = useLocale();
   const { isStaffUser, activeStaffRole } = useAuth();
+  const { isOnline } = useOffline();
   const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
-  const items = isCashier ? navigation.filter((item) => item.path === "/sales") : navigation;
+  const items = !isOnline
+    ? offlineNavigation
+    : isCashier
+      ? navigation.filter((item) => item.path === "/sales")
+      : navigation;
 
   return (
     <div className="leftbar">

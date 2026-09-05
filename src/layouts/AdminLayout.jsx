@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useAdminAlerts } from "../context/AdminAlertsContext";
+import { useOffline } from "../offline/OfflineContext";
 import "../styles/admin.css";
 
 const adminNav = [
@@ -16,6 +16,7 @@ const adminNav = [
 export default function AdminLayout() {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const { pendingQrOrders, latestAlert, clearLatest } = useAdminAlerts();
+  const { isOnline } = useOffline();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -25,6 +26,10 @@ export default function AdminLayout() {
 
   if (!isAdmin) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!isOnline) {
+    return <Navigate to="/sales" replace />;
   }
 
   const handleLogout = () => {

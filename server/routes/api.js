@@ -16,6 +16,7 @@ import { getActiveBusinessWindow } from "../utils/businessHours.js";
 import { computeCashRegisterBalance } from "../utils/cashRegister.js";
 import { resolvePaymentAmounts } from "../utils/salePayments.js";
 import { hashBranchPassword } from "../utils/branchAuth.js";
+import { sanitizeClientSyncId } from "../utils/clientSyncId.js";
 
 const router = Router();
 router.use(branchMiddleware);
@@ -43,6 +44,7 @@ function rowToCashWithdrawal(row) {
     reason: row.reason,
     note: row.note || "",
     createdAt: row.created_at,
+    clientId: row.client_id || null,
   };
 }
 
@@ -361,10 +363,20 @@ router.post("/sales", (req, res) => {
   const db = getDb();
   const { items, paymentType, customerId, staffName, note, discount, discountType, paidAmount, cashAmount, posAmount } =
     req.body;
+  const clientSaleId = sanitizeClientSyncId(req.body.clientSaleId || req.body.client_sale_id);
   const resolvedStaffName = req.user?.loginType === "staff" ? req.user.staffName : staffName || "Admin";
 
   if (!["cash", "pos", "open", "partial"].includes(paymentType)) {
     return res.status(400).json({ error: "Geçersiz ödeme tipi" });
+  }
+
+  if (clientSaleId) {
+    const existing = db
+      .prepare("SELECT id FROM sales WHERE branch_id = ? AND client_sale_id = ?")
+      .get(req.branchId, clientSaleId);
+    if (existing) {
+      return res.status(200).json(getSaleWithItems(db, existing.id));
+    }
   }
 
   let subtotal = items.reduce((s, i) => s + i.qty * i.price - (i.discount || 0), 0);
@@ -381,16 +393,16 @@ router.post("/sales", (req, res) => {
 
   const saleId = uid("sale");
   const code = generateSaleCode();
-  const now = new Date().toISOString();
+  const createdAt = typeof req.body.createdAt === "string" && req.body.createdAt ? req.body.createdAt : new Date().toISOString();
 
   const tx = db.transaction(() => {
     db.prepare(`
-      INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total, cash_amount, pos_amount, branch_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total, cash_amount, pos_amount, branch_id, client_sale_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       saleId,
       code,
-      now,
+      createdAt,
       paymentType,
       customerId || null,
       resolvedStaffName,
@@ -401,7 +413,8 @@ router.post("/sales", (req, res) => {
       subtotal,
       paymentParts.cash,
       paymentParts.pos,
-      req.branchId
+      req.branchId,
+      clientSaleId
     );
 
     const insItem = db.prepare(`
@@ -602,17 +615,26 @@ router.post("/cash-withdrawals", (req, res) => {
   if (!amount || amount <= 0) return res.status(400).json({ error: "Geçerli məbləğ girin" });
   if (!reason) return res.status(400).json({ error: "Xərc səbəbi zəruridir" });
 
+  const clientId = sanitizeClientSyncId(req.body.clientId || req.body.client_id);
+  if (clientId) {
+    const existing = db
+      .prepare("SELECT * FROM cash_withdrawals WHERE branch_id = ? AND client_id = ?")
+      .get(req.branchId, clientId);
+    if (existing) return res.status(200).json(rowToCashWithdrawal(existing));
+  }
+
   const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.branchId);
   const id = uid("cw");
-  const now = new Date().toISOString();
+  const now =
+    typeof req.body.createdAt === "string" && req.body.createdAt ? req.body.createdAt : new Date().toISOString();
   const staffName =
     req.user?.loginType === "staff"
       ? req.user.staffName || "Personal"
       : req.user?.branchName || "Şube";
 
   db.prepare(
-    `INSERT INTO cash_withdrawals (id, branch_id, staff_id, staff_name, amount, reason, note, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO cash_withdrawals (id, branch_id, staff_id, staff_name, amount, reason, note, created_at, client_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     req.branchId,
@@ -621,7 +643,8 @@ router.post("/cash-withdrawals", (req, res) => {
     amount,
     reason,
     note,
-    now
+    now,
+    clientId
   );
 
   logActivity(db, {
@@ -849,12 +872,29 @@ router.get("/expense", (req, res) => {
 });
 
 router.post("/expense", (req, res) => {
-  const id = uid("exp");
+  const db = getDb();
   const { title, amount, typeId, date } = req.body;
-  getDb()
-    .prepare("INSERT INTO expense_entries (id, title, amount, type_id, date, branch_id) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(id, title, Number(amount), typeId, date || new Date().toISOString().slice(0, 10), req.branchId);
-  res.status(201).json({ id, title, amount: Number(amount), typeId, date });
+  const clientId = sanitizeClientSyncId(req.body.clientId || req.body.client_id);
+  if (clientId) {
+    const existing = db
+      .prepare("SELECT * FROM expense_entries WHERE branch_id = ? AND client_id = ?")
+      .get(req.branchId, clientId);
+    if (existing) {
+      return res.status(200).json({
+        id: existing.id,
+        title: existing.title,
+        amount: Number(existing.amount),
+        typeId: existing.type_id,
+        date: existing.date,
+        clientId: existing.client_id || null,
+      });
+    }
+  }
+  const id = uid("exp");
+  const entryDate = date || new Date().toISOString().slice(0, 10);
+  db.prepare("INSERT INTO expense_entries (id, title, amount, type_id, date, branch_id, client_id) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run(id, title, Number(amount), typeId, entryDate, req.branchId, clientId);
+  res.status(201).json({ id, title, amount: Number(amount), typeId, date: entryDate, clientId });
 });
 
 router.get("/income-types", (req, res) => res.json(getAllState(getDb(), req.branchId).incomeTypes));

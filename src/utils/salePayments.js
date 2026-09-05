@@ -12,6 +12,24 @@ export function getSalePaymentParts(sale) {
   return { cash: 0, pos: 0 };
 }
 
+export function resolvePaymentAmounts(paymentType, total, cashAmount, posAmount) {
+  const amount = Number(total) || 0;
+  if (paymentType === "partial") {
+    const cash = Number(cashAmount) || 0;
+    const pos = Number(posAmount) || 0;
+    if (cash <= 0 && pos <= 0) {
+      throw new Error("Nakit və ya kart məbləği daxil edin");
+    }
+    if (Math.abs(cash + pos - amount) > 0.009) {
+      throw new Error("Nakit + kart məbləği toplam satışa bərabər olmalıdır");
+    }
+    return { cash, pos };
+  }
+  if (paymentType === "cash") return { cash: amount, pos: 0 };
+  if (paymentType === "pos") return { cash: 0, pos: amount };
+  return { cash: 0, pos: 0 };
+}
+
 export function paymentLabel(type, sale) {
   if (type === "cash") return "Nakit";
   if (type === "pos") return "Pos";

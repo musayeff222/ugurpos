@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { useAuth } from "./AuthContext";
+import { useOffline } from "../offline/OfflineContext";
 
 const WebOrdersContext = createContext(null);
 
@@ -31,6 +32,7 @@ function playNewOrderSound() {
 
 export function WebOrdersProvider({ children }) {
   const { isBranchUser } = useAuth();
+  const { isOnline } = useOffline();
   const [pendingCount, setPendingCount] = useState(0);
   const [latestOrder, setLatestOrder] = useState(null);
   const knownIdsRef = useRef(new Set());
@@ -57,18 +59,20 @@ export function WebOrdersProvider({ children }) {
   }, [isBranchUser]);
 
   useEffect(() => {
-    if (!isBranchUser) {
-      setPendingCount(0);
-      setLatestOrder(null);
-      knownIdsRef.current = new Set();
-      readyRef.current = false;
+    if (!isBranchUser || !isOnline) {
+      if (!isBranchUser) {
+        setPendingCount(0);
+        setLatestOrder(null);
+        knownIdsRef.current = new Set();
+        readyRef.current = false;
+      }
       return undefined;
     }
 
     refresh().catch(() => {});
     const timer = setInterval(() => refresh().catch(() => {}), POLL_MS);
     return () => clearInterval(timer);
-  }, [isBranchUser, refresh]);
+  }, [isBranchUser, isOnline, refresh]);
 
   const clearLatest = useCallback(() => setLatestOrder(null), []);
 

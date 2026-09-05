@@ -127,7 +127,8 @@ export function initMysqlSchema(db) {
       amount DOUBLE NOT NULL,
       type_id VARCHAR(64),
       date VARCHAR(32) NOT NULL,
-      branch_id VARCHAR(64)
+      branch_id VARCHAR(64),
+      client_id VARCHAR(80)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
     CREATE TABLE IF NOT EXISTS sales (
@@ -143,6 +144,7 @@ export function initMysqlSchema(db) {
       paid_amount DOUBLE DEFAULT 0,
       total DOUBLE NOT NULL,
       branch_id VARCHAR(64),
+      client_sale_id VARCHAR(80),
       INDEX idx_sales_created (created_at),
       INDEX idx_sales_customer (customer_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
