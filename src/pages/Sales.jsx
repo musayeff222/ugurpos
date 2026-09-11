@@ -546,10 +546,15 @@ export default function Sales() {
   };
 
   const handleEndShift = () => {
+    const lastBranch = sessionStorage.getItem("ugurpos_admin_last_branch");
     const result = endStaffShift();
     setShiftEndStep(null);
     if (result === "branch") {
       navigate("/sales", { replace: true });
+      return;
+    }
+    if (result === "admin") {
+      navigate(lastBranch ? `/admin/branches/${lastBranch}` : "/admin/branches", { replace: true });
       return;
     }
     logout();

@@ -3,6 +3,7 @@ import { useStore } from "../../store/StoreContext";
 import DataTable from "../../components/ui/DataTable";
 import PageHeader from "../../components/ui/PageHeader";
 import { downloadCsv, formatMoney, todayISO } from "../../utils/format";
+import { toLocalDateKey } from "../../utils/businessHours";
 
 export default function HistoricalReport() {
   const { state } = useStore();
@@ -14,8 +15,8 @@ export default function HistoricalReport() {
     state.sales
       .filter((s) => s.paymentType !== "refund")
       .forEach((s) => {
-        const day = s.createdAt.slice(0, 10);
-        if (day < from || day > to) return;
+        const day = toLocalDateKey(s.createdAt);
+        if (!day || day < from || day > to) return;
         if (!map[day]) map[day] = { id: day, date: day, count: 0, total: 0 };
         map[day].count += 1;
         map[day].total += s.total;

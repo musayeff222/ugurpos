@@ -34,8 +34,8 @@ export function signBranchToken(branch, firmName) {
   });
 }
 
-export function signStaffToken(staff, branch, firmName) {
-  return signToken({
+export function signStaffToken(staff, branch, firmName, options = {}) {
+  const payload = {
     id: `staff_${staff.id}`,
     email: staff.login,
     firmId: branch.firm_id,
@@ -49,7 +49,12 @@ export function signStaffToken(staff, branch, firmName) {
     canCashExpense: !!staff.can_cash_expense,
     role: "staff",
     loginType: "staff",
-  });
+    impersonating: !!options.impersonating,
+  };
+  if (options.impersonating) {
+    payload.returnToBranchId = options.returnToBranchId || branch.id;
+  }
+  return signToken(payload);
 }
 
 function readAuthToken(req) {

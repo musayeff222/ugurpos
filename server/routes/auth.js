@@ -211,7 +211,13 @@ router.get("/me", authMiddleware, (req, res) => {
     const staff = db.prepare("SELECT * FROM staff WHERE id = ?").get(req.user.staffId);
     const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.user.branchId);
     if (!staff || !branch) return res.status(404).json({ error: "Staff not found" });
-    return res.json({ user: buildStaffResponse(db, staff, branch) });
+    return res.json({
+      user: {
+        ...buildStaffResponse(db, staff, branch),
+        impersonating: !!req.user.impersonating,
+        returnToBranchId: req.user.returnToBranchId || branch.id,
+      },
+    });
   }
 
   if (req.user.loginType === "branch" || req.user.role === "branch") {

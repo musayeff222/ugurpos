@@ -12,7 +12,13 @@ import {
 import { productImageUpload } from "../middleware/imageUpload.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 import { logActivity } from "../utils/activityLog.js";
-import { getActiveBusinessWindow } from "../utils/businessHours.js";
+import {
+  getActiveBusinessWindow,
+  getBranchBusinessHours,
+  getInclusiveReportRangeForBusinessDate,
+  isTimestampInReportRange,
+  localDateISO,
+} from "../utils/businessHours.js";
 import { computeCashRegisterBalance } from "../utils/cashRegister.js";
 import { resolvePaymentAmounts } from "../utils/salePayments.js";
 import { hashBranchPassword } from "../utils/branchAuth.js";
@@ -96,7 +102,7 @@ router.get("/state", (req, res) => {
 router.get("/dashboard/summary", (req, res) => {
   const db = getDb();
   const { branchId } = req;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO();
   const month = today.slice(0, 7);
   const todaySales = db
     .prepare(
@@ -1100,19 +1106,26 @@ router.post("/e-invoices", (req, res) => {
 
 // Reports
 router.get("/reports/daily", (req, res) => {
-  const date = req.query.date || new Date().toISOString().slice(0, 10);
-  const sales = getDb()
+  const db = getDb();
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.branchId);
+  const { openTime, closeTime } = getBranchBusinessHours(branch);
+  const date = req.query.date || getActiveBusinessWindow(branch).businessDate;
+  const range = getInclusiveReportRangeForBusinessDate(date, openTime, closeTime);
+  const sales = db
     .prepare(
-      `SELECT id FROM sales WHERE branch_id = ? AND ${SQL.date("created_at")}=? AND payment_type != 'refund' ORDER BY created_at DESC`
+      "SELECT id, created_at FROM sales WHERE branch_id = ? AND payment_type != 'refund' ORDER BY created_at DESC"
     )
-    .all(req.branchId, date)
-    .map((r) => getSaleWithItems(getDb(), r.id));
+    .all(req.branchId)
+    .filter((row) =>
+      isTimestampInReportRange(row.created_at, range.startDate, range.endDate, range.startTime, range.endTime)
+    )
+    .map((row) => getSaleWithItems(db, row.id));
   res.json(sales);
 });
 
 router.get("/reports/historical", (req, res) => {
-  const from = req.query.from || new Date().toISOString().slice(0, 8) + "01";
-  const to = req.query.to || new Date().toISOString().slice(0, 10);
+  const from = req.query.from || `${localDateISO().slice(0, 8)}01`;
+  const to = req.query.to || localDateISO();
   const rows = getDb()
     .prepare(`
       SELECT ${SQL.date("created_at")} as date, COUNT(*) as count, SUM(total) as total

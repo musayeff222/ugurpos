@@ -20,8 +20,11 @@ export function formatDateTime(date = new Date(), lang = "tr") {
   return d.toLocaleString(lang === "az" ? "az-AZ" : "tr-TR");
 }
 
-export function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+export function todayISO(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 export function generateSaleCode() {

@@ -89,6 +89,21 @@ export function AuthProvider({ children }) {
     return account;
   };
 
+  const enterStaffAsAdmin = async (staffId) => {
+    const currentUser = JSON.parse(localStorage.getItem(USER_KEY) || "null");
+    if (!currentUser?.impersonating) {
+      sessionStorage.setItem(
+        ADMIN_BACKUP_KEY,
+        JSON.stringify({ token: getToken(), user: currentUser })
+      );
+    }
+
+    const { token, user: account } = await api.impersonateAdminStaff(staffId);
+    const accountWithShift = { ...account, shiftStartedAt: new Date().toISOString() };
+    persistUser(accountWithShift, token);
+    return accountWithShift;
+  };
+
   const returnToAdminPanel = () => {
     const raw = sessionStorage.getItem(ADMIN_BACKUP_KEY);
     if (raw) {
@@ -121,6 +136,8 @@ export function AuthProvider({ children }) {
 
   const endStaffShift = () => {
     if (returnToBranchSession()) return "branch";
+    const current = JSON.parse(localStorage.getItem(USER_KEY) || "null");
+    if (current?.impersonating && returnToAdminPanel()) return "admin";
     logout();
     return "logout";
   };
@@ -144,6 +161,7 @@ export function AuthProvider({ children }) {
         returnToBranchSession,
         endStaffShift,
         enterBranchAsAdmin,
+        enterStaffAsAdmin,
         returnToAdminPanel,
         logout,
         patchUser,

@@ -27,7 +27,7 @@ export default function AdminBranchDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { enterBranchAsAdmin } = useAuth();
+  const { enterBranchAsAdmin, enterStaffAsAdmin } = useAuth();
 
   const [tab, setTab] = useState("stock");
   const [branch, setBranch] = useState(null);
@@ -49,7 +49,10 @@ export default function AdminBranchDetail() {
   const [message, setMessage] = useState(location.state?.message || "");
   const [error, setError] = useState("");
   const [entering, setEntering] = useState(false);
+  const [enteringStaffId, setEnteringStaffId] = useState("");
   const [savingId, setSavingId] = useState("");
+  const [passwordEdits, setPasswordEdits] = useState({});
+  const [copiedLogin, setCopiedLogin] = useState("");
 
   const loadBranch = async () => {
     const data = await api.getAdminBranch(id);
@@ -72,6 +75,7 @@ export default function AdminBranchDetail() {
     setWorkspace(data);
     setStockEdits({});
     setSalaryEdits({});
+    setPasswordEdits({});
   };
 
   useEffect(() => {
@@ -151,17 +155,50 @@ export default function AdminBranchDetail() {
   };
 
   const saveSalary = async (person) => {
-    const value = salaryEdits[person.id];
-    if (value == null || value === "") return;
+    const salaryValue = salaryEdits[person.id];
+    const passwordValue = passwordEdits[person.id];
+    const patch = {};
+    if (salaryValue != null && salaryValue !== "") patch.salary = Number(salaryValue);
+    if (passwordValue?.trim()) patch.password = passwordValue.trim();
+    if (!Object.keys(patch).length) return;
     setSavingId(person.id);
+    setError("");
     try {
-      await api.updateAdminBranchStaff(id, person.id, { salary: Number(value) });
+      await api.updateAdminBranchStaff(id, person.id, patch);
       await loadWorkspace();
-      setMessage("Maaş güncellendi.");
+      setPasswordEdits((prev) => ({ ...prev, [person.id]: "" }));
+      setMessage(
+        patch.password ? "Çalışan bilgileri güncellendi. Yeni parola kaydedildi." : "Maaş güncellendi."
+      );
     } catch (err) {
       setError(err.message);
     } finally {
       setSavingId("");
+    }
+  };
+
+  const copyStaffLogin = async (login) => {
+    if (!login) return;
+    try {
+      await navigator.clipboard.writeText(login);
+      setCopiedLogin(login);
+      setMessage(`Login kopyalandı: ${login}`);
+    } catch {
+      setError("Login kopyalanamadı.");
+    }
+  };
+
+  const handleEnterStaff = async (person) => {
+    setEnteringStaffId(person.id);
+    setError("");
+    try {
+      sessionStorage.setItem("ugurpos_admin_last_branch", id);
+      await enterStaffAsAdmin(person.id);
+      navigate("/sales");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnteringStaffId("");
     }
   };
 
@@ -484,17 +521,23 @@ export default function AdminBranchDetail() {
 
           {tab === "staff" && (
             <section className="erp-panel erp-panel--flush">
+              <p className="hint-text admin-staff-hint">
+                Giriş bilgisi olarak login adı gösterilir. Eski parola hash olarak saklanır, görüntülenemez.
+                Yeni parola yazıp kaydederseniz çalışan girişi değişir.
+              </p>
               <div className="admin-table-wrap">
                 <table className="erp-table">
                   <thead>
                     <tr>
                       <th>İsim</th>
+                      <th>Login</th>
                       <th>Telefon</th>
                       <th>Rol</th>
                       <th>İşe başlama</th>
                       <th>Maaş</th>
                       <th>Günlük satış</th>
                       <th>Aylık satış</th>
+                      <th>Yeni parola</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -506,6 +549,23 @@ export default function AdminBranchDetail() {
                             {person.name} {person.surname}
                           </strong>
                           <small>{person.active ? "Aktif" : "Pasif"}</small>
+                        </td>
+                        <td>
+                          <div className="staff-login-cell">
+                            <code>{person.login || "—"}</code>
+                            {person.login ? (
+                              <button
+                                type="button"
+                                className="btn btn-default btn-sm"
+                                onClick={() => copyStaffLogin(person.login)}
+                              >
+                                {copiedLogin === person.login ? "Kopyalandı" : "Kopyala"}
+                              </button>
+                            ) : null}
+                          </div>
+                          {!person.hasPassword && (
+                            <small className="staff-password-warn">Parola yok — giriş yapamaz, yeni parola kaydedin.</small>
+                          )}
                         </td>
                         <td>{person.phone || "—"}</td>
                         <td>{person.role || "—"}</td>
@@ -530,20 +590,42 @@ export default function AdminBranchDetail() {
                           <small>{person.monthCount} satış</small>
                         </td>
                         <td>
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            disabled={savingId === person.id}
-                            onClick={() => saveSalary(person)}
-                          >
-                            Kaydet
-                          </button>
+                          <input
+                            className="crm-inline-input staff-password-input"
+                            type="password"
+                            autoComplete="new-password"
+                            placeholder="Yeni parola"
+                            value={passwordEdits[person.id] ?? ""}
+                            onChange={(e) =>
+                              setPasswordEdits((prev) => ({ ...prev, [person.id]: e.target.value }))
+                            }
+                          />
+                        </td>
+                        <td>
+                          <div className="staff-row-actions">
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              disabled={savingId === person.id}
+                              onClick={() => saveSalary(person)}
+                            >
+                              Kaydet
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-default btn-sm"
+                              disabled={enteringStaffId === person.id || !branch.active}
+                              onClick={() => handleEnterStaff(person)}
+                            >
+                              {enteringStaffId === person.id ? "..." : "Çalışan hesabına geç"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                     {!workspace?.staff?.length && (
                       <tr>
-                        <td colSpan={8} className="erp-table__empty">
+                        <td colSpan={10} className="erp-table__empty">
                           Çalışan yok. Admin → Çalışanlar sayfasından ekleyin.
                         </td>
                       </tr>

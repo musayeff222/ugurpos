@@ -28,14 +28,14 @@ import {
 } from "../utils/catalogImage.js";
 import { catalogImageUpload } from "../middleware/imageUpload.js";
 import { hashBranchPassword, getNextBranchNumber, isValidBranchEmail, normalizeBranchEmail, validateBranchNo } from "../utils/branchAuth.js";
-import { signAdminToken } from "../middleware/auth.js";
+import { signAdminToken, signStaffToken } from "../middleware/auth.js";
 import { ensureFirmSettings, enrichMenuBranch, rowToFirmMenu } from "../utils/qrMenu.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 import { saveMenuLogo, deleteMenuLogo } from "../utils/menuLogo.js";
 import { normalizeMenuTheme } from "../utils/menuTheme.js";
 import { mergeMenuWebConfig, parseMenuWebConfig, serializeMenuWebConfig, applyWebImageUploads } from "../utils/menuWebConfig.js";
 import { listActivityLogs, rowToActivityLog } from "../utils/activityLog.js";
-import { normalizeTime } from "../utils/businessHours.js";
+import { localDateISO, normalizeTime } from "../utils/businessHours.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -46,7 +46,7 @@ function getBranchOr404(db, id, firmId) {
 }
 
 function branchStats(db, branchId) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO();
   const month = today.slice(0, 7);
   const todayRow = db
     .prepare(
@@ -160,7 +160,7 @@ router.get("/branches/:id", (req, res) => {
 });
 
 function staffSalesTotals(db, branchId, staff) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO();
   const month = today.slice(0, 7);
   const fullName = `${staff.name || ""} ${staff.surname || ""}`.trim();
   const names = [...new Set([fullName, staff.name].filter(Boolean))];
@@ -256,6 +256,8 @@ router.get("/branches/:id/workspace", (req, res) => {
       active: !!row.active,
       salary: Number(row.salary || 0),
       phone: row.phone || "",
+      login: row.login || "",
+      hasPassword: !!row.password_hash,
       startedAt: row.started_at || "",
       ...staffSalesTotals(db, branch.id, row),
     }));
@@ -361,10 +363,29 @@ router.patch("/branches/:id/staff/:staffId", (req, res) => {
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
   const staff = db.prepare("SELECT * FROM staff WHERE id = ? AND branch_id = ?").get(req.params.staffId, branch.id);
   if (!staff) return res.status(404).json({ error: "Çalışan bulunamadı" });
-  const salary = Number(req.body.salary);
-  if (Number.isNaN(salary) || salary < 0) return res.status(400).json({ error: "Geçerli maaş girin" });
-  db.prepare("UPDATE staff SET salary = ? WHERE id = ?").run(salary, staff.id);
-  res.json({ id: staff.id, salary });
+
+  const updates = [];
+  const params = [];
+  if (req.body.salary !== undefined && req.body.salary !== "") {
+    const salary = Number(req.body.salary);
+    if (Number.isNaN(salary) || salary < 0) return res.status(400).json({ error: "Geçerli maaş girin" });
+    updates.push("salary = ?");
+    params.push(salary);
+  }
+  if (req.body.password?.trim()) {
+    updates.push("password_hash = ?");
+    params.push(hashBranchPassword(req.body.password));
+  }
+  if (!updates.length) return res.status(400).json({ error: "Güncellenecek alan yok" });
+
+  db.prepare(`UPDATE staff SET ${updates.join(", ")} WHERE id = ?`).run(...params, staff.id);
+  const row = db.prepare("SELECT * FROM staff WHERE id = ?").get(staff.id);
+  res.json({
+    id: row.id,
+    salary: Number(row.salary || 0),
+    login: row.login || "",
+    hasPassword: !!row.password_hash,
+  });
 });
 
 function normalizeStaffRole(role) {
@@ -486,6 +507,45 @@ router.delete("/staff/:id", (req, res) => {
   }
   db.prepare("DELETE FROM staff WHERE id = ?").run(existing.id);
   res.json({ ok: true });
+});
+
+router.post("/staff/:id/impersonate", (req, res) => {
+  const db = getDb();
+  const staff = db.prepare("SELECT * FROM staff WHERE id = ?").get(req.params.id);
+  if (!staff) return res.status(404).json({ error: "Çalışan bulunamadı" });
+  const branch = getBranchOr404(db, staff.branch_id, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Çalışan bulunamadı" });
+  if (!branch.active) return res.status(400).json({ error: "Pasif şubeye giriş yapılamaz" });
+
+  const adminUser = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
+  const firmName = adminUser?.firm_name || req.user.firmName || "Firma";
+  const token = signStaffToken(staff, branch, firmName, {
+    impersonating: true,
+    returnToBranchId: branch.id,
+  });
+  const staffName = `${staff.name || ""} ${staff.surname || ""}`.trim() || staff.name;
+
+  res.json({
+    token,
+    user: {
+      email: staff.login || "",
+      firmId: branch.firm_id,
+      firmName,
+      branchId: branch.id,
+      branchName: branch.name,
+      branchNo: branch.code ? String(parseInt(branch.code, 10) || branch.code) : "",
+      branchEmail: branch.email || "",
+      staffId: staff.id,
+      staffName,
+      staffRole: staff.role || "Kasiyer",
+      canCashExpense: !!staff.can_cash_expense,
+      role: "staff",
+      loginType: "staff",
+      impersonating: true,
+      returnToBranchId: branch.id,
+      branches: [rowToBranch(branch)],
+    },
+  });
 });
 
 router.get("/branches/:id/activity", (req, res) => {

@@ -6,7 +6,7 @@ import Modal from "../../components/ui/Modal";
 import { formatDateTime, formatMoney } from "../../utils/format";
 import {
   getActiveBusinessWindow,
-  getReportRangeForBusinessDate,
+  getInclusiveReportRangeForBusinessDate,
   isTimestampInReportRange,
   formatReportRangeLabel,
 } from "../../utils/businessHours";
@@ -34,7 +34,7 @@ function buildDefaultApplied(branchSettings) {
   const open = branchSettings?.businessOpenTime || "08:00";
   const close = branchSettings?.businessCloseTime || "17:00";
   const window = getActiveBusinessWindow(open, close);
-  return getReportRangeForBusinessDate(window.businessDate, open, close);
+  return getInclusiveReportRangeForBusinessDate(window.businessDate, open, close);
 }
 
 function ReportSummaryGrid({ cards }) {
@@ -72,8 +72,8 @@ export default function DailyReport() {
   const [applied, setApplied] = useState(defaultApplied);
 
   const syncRangeFromBusinessDates = (startDay, endDay, times = {}) => {
-    const startRange = getReportRangeForBusinessDate(startDay, branchOpen, branchClose);
-    const endRange = getReportRangeForBusinessDate(endDay, branchOpen, branchClose);
+    const startRange = getInclusiveReportRangeForBusinessDate(startDay, branchOpen, branchClose);
+    const endRange = getInclusiveReportRangeForBusinessDate(endDay, branchOpen, branchClose);
     setStartBusinessDate(startDay);
     setEndBusinessDate(endDay);
     setStartTime(times.startTime ?? startRange.startTime);
@@ -117,7 +117,7 @@ export default function DailyReport() {
         .filter((sale) => sale.paymentType !== "refund")
         .map((sale) => ({
           ...sale,
-          itemCount: sale.items.reduce((acc, item) => acc + item.qty, 0),
+          itemCount: (sale.items || []).reduce((acc, item) => acc + item.qty, 0),
         }))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [filteredSales]
@@ -160,7 +160,7 @@ export default function DailyReport() {
   const productCost = rows.reduce((sum, sale) => {
     return (
       sum +
-      sale.items.reduce((itemSum, item) => {
+      (sale.items || []).reduce((itemSum, item) => {
         const buyPrice = productBuyMap[item.productId] || 0;
         return itemSum + item.qty * buyPrice;
       }, 0)
@@ -200,8 +200,8 @@ export default function DailyReport() {
   ];
 
   const applyFilters = () => {
-    const startRange = getReportRangeForBusinessDate(startBusinessDate, branchOpen, branchClose);
-    const endRange = getReportRangeForBusinessDate(endBusinessDate, branchOpen, branchClose);
+    const startRange = getInclusiveReportRangeForBusinessDate(startBusinessDate, branchOpen, branchClose);
+    const endRange = getInclusiveReportRangeForBusinessDate(endBusinessDate, branchOpen, branchClose);
     setApplied({
       startDate: startRange.startDate,
       endDate: endRange.endDate,
@@ -286,7 +286,7 @@ export default function DailyReport() {
 
         <div className="report-filters">
           <p className="report-business-hint">
-            Şube iş saatları: {branchOpen} – {branchClose}
+            Şube iş saatları: {branchOpen} – {branchClose} (axşam satışları 23:59-dək daxildir)
             {applied && (
               <>
                 {" "}

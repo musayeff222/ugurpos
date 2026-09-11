@@ -9,7 +9,7 @@ export default function StockReport() {
   const rows = useMemo(() => {
     const sold = {};
     state.sales.forEach((s) => {
-      s.items.forEach((item) => {
+      (s.items || []).forEach((item) => {
         sold[item.productId] = (sold[item.productId] || 0) + item.qty;
       });
     });

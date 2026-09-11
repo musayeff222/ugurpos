@@ -61,6 +61,26 @@ export function getReportRangeForBusinessDate(businessDate, openTime, closeTime)
   };
 }
 
+/** Same-day close (e.g. 17:00) still includes evening sales until 23:59. Overnight hours keep close-next-day. */
+export function getInclusiveReportRangeForBusinessDate(businessDate, openTime, closeTime) {
+  const open = normalizeTime(openTime);
+  const close = normalizeTime(closeTime, "17:00");
+  if (toMinutes(close) <= toMinutes(open)) {
+    return getReportRangeForBusinessDate(businessDate, open, close);
+  }
+  return {
+    businessDate,
+    startDate: businessDate,
+    endDate: businessDate,
+    startTime: open,
+    endTime: "23:59",
+  };
+}
+
+export function localDateISO(now = new Date()) {
+  return dateISO(now);
+}
+
 function toLocalMs(dateStr, timeStr) {
   return new Date(`${dateStr}T${normalizeTime(timeStr)}:00`).getTime();
 }

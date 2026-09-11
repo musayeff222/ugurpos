@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../../store/StoreContext";
 import { formatMoney, todayISO } from "../../utils/format";
+import { isTimestampInReportRange } from "../../utils/businessHours";
 import "../../styles/product-report.css";
 
 function formatQty(value) {
@@ -12,12 +13,7 @@ function formatQty(value) {
 }
 
 function isSaleInRange(createdAt, startDate, endDate, startTime, endTime) {
-  const day = createdAt.slice(0, 10);
-  const time = createdAt.length >= 16 ? createdAt.slice(11, 16) : "00:00";
-  if (day < startDate || day > endDate) return false;
-  if (day === startDate && time < startTime) return false;
-  if (day === endDate && time > endTime) return false;
-  return true;
+  return isTimestampInReportRange(createdAt, startDate, endDate, startTime, endTime);
 }
 
 export default function ProductReport() {
@@ -60,7 +56,7 @@ export default function ProductReport() {
           )
       )
       .forEach((sale) => {
-        sale.items.forEach((item) => {
+        (sale.items || []).forEach((item) => {
           const key = item.productId || item.name;
           const meta = productMetaMap[item.productId];
           const buyPrice = meta?.buyPrice || 0;

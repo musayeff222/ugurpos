@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatMoney } from "../../utils/format";
 
@@ -32,6 +33,8 @@ function toInputDateTime(value) {
 }
 
 export default function AdminStaff() {
+  const navigate = useNavigate();
+  const { enterStaffAsAdmin } = useAuth();
   const [branches, setBranches] = useState([]);
   const [staff, setStaff] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -40,6 +43,8 @@ export default function AdminStaff() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [enteringStaffId, setEnteringStaffId] = useState("");
+  const [copiedLogin, setCopiedLogin] = useState("");
 
   const load = async () => {
     const [branchList, people] = await Promise.all([api.getAdminBranches(), api.getAdminStaff()]);
@@ -115,6 +120,31 @@ export default function AdminStaff() {
     setMessage("");
   };
 
+  const copyStaffLogin = async (login) => {
+    if (!login) return;
+    try {
+      await navigator.clipboard.writeText(login);
+      setCopiedLogin(login);
+      setMessage(`Login kopyalandı: ${login}`);
+    } catch {
+      setError("Login kopyalanamadı.");
+    }
+  };
+
+  const handleEnterStaff = async (person) => {
+    setEnteringStaffId(person.id);
+    setError("");
+    try {
+      if (person.branchId) sessionStorage.setItem("ugurpos_admin_last_branch", person.branchId);
+      await enterStaffAsAdmin(person.id);
+      navigate("/sales");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnteringStaffId("");
+    }
+  };
+
   return (
     <div className="admin-page erp-page">
       <div className="crm-listbar">
@@ -140,6 +170,7 @@ export default function AdminStaff() {
               <thead>
                 <tr>
                   <th>Çalışan</th>
+                  <th>Login</th>
                   <th>Şube</th>
                   <th>Görev</th>
                   <th>Maaş</th>
@@ -153,10 +184,24 @@ export default function AdminStaff() {
                       <strong>
                         {person.name} {person.surname}
                       </strong>
-                      <small>
-                        {person.login}
-                        {person.phone ? ` · ${person.phone}` : ""}
-                      </small>
+                      <small>{person.phone || "—"}</small>
+                    </td>
+                    <td>
+                      <div className="staff-login-cell">
+                        <code>{person.login || "—"}</code>
+                        {person.login ? (
+                          <button
+                            type="button"
+                            className="btn btn-default btn-sm"
+                            onClick={() => copyStaffLogin(person.login)}
+                          >
+                            {copiedLogin === person.login ? "Kopyalandı" : "Kopyala"}
+                          </button>
+                        ) : null}
+                      </div>
+                      {!person.hasPassword && (
+                        <small className="staff-password-warn">Parola yok — giriş yapamaz</small>
+                      )}
                     </td>
                     <td>
                       <Link to={`/admin/branches/${person.branchId}`}>
@@ -166,30 +211,40 @@ export default function AdminStaff() {
                     <td>{roleLabel(person.role)}</td>
                     <td>{formatMoney(person.salary || 0)}</td>
                     <td>
-                      <button type="button" className="btn btn-default btn-sm" onClick={() => startEdit(person)}>
-                        Aç
-                      </button>{" "}
-                      <button
-                        type="button"
-                        className="btn btn-danger btn-sm"
-                        onClick={async () => {
-                          if (!window.confirm("Bu çalışanı silmek istiyor musunuz?")) return;
-                          try {
-                            await api.deleteAdminStaff(person.id);
-                            await load();
-                          } catch (err) {
-                            setError(err.message);
-                          }
-                        }}
-                      >
-                        Sil
-                      </button>
+                      <div className="staff-row-actions">
+                        <button type="button" className="btn btn-default btn-sm" onClick={() => startEdit(person)}>
+                          Aç
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          disabled={enteringStaffId === person.id}
+                          onClick={() => handleEnterStaff(person)}
+                        >
+                          {enteringStaffId === person.id ? "..." : "Çalışan hesabına geç"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          onClick={async () => {
+                            if (!window.confirm("Bu çalışanı silmek istiyor musunuz?")) return;
+                            try {
+                              await api.deleteAdminStaff(person.id);
+                              await load();
+                            } catch (err) {
+                              setError(err.message);
+                            }
+                          }}
+                        >
+                          Sil
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
                 {!rows.length && (
                   <tr>
-                    <td colSpan={5} className="erp-table__empty">
+                    <td colSpan={6} className="erp-table__empty">
                       Henüz çalışan yok. Sağdaki formdan ekleyin.
                     </td>
                   </tr>
@@ -203,6 +258,9 @@ export default function AdminStaff() {
           <header className="erp-panel__head">
             <h3>{editId ? "Çalışanı düzenle" : "Yeni çalışan"}</h3>
           </header>
+          <p className="hint-text">
+            Eski parola hash olarak saklanır, görüntülenemez. Yeni parola yazarsanız çalışan girişi değişir.
+          </p>
           <label className="erp-field">
             <span>Ad *</span>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
@@ -236,7 +294,7 @@ export default function AdminStaff() {
             />
           </label>
           <label className="erp-field">
-            <span>{editId ? "Yeni parola (boş = değişmez)" : "Parola *"}</span>
+            <span>{editId ? "Yeni parola (boş = değişmez, eski parola gösterilemez)" : "Parola *"}</span>
             <input
               type="password"
               value={form.password}

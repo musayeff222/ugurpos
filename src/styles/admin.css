@@ -435,6 +435,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   position: sticky;
   top: 0;
@@ -2383,6 +2384,40 @@
   padding: 4px 8px;
   border: 1px solid #c9c7c5;
   border-radius: 4px;
+}
+
+.staff-login-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.staff-login-cell code {
+  font-size: 13px;
+  background: #f3f2f2;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.staff-password-warn {
+  display: block;
+  color: #8a6d3b;
+  margin-top: 4px;
+}
+
+.staff-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.staff-password-input {
+  width: 140px;
+}
+
+.admin-staff-hint {
+  padding: 12px 16px 0;
 }
 
 .crm-row-link {

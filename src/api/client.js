@@ -65,6 +65,7 @@ export const api = {
       body: JSON.stringify(patch),
     }),
   enterBranchAsAdmin: (id) => request(`/admin/branches/${id}/enter`, { method: "POST" }),
+  impersonateAdminStaff: (id) => request(`/admin/staff/${id}/impersonate`, { method: "POST" }),
   createBranch: (branch) => request("/admin/branches", { method: "POST", body: JSON.stringify(branch) }),
   updateBranch: (id, patch) => request(`/admin/branches/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteBranch: (id) => request(`/admin/branches/${id}`, { method: "DELETE" }),

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useStore } from "../store/StoreContext";
 import { formatDateTime, formatMoney } from "../utils/format";
-import { getActiveBusinessWindow, isTimestampInWindow } from "../utils/businessHours";
+import { getActiveBusinessWindow, isTimestampInWindow, toLocalDateKey } from "../utils/businessHours";
 import "../styles/report-mobile.css";
 
 function StatCard({ iconClass, badge, badgeVariant, title, value, help }) {
@@ -59,12 +59,12 @@ export default function Dashboard() {
 
   const stats = useMemo(() => {
     const todaySales = state.sales.filter(
-      (s) => s.paymentType !== "refund" && isTimestampInWindow(s.createdAt, businessWindow)
-    );
-    const monthSales = state.sales.filter(
       (s) =>
         s.paymentType !== "refund" &&
-        s.createdAt.slice(0, 7) === monthPrefix
+        isTimestampInWindow(s.createdAt, businessWindow, { ignoreClose: true })
+    );
+    const monthSales = state.sales.filter(
+      (s) => s.paymentType !== "refund" && toLocalDateKey(s.createdAt).slice(0, 7) === monthPrefix
     );
     const sum = (list) => list.reduce((acc, s) => acc + (s.total || 0), 0);
     return {

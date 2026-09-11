@@ -4,7 +4,8 @@ export function useMysql() {
 
 export const sql = {
   date(col) {
-    return useMysql() ? `DATE(${col})` : `date(${col})`;
+    // ISO '2026-09-11T17:47:00.000Z' makes MySQL DATE() NULL; LEFT/substr always yield YYYY-MM-DD.
+    return useMysql() ? `LEFT(${col}, 10)` : `substr(${col}, 1, 10)`;
   },
   month(col) {
     return useMysql() ? `LEFT(${col}, 7)` : `substr(${col}, 1, 7)`;

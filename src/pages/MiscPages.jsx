@@ -24,7 +24,7 @@ export function ProductCorrelationReport() {
     state.sales
       .filter((s) => s.paymentType !== "refund")
       .forEach((sale) => {
-        const names = sale.items.map((i) => i.name).filter(Boolean);
+        const names = (sale.items || []).map((i) => i.name).filter(Boolean);
         for (let i = 0; i < names.length; i++) {
           for (let j = i + 1; j < names.length; j++) {
             const key = [names[i], names[j]].sort().join(" + ");

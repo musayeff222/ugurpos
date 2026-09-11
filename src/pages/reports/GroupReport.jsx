@@ -12,7 +12,7 @@ export default function GroupReport() {
     state.sales
       .filter((s) => s.paymentType !== "refund")
       .forEach((s) => {
-        s.items.forEach((item) => {
+        (s.items || []).forEach((item) => {
           const product = state.products.find((p) => p.id === item.productId);
           const group = state.groups.find((g) => g.id === product?.groupId)?.name || "Diğer";
           if (!map[group]) map[group] = { id: group, group, qty: 0, total: 0 };
