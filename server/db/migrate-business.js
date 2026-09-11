@@ -9,6 +9,36 @@ export function migrateBusiness(db) {
   addColumnIfMissing(db, "staff", "started_at", db.dialect === "mysql" ? "VARCHAR(32)" : "TEXT");
   addColumnIfMissing(db, "sales", "cash_amount", db.dialect === "mysql" ? "DOUBLE DEFAULT 0" : "REAL DEFAULT 0");
   addColumnIfMissing(db, "sales", "pos_amount", db.dialect === "mysql" ? "DOUBLE DEFAULT 0" : "REAL DEFAULT 0");
+  addColumnIfMissing(db, "sales", "payment_method_id", db.dialect === "mysql" ? "VARCHAR(64)" : "TEXT");
+  addColumnIfMissing(db, "sales", "payment_method_name", db.dialect === "mysql" ? "VARCHAR(255)" : "TEXT");
+
+  if (db.dialect === "mysql") {
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS firm_payment_methods (
+          id VARCHAR(64) PRIMARY KEY,
+          firm_id VARCHAR(64) NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          active TINYINT(1) DEFAULT 1,
+          sort_order INT DEFAULT 0,
+          INDEX idx_firm_payment_methods_firm (firm_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+    } catch {
+      /* already exists */
+    }
+  } else {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS firm_payment_methods (
+        id TEXT PRIMARY KEY,
+        firm_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        active INTEGER DEFAULT 1,
+        sort_order INTEGER DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_firm_payment_methods_firm ON firm_payment_methods(firm_id);
+    `);
+  }
 
   if (db.dialect === "mysql") {
     db.exec(`

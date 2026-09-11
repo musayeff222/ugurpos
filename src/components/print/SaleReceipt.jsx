@@ -23,7 +23,11 @@ export function buildReceiptText(data) {
     ),
     "",
     `TOPLAM: ${Number(data.total).toFixed(2)} AZN`,
-    `Ödeme: ${PAYMENT_LABELS[data.paymentType] || data.paymentType || "-"}`,
+    `Ödeme: ${
+      data.paymentType === "other"
+        ? data.paymentMethodName || "Diğer"
+        : PAYMENT_LABELS[data.paymentType] || data.paymentType || "-"
+    }`,
     data.paymentType === "partial" && data.cashAmount != null
       ? `Nakit: ${Number(data.cashAmount).toFixed(2)} AZN`
       : null,
@@ -45,7 +49,10 @@ export default function SaleReceipt({ data, paper = "thermal", copyLabel = "" })
     (sum, item) => sum + item.qty * item.price - (item.discount || 0),
     0
   );
-  const paymentLabel = PAYMENT_LABELS[data.paymentType] || data.paymentType || "-";
+  const paymentLabel =
+    data.paymentType === "other"
+      ? data.paymentMethodName || "Diğer"
+      : PAYMENT_LABELS[data.paymentType] || data.paymentType || "-";
 
   return (
     <div className={`sale-receipt sale-receipt--${paper}`}>

@@ -93,6 +93,13 @@ export const api = {
   updateAdminAccount: (payload) =>
     request("/admin/account", { method: "PATCH", body: JSON.stringify(payload) }),
 
+  getAdminPaymentMethods: () => request("/admin/payment-methods"),
+  createAdminPaymentMethod: (payload) =>
+    request("/admin/payment-methods", { method: "POST", body: JSON.stringify(payload) }),
+  updateAdminPaymentMethod: (id, payload) =>
+    request(`/admin/payment-methods/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteAdminPaymentMethod: (id) => request(`/admin/payment-methods/${id}`, { method: "DELETE" }),
+
   getAdminCatalogGroups: () => request("/admin/catalog/groups"),
   createAdminCatalogGroup: (name) =>
     request("/admin/catalog/groups", { method: "POST", body: JSON.stringify({ name }) }),

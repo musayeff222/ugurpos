@@ -37,6 +37,7 @@ import { mergeMenuWebConfig, parseMenuWebConfig, serializeMenuWebConfig, applyWe
 import { listActivityLogs, rowToActivityLog } from "../utils/activityLog.js";
 import { localDateISO, normalizeTime } from "../utils/businessHours.js";
 import { sql as SQL } from "../db/dialect.js";
+import { listFirmPaymentMethods, rowToFirmPaymentMethod } from "../utils/firmPaymentMethods.js";
 
 const router = Router();
 router.use(adminMiddleware);
@@ -224,6 +225,8 @@ router.get("/branches/:id/workspace", (req, res) => {
       code: sale.code,
       createdAt: sale.createdAt,
       paymentType: sale.paymentType,
+      paymentMethodId: sale.paymentMethodId,
+      paymentMethodName: sale.paymentMethodName,
       total: sale.total,
       cashAmount: sale.cashAmount,
       posAmount: sale.posAmount,
@@ -262,13 +265,39 @@ router.get("/branches/:id/workspace", (req, res) => {
       ...staffSalesTotals(db, branch.id, row),
     }));
 
-  const pay = db
-    .prepare(
-      `SELECT payment_type, COUNT(*) as c, COALESCE(SUM(total),0) as t
-       FROM sales WHERE branch_id = ? GROUP BY payment_type`
-    )
-    .all(branch.id);
-  const payMap = Object.fromEntries(pay.map((r) => [r.payment_type, { count: Number(r.c), total: Number(r.t) }]));
+  let pay = [];
+  try {
+    pay = db
+      .prepare(
+        `SELECT payment_type, payment_method_id, payment_method_name, COUNT(*) as c, COALESCE(SUM(total),0) as t
+         FROM sales WHERE branch_id = ? GROUP BY payment_type, payment_method_id, payment_method_name`
+      )
+      .all(branch.id);
+  } catch {
+    pay = db
+      .prepare(
+        `SELECT payment_type, COUNT(*) as c, COALESCE(SUM(total),0) as t
+         FROM sales WHERE branch_id = ? GROUP BY payment_type`
+      )
+      .all(branch.id);
+  }
+  const payMap = {};
+  const otherMethodMap = new Map();
+  pay.forEach((r) => {
+    const type = r.payment_type;
+    const bucket = { count: Number(r.c), total: Number(r.t) };
+    if (!payMap[type]) payMap[type] = { count: 0, total: 0 };
+    payMap[type].count += bucket.count;
+    payMap[type].total += bucket.total;
+    if (type === "other") {
+      const name = r.payment_method_name || "Diğer";
+      const prev = otherMethodMap.get(name) || { id: r.payment_method_id || "", name, count: 0, total: 0 };
+      prev.count += bucket.count;
+      prev.total += bucket.total;
+      if (!prev.id && r.payment_method_id) prev.id = r.payment_method_id;
+      otherMethodMap.set(name, prev);
+    }
+  });
 
   const sold = db
     .prepare(
@@ -310,6 +339,8 @@ router.get("/branches/:id/workspace", (req, res) => {
       pos: payMap.pos || { count: 0, total: 0 },
       open: payMap.open || { count: 0, total: 0 },
       partial: payMap.partial || { count: 0, total: 0 },
+      other: payMap.other || { count: 0, total: 0 },
+      methods: [...otherMethodMap.values()],
       refund: { count: Number(refunds?.c || 0), total: Number(refunds?.t || 0) },
       soldQty: Number(sold?.qty || 0),
       soldAmount: Number(sold?.sold || 0),
@@ -563,6 +594,7 @@ router.get("/branches/:id/activity", (req, res) => {
       code: sale.code,
       createdAt: sale.createdAt,
       paymentType: sale.paymentType,
+      paymentMethodName: sale.paymentMethodName,
       total: sale.total,
       itemCount: sale.items.length,
       staffName: sale.staffName,
@@ -1307,6 +1339,61 @@ router.post("/catalog/products/:id/image-file", (req, res) => {
 
 router.delete("/catalog/products/:id", (req, res) => {
   deactivateFirmProduct(getDb(), req.user.firmId, req.params.id);
+  res.json({ ok: true });
+});
+
+router.get("/payment-methods", (req, res) => {
+  res.json(listFirmPaymentMethods(getDb(), req.user.firmId));
+});
+
+router.post("/payment-methods", (req, res) => {
+  const name = String(req.body.name || "").trim();
+  if (!name) return res.status(400).json({ error: "Ödeme yöntemi adı zorunludur" });
+  const db = getDb();
+  const exists = db
+    .prepare("SELECT id FROM firm_payment_methods WHERE firm_id = ? AND name = ?")
+    .get(req.user.firmId, name);
+  if (exists) return res.status(409).json({ error: "Bu ödeme yöntemi zaten var" });
+  const id = uid("fpm");
+  const maxSort = db
+    .prepare("SELECT COALESCE(MAX(sort_order), 0) as s FROM firm_payment_methods WHERE firm_id = ?")
+    .get(req.user.firmId);
+  const sort = req.body.sort != null ? Number(req.body.sort) || 0 : Number(maxSort?.s || 0) + 1;
+  db.prepare(
+    "INSERT INTO firm_payment_methods (id, firm_id, name, active, sort_order) VALUES (?, ?, ?, 1, ?)"
+  ).run(id, req.user.firmId, name, sort);
+  res.status(201).json({ id, name, active: true, sort, firmId: req.user.firmId });
+});
+
+router.patch("/payment-methods/:id", (req, res) => {
+  const db = getDb();
+  const existing = db
+    .prepare("SELECT * FROM firm_payment_methods WHERE id = ? AND firm_id = ?")
+    .get(req.params.id, req.user.firmId);
+  if (!existing) return res.status(404).json({ error: "Ödeme yöntemi bulunamadı" });
+  const name = req.body.name != null ? String(req.body.name).trim() : existing.name;
+  if (!name) return res.status(400).json({ error: "Ödeme yöntemi adı zorunludur" });
+  const active = req.body.active === undefined ? existing.active : req.body.active ? 1 : 0;
+  const sort =
+    req.body.sort != null || req.body.sort_order != null
+      ? Number(req.body.sort ?? req.body.sort_order) || 0
+      : existing.sort_order;
+  db.prepare("UPDATE firm_payment_methods SET name=?, active=?, sort_order=? WHERE id=?").run(
+    name,
+    active,
+    sort,
+    existing.id
+  );
+  res.json(rowToFirmPaymentMethod({ ...existing, name, active, sort_order: sort }));
+});
+
+router.delete("/payment-methods/:id", (req, res) => {
+  const db = getDb();
+  const existing = db
+    .prepare("SELECT * FROM firm_payment_methods WHERE id = ? AND firm_id = ?")
+    .get(req.params.id, req.user.firmId);
+  if (!existing) return res.status(404).json({ error: "Ödeme yöntemi bulunamadı" });
+  db.prepare("DELETE FROM firm_payment_methods WHERE id = ? AND firm_id = ?").run(existing.id, req.user.firmId);
   res.json({ ok: true });
 });
 

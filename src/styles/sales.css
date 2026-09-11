@@ -2273,7 +2273,7 @@
   grid-area: dzy-paybar;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 70px;
+  grid-template-columns: 1fr 1fr 1fr 1fr 70px;
   gap: 12px;
   height: 60px;
   align-self: stretch;
@@ -2316,6 +2316,39 @@
 
 .dzy-paybar__btn--open {
   background: #b34b00;
+}
+
+.dzy-paybar__btn--other {
+  background: #0f766e;
+}
+
+.other-pay-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.other-pay-list__btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #d7dbe7;
+  border-radius: 10px;
+  background: #f6f7fb;
+  cursor: pointer;
+  text-align: left;
+}
+
+.other-pay-list__btn strong {
+  font-size: 16px;
+}
+
+.other-pay-empty {
+  margin: 0;
+  color: #5c6475;
 }
 
 .dzy-paybar__print {
@@ -2551,7 +2584,7 @@
 
   .dzy-paybar {
     grid-area: dzy-paybar;
-    grid-template-columns: 1fr 1fr 1fr 58px !important;
+    grid-template-columns: 1fr 1fr 1fr 1fr 58px !important;
     gap: 10px;
     height: 58px;
   }
@@ -2630,7 +2663,7 @@
   }
 
   .dzy-paybar {
-    grid-template-columns: 1fr 1fr 1fr 58px !important;
+    grid-template-columns: 1fr 1fr 1fr 1fr 58px !important;
     height: 54px;
     gap: 6px;
   }

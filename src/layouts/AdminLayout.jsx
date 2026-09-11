@@ -21,6 +21,7 @@ const adminNav = [
     title: "Finans",
     items: [
       { to: "/admin/cash-reports", label: "Raporlar", icon: "fa-bar-chart" },
+      { to: "/admin/payment-methods", label: "Ödeme Yöntemleri", icon: "fa-credit-card" },
       { to: "/admin/qr-menu", label: "Siparişler", icon: "fa-shopping-cart", badge: "orders" },
     ],
   },
@@ -75,6 +76,7 @@ export default function AdminLayout() {
     (item.to === "/admin/qr-menu" && location.pathname.startsWith("/admin/qr-menu")) ||
     (item.to === "/admin/activity" && location.pathname.startsWith("/admin/activity")) ||
     (item.to === "/admin/cash-reports" && location.pathname.startsWith("/admin/cash-reports")) ||
+    (item.to === "/admin/payment-methods" && location.pathname.startsWith("/admin/payment-methods")) ||
     (item.to === "/admin/settings" && location.pathname.startsWith("/admin/settings"));
 
   const activeItem = flatNav.find((item) => isNavActive(item));

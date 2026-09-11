@@ -321,6 +321,8 @@ export function getSaleWithItems(database, saleId) {
     total: sale.total,
     cashAmount: Number(sale.cash_amount || 0),
     posAmount: Number(sale.pos_amount || 0),
+    paymentMethodId: sale.payment_method_id || null,
+    paymentMethodName: sale.payment_method_name || null,
     clientSaleId: sale.client_sale_id || null,
     items: items.map((i) => ({
       id: i.id,
@@ -403,14 +405,30 @@ export function getAllState(database, branchId) {
       phone: r.phone || "",
       startedAt: r.started_at || "",
     }));
-  const paymentMethods = database
-    .prepare("SELECT * FROM payment_methods WHERE branch_id = ?")
-    .all(branchId)
-    .map((r) => ({
-      id: r.id,
-      name: r.name,
-      active: !!r.active,
-    }));
+  let paymentMethods = [];
+  try {
+    const branch = database.prepare("SELECT firm_id FROM branches WHERE id = ?").get(branchId);
+    if (branch?.firm_id) {
+      paymentMethods = database
+        .prepare("SELECT * FROM firm_payment_methods WHERE firm_id = ? ORDER BY sort_order, name")
+        .all(branch.firm_id)
+        .map((r) => ({
+          id: r.id,
+          name: r.name,
+          active: !!r.active,
+          sort: Number(r.sort_order || 0),
+        }));
+    }
+  } catch {
+    paymentMethods = database
+      .prepare("SELECT * FROM payment_methods WHERE branch_id = ?")
+      .all(branchId)
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        active: !!r.active,
+      }));
+  }
   const income = database
     .prepare("SELECT * FROM income_entries WHERE branch_id = ? ORDER BY date DESC")
     .all(branchId)

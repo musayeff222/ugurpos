@@ -12,6 +12,20 @@ export function getSalePaymentParts(sale) {
   return { cash: 0, pos: 0 };
 }
 
+export function groupOtherPaymentTotals(sales) {
+  const map = new Map();
+  (sales || []).forEach((sale) => {
+    const saleType = sale?.paymentType || sale?.payment_type || "";
+    if (saleType !== "other") return;
+    const name = sale.paymentMethodName || sale.payment_method_name || "Diğer";
+    const prev = map.get(name) || { name, count: 0, total: 0 };
+    prev.count += 1;
+    prev.total += Number(sale.total || 0);
+    map.set(name, prev);
+  });
+  return [...map.values()];
+}
+
 export function resolvePaymentAmounts(paymentType, total, cashAmount, posAmount) {
   const amount = Number(total) || 0;
   if (paymentType === "partial") {

@@ -39,5 +39,20 @@ export function paymentLabel(type, sale) {
     return `Hissəli (N: ${parts.cash.toFixed(2)} / K: ${parts.pos.toFixed(2)})`;
   }
   if (type === "refund") return "İade";
+  if (type === "other") return sale?.paymentMethodName || sale?.payment_method_name || "Diğer";
   return type || "—";
+}
+
+export function groupOtherPaymentTotals(sales) {
+  const map = new Map();
+  (sales || []).forEach((sale) => {
+    const saleType = sale?.paymentType || sale?.payment_type || "";
+    if (saleType !== "other") return;
+    const name = sale.paymentMethodName || sale.payment_method_name || "Diğer";
+    const prev = map.get(name) || { name, count: 0, total: 0 };
+    prev.count += 1;
+    prev.total += Number(sale.total || 0);
+    map.set(name, prev);
+  });
+  return [...map.values()];
 }

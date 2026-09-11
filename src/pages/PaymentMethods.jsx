@@ -12,6 +12,7 @@ export default function PaymentMethods() {
   return (
     <div>
       <PageHeader title="Ödeme Tipleri" />
+      <p className="hint-text">Firma genelindeki yöntemler admin panel → Ödeme Yöntemleri sayfasından da yönetilir.</p>
       {message && <div className="alert alert-info">{message}</div>}
       <form
         className="card filter-bar"

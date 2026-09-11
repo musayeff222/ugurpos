@@ -37,6 +37,8 @@ export function buildLocalSale(payload, clientSaleId) {
     total: subtotal,
     cashAmount: paymentParts.cash,
     posAmount: paymentParts.pos,
+    paymentMethodId: payload.paymentMethodId || payload.payment_method_id || null,
+    paymentMethodName: payload.paymentMethodName || payload.payment_method_name || null,
     pendingSync: true,
     items: items.map((item, index) => ({
       id: `${clientSaleId}_line_${index}`,

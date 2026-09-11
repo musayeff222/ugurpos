@@ -23,6 +23,12 @@ import { computeCashRegisterBalance } from "../utils/cashRegister.js";
 import { resolvePaymentAmounts } from "../utils/salePayments.js";
 import { hashBranchPassword } from "../utils/branchAuth.js";
 import { sanitizeClientSyncId } from "../utils/clientSyncId.js";
+import {
+  findFirmPaymentMethodForBranch,
+  getFirmIdForBranch,
+  listFirmPaymentMethodsForBranch,
+  rowToFirmPaymentMethod,
+} from "../utils/firmPaymentMethods.js";
 
 const router = Router();
 router.use(branchMiddleware);
@@ -392,8 +398,20 @@ router.post("/sales", (req, res) => {
   const clientSaleId = sanitizeClientSyncId(req.body.clientSaleId || req.body.client_sale_id);
   const resolvedStaffName = req.user?.loginType === "staff" ? req.user.staffName : staffName || "Admin";
 
-  if (!["cash", "pos", "open", "partial"].includes(paymentType)) {
+  if (!["cash", "pos", "open", "partial", "other"].includes(paymentType)) {
     return res.status(400).json({ error: "Geçersiz ödeme tipi" });
+  }
+
+  let paymentMethodId = null;
+  let paymentMethodName = null;
+  if (paymentType === "other") {
+    const methodId = req.body.paymentMethodId || req.body.payment_method_id;
+    const method = findFirmPaymentMethodForBranch(db, req.branchId, methodId);
+    if (!method) {
+      return res.status(400).json({ error: "Geçersiz ödeme yöntemi" });
+    }
+    paymentMethodId = method.id;
+    paymentMethodName = method.name;
   }
 
   if (clientSaleId) {
@@ -423,8 +441,8 @@ router.post("/sales", (req, res) => {
 
   const tx = db.transaction(() => {
     db.prepare(`
-      INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total, cash_amount, pos_amount, branch_id, client_sale_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO sales (id, code, created_at, payment_type, customer_id, staff_name, note, discount, discount_type, paid_amount, total, cash_amount, pos_amount, branch_id, client_sale_id, payment_method_id, payment_method_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       saleId,
       code,
@@ -440,7 +458,9 @@ router.post("/sales", (req, res) => {
       paymentParts.cash,
       paymentParts.pos,
       req.branchId,
-      clientSaleId
+      clientSaleId,
+      paymentMethodId,
+      paymentMethodName
     );
 
     const insItem = db.prepare(`
@@ -857,29 +877,46 @@ router.delete("/firms/:id", (req, res) => {
   res.json({ ok: true });
 });
 
-// Payment methods
+// Payment methods (firm-level catalog, visible on every branch POS)
 router.get("/payment-methods", (req, res) => {
-  res.json(
-    getDb()
-      .prepare("SELECT * FROM payment_methods WHERE branch_id = ?")
-      .all(req.branchId)
-      .map((r) => ({ id: r.id, name: r.name, active: !!r.active }))
-  );
+  res.json(listFirmPaymentMethodsForBranch(getDb(), req.branchId));
 });
 
 router.post("/payment-methods", (req, res) => {
-  const id = uid("pm");
-  getDb()
-    .prepare("INSERT INTO payment_methods (id, name, active, branch_id) VALUES (?, ?, 1, ?)")
-    .run(id, req.body.name, req.branchId);
-  res.status(201).json({ id, name: req.body.name, active: true });
+  const db = getDb();
+  const firmId = getFirmIdForBranch(db, req.branchId);
+  if (!firmId) return res.status(400).json({ error: "Firma bulunamadı" });
+  const name = String(req.body.name || "").trim();
+  if (!name) return res.status(400).json({ error: "Ödeme yöntemi adı zorunludur" });
+  const id = uid("fpm");
+  const maxSort = db
+    .prepare("SELECT COALESCE(MAX(sort_order), 0) as s FROM firm_payment_methods WHERE firm_id = ?")
+    .get(firmId);
+  const sort = Number(maxSort?.s || 0) + 1;
+  db.prepare(
+    "INSERT INTO firm_payment_methods (id, firm_id, name, active, sort_order) VALUES (?, ?, ?, 1, ?)"
+  ).run(id, firmId, name, sort);
+  res.status(201).json({ id, name, active: true, sort });
 });
 
 router.patch("/payment-methods/:id", (req, res) => {
-  getDb()
-    .prepare("UPDATE payment_methods SET name=?, active=? WHERE id=? AND branch_id=?")
-    .run(req.body.name, req.body.active ? 1 : 0, req.params.id, req.branchId);
-  res.json({ ok: true });
+  const db = getDb();
+  const existing = findFirmPaymentMethodForBranch(db, req.branchId, req.params.id);
+  if (!existing) return res.status(404).json({ error: "Ödeme yöntemi bulunamadı" });
+  const name = req.body.name != null ? String(req.body.name).trim() : existing.name;
+  if (!name) return res.status(400).json({ error: "Ödeme yöntemi adı zorunludur" });
+  const active = req.body.active === undefined ? existing.active : req.body.active ? 1 : 0;
+  const sort =
+    req.body.sort != null || req.body.sort_order != null
+      ? Number(req.body.sort ?? req.body.sort_order) || 0
+      : existing.sort_order;
+  db.prepare("UPDATE firm_payment_methods SET name=?, active=?, sort_order=? WHERE id=?").run(
+    name,
+    active,
+    sort,
+    existing.id
+  );
+  res.json(rowToFirmPaymentMethod({ ...existing, name, active, sort_order: sort }));
 });
 
 // Finance

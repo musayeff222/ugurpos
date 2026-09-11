@@ -10,7 +10,7 @@ import {
   isTimestampInReportRange,
   formatReportRangeLabel,
 } from "../../utils/businessHours";
-import { getSalePaymentParts, paymentLabel as salePaymentLabel } from "../../utils/salePayments";
+import { getSalePaymentParts, paymentLabel as salePaymentLabel, groupOtherPaymentTotals } from "../../utils/salePayments";
 import "../../styles/report-mobile.css";
 
 const PAGE_SIZE = 12;
@@ -177,11 +177,18 @@ export default function DailyReport() {
   const safePage = Math.min(page, totalPages);
   const pageRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
+  const otherMethodCards = groupOtherPaymentTotals(rows).map((method) => ({
+    label: method.name,
+    value: formatMoney(method.total),
+    hint: `${method.count} satış`,
+  }));
+
   const summaryCards = [
     { label: "Nakit", value: formatMoney(cashTotal) },
     { label: "Pos", value: formatMoney(cardTotal) },
     { label: "Hissəli Ödəmə", value: formatMoney(partialTotal) },
     { label: "Açık Hesap", value: formatMoney(openTotal) },
+    ...otherMethodCards,
     { label: "Toplam", value: formatMoney(total) },
     { label: "Alınan Ödemeler", value: formatMoney(receivedPayments) },
     { label: "Firma Ödemeleri", value: formatMoney(firmPayments) },

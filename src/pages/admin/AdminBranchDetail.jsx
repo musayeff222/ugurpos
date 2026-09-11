@@ -10,9 +10,15 @@ const PAYMENT_LABELS = {
   cash: "Nakit",
   pos: "Kredi / POS",
   open: "Açık hesap",
-  partial: "Parçalı",
+  partial: "Hissəli",
+  other: "Diğer",
   refund: "İade",
 };
+
+function salePaymentLabel(sale) {
+  if (sale?.paymentType === "other") return sale.paymentMethodName || "Diğer";
+  return PAYMENT_LABELS[sale?.paymentType] || sale?.paymentType || "—";
+}
 
 const TABS = [
   { id: "stock", label: "Anbar" },
@@ -369,10 +375,22 @@ export default function AdminBranchDetail() {
                   <small>{report?.pos?.count || 0} satış</small>
                 </article>
                 <article>
+                  <span>Hissəli</span>
+                  <strong>{formatMoney(report?.partial?.total || 0)}</strong>
+                  <small>{report?.partial?.count || 0} satış</small>
+                </article>
+                <article>
                   <span>Açık hesap</span>
                   <strong>{formatMoney(report?.open?.total || 0)}</strong>
                   <small>{report?.open?.count || 0} satış</small>
                 </article>
+                {(report?.methods || []).map((method) => (
+                  <article key={method.id || method.name}>
+                    <span>{method.name}</span>
+                    <strong>{formatMoney(method.total || 0)}</strong>
+                    <small>{method.count || 0} satış</small>
+                  </article>
+                ))}
                 <article>
                   <span>İade</span>
                   <strong>{formatMoney(report?.refund?.total || 0)}</strong>
@@ -401,7 +419,7 @@ export default function AdminBranchDetail() {
                           <strong>{s.code}</strong>
                           <small>{s.itemCount} kalem</small>
                         </td>
-                        <td>{PAYMENT_LABELS[s.paymentType] || s.paymentType}</td>
+                        <td>{salePaymentLabel(s)}</td>
                         <td>{s.staffName || "—"}</td>
                         <td>{formatMoney(s.total)}</td>
                       </tr>
@@ -485,6 +503,33 @@ export default function AdminBranchDetail() {
                   <strong>{formatMoney(report?.refund?.total || 0)}</strong>
                   <small>{report?.refund?.count || 0} fiş</small>
                 </article>
+              </div>
+              <header className="erp-panel__head">
+                <h3>Ödeme yöntemleri</h3>
+              </header>
+              <div className="crm-metrics crm-metrics--4">
+                <article>
+                  <span>Nakit</span>
+                  <strong>{formatMoney(report?.cash?.total || 0)}</strong>
+                  <small>{report?.cash?.count || 0} satış</small>
+                </article>
+                <article>
+                  <span>POS</span>
+                  <strong>{formatMoney(report?.pos?.total || 0)}</strong>
+                  <small>{report?.pos?.count || 0} satış</small>
+                </article>
+                <article>
+                  <span>Hissəli</span>
+                  <strong>{formatMoney(report?.partial?.total || 0)}</strong>
+                  <small>{report?.partial?.count || 0} satış</small>
+                </article>
+                {(report?.methods || []).map((method) => (
+                  <article key={`rep-${method.id || method.name}`}>
+                    <span>{method.name}</span>
+                    <strong>{formatMoney(method.total || 0)}</strong>
+                    <small>{method.count || 0} satış</small>
+                  </article>
+                ))}
               </div>
               <header className="erp-panel__head">
                 <h3>Geri qaytarılan / iade talepleri</h3>
@@ -719,7 +764,7 @@ export default function AdminBranchDetail() {
         {sale && (
           <>
             <p className="hint-text">
-              {formatDateTime(sale.createdAt)} · {PAYMENT_LABELS[sale.paymentType] || sale.paymentType} ·{" "}
+              {formatDateTime(sale.createdAt)} · {salePaymentLabel(sale)} ·{" "}
               {sale.staffName || "—"}
             </p>
             <table className="erp-table">

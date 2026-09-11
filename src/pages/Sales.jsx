@@ -13,7 +13,7 @@ import { getPostLoginPath } from "../utils/authRedirect";
 import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
 import { playPosItemAddedSound, playPosPaymentSound } from "../utils/posSounds";
-import { getSalePaymentParts } from "../utils/salePayments";
+import { getSalePaymentParts, groupOtherPaymentTotals } from "../utils/salePayments";
 import "../styles/sales.css";
 
 const TAB_COUNT = 5;
@@ -50,6 +50,7 @@ export default function Sales() {
     return window.localStorage.getItem("posAutoPrintEnabled") === "1";
   });
   const [otherOpen, setOtherOpen] = useState(false);
+  const [otherPayOpen, setOtherPayOpen] = useState(false);
   const [fastListTab, setFastListTab] = useState(0);
   const [mobileView, setMobileView] = useState("products");
   const [terminalMenuOpen, setTerminalMenuOpen] = useState(false);
@@ -116,6 +117,7 @@ export default function Sales() {
       pos += parts.pos;
     });
     const partialSales = shiftSales.filter((sale) => sale.paymentType === "partial");
+    const otherMethods = groupOtherPaymentTotals(shiftSales);
     return {
       count: shiftSales.length,
       total: shiftSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
@@ -123,6 +125,7 @@ export default function Sales() {
       pos,
       partialTotal: partialSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
       partialCount: partialSales.length,
+      otherMethods,
       withdrawalsTotal,
       cashRegister: cash - withdrawalsTotal,
       withdrawals: shiftWithdrawals,
@@ -159,6 +162,10 @@ export default function Sales() {
     () => [{ id: "__all__", name: "Hamısı" }, ...state.groups.map((g) => ({ id: g.id, name: g.name }))],
     [state.groups]
   );
+  const otherPayMethods = useMemo(
+    () => (state.paymentMethods || []).filter((method) => method.active),
+    [state.paymentMethods]
+  );
 
   useEffect(() => {
     if (fastListTab >= productCategories.length) setFastListTab(0);
@@ -192,6 +199,7 @@ export default function Sales() {
         paidAmount: paidAmt,
         change: Math.max(0, paidAmt - tot),
         paymentType: payment,
+        paymentMethodName: saleOverride?.paymentMethodName ?? lastSale?.paymentMethodName ?? "",
         customerName: customer,
         staffName: saleOverride?.staffName ?? lastSale?.staffName ?? "Admin",
         note: saleOverride?.note ?? (cart.length ? note : lastSale?.note ?? ""),
@@ -371,7 +379,7 @@ export default function Sales() {
     let paidAmount = Number(paid) || 0;
     if (paymentType === "cash") {
       paidAmount = Math.max(paidAmount, total);
-    } else if (paymentType === "pos" || paymentType === "partial") {
+    } else if (paymentType === "pos" || paymentType === "partial" || paymentType === "other") {
       paidAmount = total;
     }
 
@@ -391,6 +399,11 @@ export default function Sales() {
       payload.posAmount = options.posAmount;
     }
 
+    if (paymentType === "other") {
+      payload.paymentMethodId = options.paymentMethodId;
+      payload.paymentMethodName = options.paymentMethodName;
+    }
+
     try {
       const sale = await completeSale(payload);
 
@@ -405,6 +418,7 @@ export default function Sales() {
       setSplitCash("");
       setSplitPos("");
       setSplitError("");
+      setOtherPayOpen(false);
 
       if (autoPrint) {
         printSaleReceipt(
@@ -421,6 +435,7 @@ export default function Sales() {
             posAmount: sale.posAmount,
             change: Math.max(0, sale.paidAmount - sale.total),
             paymentType: sale.paymentType,
+            paymentMethodName: sale.paymentMethodName,
             customerName: selectedCustomer?.name || "",
             staffName: sale.staffName,
             note: sale.note,
@@ -901,6 +916,10 @@ export default function Sales() {
           <i className="fa fa-columns" />
           <span>HİSSƏLİ</span>
         </button>
+        <button type="button" className="dzy-paybar__btn dzy-paybar__btn--other" onClick={() => setOtherPayOpen(true)}>
+          <i className="fa fa-ellipsis-h" />
+          <span>Diğer</span>
+        </button>
         <button type="button" className="dzy-paybar__print" onClick={() => handlePrint("thermal", "SATIŞ FİŞİ")}>
           <i className="fa fa-print" />
         </button>
@@ -1026,6 +1045,13 @@ export default function Sales() {
               <strong>{money(shiftSummary.partialTotal)}</strong>
               {shiftSummary.partialCount > 0 && <small>{shiftSummary.partialCount} satış</small>}
             </div>
+            {shiftSummary.otherMethods.map((method) => (
+              <div key={method.name}>
+                <span>{method.name}</span>
+                <strong>{money(method.total)}</strong>
+                {method.count > 0 && <small>{method.count} satış</small>}
+              </div>
+            ))}
             <div>
               <span>Kassadan xərc</span>
               <strong>{money(shiftSummary.withdrawalsTotal)}</strong>
@@ -1060,6 +1086,26 @@ export default function Sales() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={otherPayOpen} title="Diğer ödeme yöntemleri" onClose={() => setOtherPayOpen(false)}>
+        {otherPayMethods.length === 0 ? (
+          <p className="other-pay-empty">Admin panelden ödeme yöntemi ekleyin</p>
+        ) : (
+          <div className="other-pay-list">
+            {otherPayMethods.map((method) => (
+              <button
+                key={method.id}
+                type="button"
+                className="other-pay-list__btn"
+                onClick={() => finalize("other", { paymentMethodId: method.id, paymentMethodName: method.name })}
+              >
+                <strong>{method.name}</strong>
+                <span>{money(total)}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </Modal>
 
       <Modal open={splitModalOpen} title="Hissəli ödəmə" onClose={() => setSplitModalOpen(false)}>

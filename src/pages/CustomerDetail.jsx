@@ -4,6 +4,7 @@ import { useStore } from "../store/StoreContext";
 import DataTable from "../components/ui/DataTable";
 import PageHeader from "../components/ui/PageHeader";
 import { formatDateTime, formatMoney } from "../utils/format";
+import { paymentLabel } from "../utils/salePayments";
 
 export default function CustomerDetail() {
   const { state, addCustomerPayment } = useStore();
@@ -118,7 +119,7 @@ export default function CustomerDetail() {
             columns={[
               { key: "code", label: "Satış kodu" },
               { key: "total", label: "Tutar", render: (r) => formatMoney(r.total) },
-              { key: "paymentType", label: "Ödeme" },
+              { key: "paymentType", label: "Ödeme", render: (r) => paymentLabel(r.paymentType, r) },
               { key: "createdAt", label: "Tarih", render: (r) => formatDateTime(r.createdAt) },
             ]}
             rows={sales}

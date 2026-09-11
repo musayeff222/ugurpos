@@ -36,12 +36,13 @@ function formatQty(value) {
   });
 }
 
-function paymentLabel(type) {
+function paymentLabel(type, sale) {
   if (type === "cash") return "Nakit";
   if (type === "pos") return "Pos";
   if (type === "open") return "Açık Hesap";
   if (type === "partial") return "Hissəli ödəmə";
   if (type === "refund") return "İade";
+  if (type === "other") return sale?.paymentMethodName || "Diğer";
   return type || "—";
 }
 
@@ -187,7 +188,7 @@ export default function Dashboard() {
                         </div>
                         <div className="report-sale-row__center">
                           <span>{formatDateTime(sale.createdAt)}</span>
-                          <small>{paymentLabel(sale.paymentType)}</small>
+                          <small>{paymentLabel(sale.paymentType, sale)}</small>
                         </div>
                         <div className="report-sale-row__right">
                           <span>
@@ -225,7 +226,7 @@ export default function Dashboard() {
                             <td>{sale.customerName}</td>
                             <td>{formatQty(sale.itemCount)}</td>
                             <td>{formatMoney(sale.total)}</td>
-                            <td>{paymentLabel(sale.paymentType)}</td>
+                            <td>{paymentLabel(sale.paymentType, sale)}</td>
                             <td>{formatDateTime(sale.createdAt)}</td>
                             <td>{sale.staffName || "—"}</td>
                           </tr>
