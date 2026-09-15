@@ -3,7 +3,7 @@ import { api } from "../../api/client";
 import Modal from "../../components/ui/Modal";
 import { formatDateTime } from "../../utils/format";
 import ProductionOverviewCards from "./ProductionOverviewCards";
-import { RAW_UNITS } from "./units";
+import { RAW_UNITS, compatibleUnits, convertQty, defaultInputUnit, formatStock, roundQty } from "./units";
 
 const emptyCreate = { name: "", unit: "kq", note: "" };
 
@@ -18,6 +18,7 @@ export default function ProductionRawMaterials() {
   const [editForm, setEditForm] = useState({ name: "", unit: "kq" });
   const [stockRow, setStockRow] = useState(null);
   const [stockQty, setStockQty] = useState("");
+  const [stockUnit, setStockUnit] = useState("qram");
   const [history, setHistory] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -69,7 +70,9 @@ export default function ProductionRawMaterials() {
     if (!stockRow) return;
     setSaving(true);
     try {
-      await api.addProductionRawStock(stockRow.id, { qty: Number(stockQty) });
+      await api.addProductionRawStock(stockRow.id, {
+        qty: roundQty(convertQty(stockQty, stockUnit, stockRow.unit)),
+      });
       setStockRow(null);
       setStockQty("");
       setMessage("Stok əlavə olundu.");
@@ -126,7 +129,7 @@ export default function ProductionRawMaterials() {
                     {row.critical ? <small className="prod-tag prod-tag--crit">Kritik</small> : null}
                     {row.lowStock ? <small className="prod-tag">Aşağı stok</small> : null}
                   </td>
-                  <td>{row.stock}</td>
+                    <td>{formatStock(row.stock, row.unit)}</td>
                   <td>{row.unit}</td>
                   <td className="prod-actions">
                     <button type="button" className="prod-icon" title="Düzəlt" onClick={() => { setEditRow(row); setEditForm({ name: row.name, unit: row.unit }); }}>
@@ -135,7 +138,7 @@ export default function ProductionRawMaterials() {
                     <button type="button" className="prod-icon" title="Stok tarixçəsi" onClick={() => openHistory(row)}>
                       <i className="fa fa-eye" aria-hidden />
                     </button>
-                    <button type="button" className="prod-icon prod-icon--add" title="Stok əlavə et" onClick={() => { setStockRow(row); setStockQty(""); }}>
+                    <button type="button" className="prod-icon prod-icon--add" title="Stok əlavə et" onClick={() => { setStockRow(row); setStockQty(""); setStockUnit(defaultInputUnit(row.unit)); }}>
                       <i className="fa fa-plus" aria-hidden />
                     </button>
                   </td>
@@ -208,10 +211,26 @@ export default function ProductionRawMaterials() {
 
       <Modal open={!!stockRow} title={stockRow ? `${stockRow.name} — stok əlavə et` : "Stok"} onClose={() => setStockRow(null)}>
         <form className="erp-form" onSubmit={addStock}>
+          <p className="hint-text">100 qram yazın. 0.1 kq yazmağa ehtiyac yoxdur — vahidi qram seçin.</p>
           <label className="erp-field">
-            <span>Miqdar ({stockRow?.unit})</span>
-            <input type="number" step="0.01" min="0.01" value={stockQty} onChange={(e) => setStockQty(e.target.value)} required />
+            <span>Miqdar</span>
+            <input type="number" step="any" min="0.001" value={stockQty} onChange={(e) => setStockQty(e.target.value)} required />
           </label>
+          <label className="erp-field">
+            <span>Ölçü vahidi</span>
+            <select value={stockUnit} onChange={(e) => setStockUnit(e.target.value)}>
+              {compatibleUnits(stockRow.unit).map((unit) => (
+                <option key={unit} value={unit}>
+                  {unit}
+                </option>
+              ))}
+            </select>
+          </label>
+          {stockQty && (
+            <p className="hint-text">
+              Stoka əlavə olunacaq: {roundQty(convertQty(stockQty, stockUnit, stockRow.unit))} {stockRow.unit}
+            </p>
+          )}
           <div className="form-actions">
             <button type="submit" className="prod-btn prod-btn--primary" disabled={saving}>
               Əlavə et

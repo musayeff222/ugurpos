@@ -89,7 +89,7 @@ export default function AdminDashboard() {
                   <tbody>
                     {salesBranches.map((b) => (
                       <tr key={b.id}>
-                        <td>
+                        <td data-label="Şube">
                           <Link className="crm-account" to={adminRecordPath(b)}>
                             <span className="crm-avatar">{String(getBranchLabel(b)).slice(0, 2).toUpperCase()}</span>
                             <span>
@@ -98,14 +98,14 @@ export default function AdminDashboard() {
                             </span>
                           </Link>
                         </td>
-                        <td>
+                        <td data-label="Durum">
                           <span className={`admin-badge ${b.active ? "ok" : "off"}`}>
                             {b.active ? "Aktif" : "Pasif"}
                           </span>
                         </td>
-                        <td>{formatMoney(b.stats?.todayTotal || 0)}</td>
-                        <td>{b.productCount}</td>
-                        <td>{b.saleCount}</td>
+                        <td data-label="Bugün">{formatMoney(b.stats?.todayTotal || 0)}</td>
+                        <td data-label="Ürün">{b.productCount}</td>
+                        <td data-label="Satış">{b.saleCount}</td>
                       </tr>
                     ))}
                     {salesBranches.length === 0 && (

@@ -160,6 +160,18 @@
   text-decoration: none;
   cursor: pointer;
   flex-shrink: 0;
+  position: relative;
+}
+
+.admin-icon-btn.is-active {
+  background: #dbe3f3;
+  color: #0176d3;
+}
+
+.admin-drawer,
+.admin-drawer-backdrop,
+.admin-mobile-search {
+  display: none;
 }
 
 .admin-icon-btn:hover {
@@ -502,14 +514,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
     position: sticky;
     top: 0;
     z-index: 100;
     background: #fff;
-    margin: -16px -16px 16px;
-    padding: 12px 16px;
-    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    margin: 0;
+    padding: 10px 12px;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
     border-bottom: 1px solid #dbe0ec;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   }
@@ -1473,6 +1485,10 @@
 
 .admin-bottom-nav__item {
   position: relative;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
 }
 
 .admin-alert-toast {
@@ -1876,7 +1892,9 @@
 }
 
 .erp-kpi-grid {
-  display: none;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .erp-kpi {
@@ -2614,21 +2632,9 @@
     padding: 16px;
   }
 
-  .erp-hero,
   .erp-hero__actions {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .erp-kpi-grid,
-  .erp-modules {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .erp-drawer {
-    display: block;
-    background: #032d60;
-    padding: 12px 16px 16px;
   }
 
   .erp-user-chip--top,
@@ -2665,5 +2671,420 @@
   .erp-filters input {
     width: 100%;
     min-width: 0;
+  }
+}
+
+@media (max-width: 991px) {
+  .admin-shell.erp-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .admin-drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 240;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: rgba(3, 45, 96, 0.45);
+  }
+
+  .admin-drawer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(86vw, 320px);
+    z-index: 250;
+    background: #032d60;
+    padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    overflow-y: auto;
+    box-shadow: 8px 0 24px rgba(3, 45, 96, 0.28);
+  }
+
+  .admin-drawer.is-open {
+    transform: translateX(0);
+  }
+
+  .admin-mobile-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    background: #fff;
+    border-bottom: 1px solid #dddbda;
+  }
+
+  .admin-mobile-search input {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    border: 1px solid #c9c7c5;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 16px;
+  }
+
+  .admin-mobile-search .btn {
+    min-height: 44px;
+  }
+
+  .admin-mobile-header__title span {
+    display: none;
+  }
+
+  .admin-mobile-header .admin-icon-btn.erp-bell {
+    width: 40px;
+    height: 40px;
+    background: #eef1f8;
+  }
+
+  .erp-content {
+    padding: 12px 12px 24px;
+  }
+
+  .crm-listbar h2 {
+    font-size: 20px;
+  }
+
+  .crm-listbar__tools,
+  .crm-record__actions,
+  .form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .crm-listbar__tools .btn,
+  .crm-record__actions .btn,
+  .erp-page .form-actions .btn {
+    flex: 1 1 calc(50% - 8px);
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .crm-global-search--inline {
+    max-width: none;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .crm-global-search--inline input {
+    min-height: 42px;
+    font-size: 16px;
+  }
+
+  .crm-metrics,
+  .crm-metrics--4,
+  .crm-highlights {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .crm-metrics article,
+  .crm-highlights > div {
+    min-width: 0;
+  }
+
+  .crm-metrics strong,
+  .crm-highlights dd {
+    font-size: 16px;
+    overflow-wrap: anywhere;
+  }
+
+  .crm-record {
+    padding: 14px 12px 0;
+  }
+
+  .crm-record h2 {
+    font-size: 20px;
+  }
+
+  .crm-record__id {
+    width: 100%;
+  }
+
+  .erp-tabs.admin-tabs {
+    position: sticky;
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    z-index: 40;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    background: #fff;
+  }
+
+  .erp-tabs.admin-tabs button {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .erp-panel,
+  .erp-panel--flush {
+    overflow: hidden;
+  }
+
+  .admin-table-wrap,
+  .admin-table-wrap--desktop-only,
+  .table-wrap {
+    overflow: visible;
+    margin: 0;
+  }
+
+  .admin-table-wrap table,
+  .admin-table-wrap .data-table,
+  .erp-table {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .erp-table thead,
+  .data-table thead {
+    display: none;
+  }
+
+  .erp-table,
+  .erp-table tbody,
+  .data-table table,
+  .data-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .erp-table tr,
+  .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+    width: 100%;
+    margin: 0 0 10px;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid #dddbda;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .erp-table tr:hover,
+  .data-table tbody tr:hover {
+    background: #fff;
+  }
+
+  .erp-table td,
+  .data-table td {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    font-size: 13px;
+    word-break: break-word;
+  }
+
+  .erp-table td::before,
+  .data-table td::before {
+    content: attr(data-label);
+    color: #706e6b;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .erp-table td:not([data-label])::before,
+  .erp-table td[data-label=""]::before,
+  .data-table td:not([data-label])::before,
+  .data-table td[data-label=""]::before {
+    display: none;
+  }
+
+  .erp-table td:first-child,
+  .erp-table td:last-child,
+  .erp-table td[colspan],
+  .erp-table .erp-table__empty,
+  .data-table td:first-child,
+  .data-table td:last-child,
+  .data-table td[colspan] {
+    grid-column: 1 / -1;
+  }
+
+  .erp-table .crm-account,
+  .staff-login-cell,
+  .staff-row-actions {
+    width: 100%;
+  }
+
+  .staff-row-actions .btn,
+  .erp-table .btn,
+  .data-table .btn {
+    min-height: 40px;
+  }
+
+  .crm-inline-input,
+  .staff-password-input,
+  .erp-field input,
+  .erp-field select,
+  .erp-field textarea,
+  .erp-inline-row input,
+  .crm-login input {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .erp-kpi-grid,
+  .erp-kpi-grid--2,
+  .erp-kpi-grid--4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .erp-kpi {
+    padding: 12px;
+  }
+
+  .erp-kpi strong {
+    font-size: 16px;
+    overflow-wrap: anywhere;
+  }
+
+  .table-toolbar,
+  .table-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 0 4px 12px;
+  }
+
+  .table-toolbar label,
+  .table-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .table-toolbar select,
+  .table-search input {
+    flex: 1;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .pagination {
+    justify-content: space-between;
+  }
+
+  .pagination button {
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-panel,
+  .modal-md,
+  .modal-lg {
+    max-width: 100%;
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .modal-footer {
+    flex-wrap: wrap;
+  }
+
+  .modal-footer .btn {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .admin-qr-hours-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-qr-firm-actions,
+  .admin-qr-branch-card__actions {
+    width: 100%;
+  }
+
+  .admin-qr-firm-actions .btn,
+  .admin-qr-branch-card__actions .btn {
+    flex: 1;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .admin-qr-code {
+    width: 160px;
+    height: 160px;
+  }
+
+  .crm-login {
+    display: flex;
+    align-items: center;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .crm-login form {
+    max-width: none;
+    padding: 24px 18px 20px;
+  }
+
+  .admin-alert-toast {
+    margin: 0 0 12px;
+  }
+
+  .admin-drawer .erp-nav a,
+  .admin-drawer .admin-sidebar-link,
+  .admin-drawer .admin-logout-btn {
+    min-height: 44px;
+  }
+
+  .crm-listbar > div:first-child h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+}
+
+@media (max-width: 480px) {
+  .crm-metrics,
+  .crm-metrics--4,
+  .admin-quick-actions,
+  .erp-kpi-grid,
+  .erp-kpi-grid--2,
+  .erp-kpi-grid--4,
+  .admin-qr-theme-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .crm-listbar__tools .btn,
+  .crm-record__actions .btn,
+  .erp-page .form-actions .btn {
+    flex-basis: 100%;
+  }
+
+  .admin-bottom-nav__item span {
+    font-size: 10px;
   }
 }

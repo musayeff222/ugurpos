@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import Modal from "../../components/ui/Modal";
+import { compatibleUnits, convertQty, defaultInputUnit, formatStock, roundQty } from "./units";
 
 export default function ProductionUsage() {
   const [materials, setMaterials] = useState([]);
@@ -9,6 +10,7 @@ export default function ProductionUsage() {
   const [productId, setProductId] = useState("");
   const [newProductName, setNewProductName] = useState("");
   const [qtyMap, setQtyMap] = useState({});
+  const [unitMap, setUnitMap] = useState({});
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -30,6 +32,7 @@ export default function ProductionUsage() {
     setProductId("");
     setNewProductName("");
     setQtyMap({});
+    setUnitMap({});
     setStep("pick");
   };
 
@@ -55,11 +58,17 @@ export default function ProductionUsage() {
     try {
       await api.createProductionBatch({
         productId,
-        items: materials.map((row) => ({ rawMaterialId: row.id, qty: Number(qtyMap[row.id] || 0) })),
+        items: materials
+          .map((row) => ({
+            rawMaterialId: row.id,
+            qty: roundQty(convertQty(qtyMap[row.id] || 0, unitMap[row.id] || defaultInputUnit(row.unit), row.unit)),
+          }))
+          .filter((item) => item.qty > 0),
       });
       setStep("idle");
       setProductId("");
       setQtyMap({});
+      setUnitMap({});
       setMessage("İstifadə qeydə alındı. Xammal stoku azaldıldı.");
       await load();
     } catch (err) {
@@ -94,26 +103,40 @@ export default function ProductionUsage() {
         <section className="prod-usage-board">
           <header>
             <h2>{selected.name}</h2>
-            <span>Hər xammal üçün istifadə olunan miqdarı yazın. Vahid avtomatik gəlir.</span>
+            <span>Hər xammal üçün miqdarı yazın. 100 qram üçün sadəcə 100 yazıb qram seçin.</span>
           </header>
           <div className="prod-usage-list">
-            {materials.map((row) => (
-              <label key={row.id} className="prod-usage-row">
-                <strong>{row.name}</strong>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0"
-                  value={qtyMap[row.id] || ""}
-                  onChange={(e) => setQtyMap({ ...qtyMap, [row.id]: e.target.value })}
-                />
-                <em>{row.unit}</em>
-                <small>
-                  stok: {row.stock} {row.unit}
-                </small>
-              </label>
-            ))}
+            {materials.map((row) => {
+              const inputUnit = unitMap[row.id] || defaultInputUnit(row.unit);
+              const converted = roundQty(convertQty(qtyMap[row.id] || 0, inputUnit, row.unit));
+              return (
+                <div key={row.id} className="prod-usage-row">
+                  <strong>{row.name}</strong>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    placeholder="məs: 100"
+                    value={qtyMap[row.id] || ""}
+                    onChange={(e) => setQtyMap({ ...qtyMap, [row.id]: e.target.value })}
+                  />
+                  <select
+                    value={inputUnit}
+                    onChange={(e) => setUnitMap({ ...unitMap, [row.id]: e.target.value })}
+                  >
+                    {compatibleUnits(row.unit).map((unit) => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
+                  <small>
+                    stok: {formatStock(row.stock, row.unit)}
+                    {Number(qtyMap[row.id]) > 0 ? ` · çıxılacaq: ${converted} ${row.unit}` : ""}
+                  </small>
+                </div>
+              );
+            })}
             {!materials.length && <p className="prod-empty">Əvvəl xammaddə əlavə edin.</p>}
           </div>
           <div className="form-actions">

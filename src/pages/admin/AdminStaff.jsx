@@ -180,13 +180,13 @@ export default function AdminStaff() {
               <tbody>
                 {rows.map((person) => (
                   <tr key={person.id}>
-                    <td>
+                    <td data-label="Çalışan">
                       <strong>
                         {person.name} {person.surname}
                       </strong>
                       <small>{person.phone || "—"}</small>
                     </td>
-                    <td>
+                    <td data-label="Login">
                       <div className="staff-login-cell">
                         <code>{person.login || "—"}</code>
                         {person.login ? (
@@ -203,14 +203,14 @@ export default function AdminStaff() {
                         <small className="staff-password-warn">Parola yok — giriş yapamaz</small>
                       )}
                     </td>
-                    <td>
+                    <td data-label="Şube">
                       <Link to={`/admin/branches/${person.branchId}`}>
                         {getBranchLabel({ name: person.branchName }) || person.branchName}
                       </Link>
                     </td>
-                    <td>{roleLabel(person.role)}</td>
-                    <td>{formatMoney(person.salary || 0)}</td>
-                    <td>
+                    <td data-label="Görev">{roleLabel(person.role)}</td>
+                    <td data-label="Maaş">{formatMoney(person.salary || 0)}</td>
+                    <td data-label="">
                       <div className="staff-row-actions">
                         <button type="button" className="btn btn-default btn-sm" onClick={() => startEdit(person)}>
                           Aç

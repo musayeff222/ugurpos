@@ -309,13 +309,13 @@ export default function AdminBranchDetail() {
                       const edit = stockEdits[p.id] || {};
                       return (
                         <tr key={p.id}>
-                          <td>
+                          <td data-label="Ürün">
                             <strong>{p.name}</strong>
                             {p.stock <= p.criticalStock && <small>kritik stok</small>}
                           </td>
-                          <td>{p.groupName || "—"}</td>
-                          <td>{p.stock}</td>
-                          <td>
+                          <td data-label="Grup">{p.groupName || "—"}</td>
+                          <td data-label="Stokta kalan">{p.stock}</td>
+                          <td data-label="Fiyat">
                             <input
                               className="crm-inline-input"
                               type="number"
@@ -329,7 +329,7 @@ export default function AdminBranchDetail() {
                               }
                             />
                           </td>
-                          <td>
+                          <td data-label="Stok ekle">
                             <input
                               className="crm-inline-input"
                               type="number"
@@ -343,7 +343,7 @@ export default function AdminBranchDetail() {
                               }
                             />
                           </td>
-                          <td>
+                          <td data-label="">
                             <button
                               type="button"
                               className="btn btn-primary btn-sm"
@@ -422,14 +422,14 @@ export default function AdminBranchDetail() {
                   <tbody>
                     {(workspace?.sales || []).map((s) => (
                       <tr key={s.id} className="crm-row-link" onClick={() => setSale(s)}>
-                        <td>{formatDateTime(s.createdAt)}</td>
-                        <td>
+                        <td data-label="Tarih">{formatDateTime(s.createdAt)}</td>
+                        <td data-label="Fiş">
                           <strong>{s.code}</strong>
                           <small>{s.itemCount} kalem</small>
                         </td>
-                        <td>{salePaymentLabel(s)}</td>
-                        <td>{s.staffName || "—"}</td>
-                        <td>{formatMoney(s.total)}</td>
+                        <td data-label="Ödeme">{salePaymentLabel(s)}</td>
+                        <td data-label="Personel">{s.staffName || "—"}</td>
+                        <td data-label="Tutar">{formatMoney(s.total)}</td>
                       </tr>
                     ))}
                     {!workspace?.sales?.length && (
@@ -468,11 +468,11 @@ export default function AdminBranchDetail() {
                   <tbody>
                     {(workspace?.withdrawals || []).map((row) => (
                       <tr key={row.id}>
-                        <td>{formatDateTime(row.createdAt)}</td>
-                        <td>{row.reason}</td>
-                        <td>{row.note || "—"}</td>
-                        <td>{row.staffName || "—"}</td>
-                        <td>{formatMoney(row.amount)}</td>
+                        <td data-label="Tarih">{formatDateTime(row.createdAt)}</td>
+                        <td data-label="Nəyə">{row.reason}</td>
+                        <td data-label="Qeyd">{row.note || "—"}</td>
+                        <td data-label="Kim">{row.staffName || "—"}</td>
+                        <td data-label="Məbləğ">{formatMoney(row.amount)}</td>
                       </tr>
                     ))}
                     {!workspace?.withdrawals?.length && (
@@ -554,10 +554,10 @@ export default function AdminBranchDetail() {
                 <tbody>
                   {(workspace?.refundRequests || []).map((row) => (
                     <tr key={row.id}>
-                      <td>{row.date}</td>
-                      <td>{row.productName || "—"}</td>
-                      <td>{row.reason || "—"}</td>
-                      <td>{row.status}</td>
+                      <td data-label="Tarih">{row.date}</td>
+                      <td data-label="Ürün">{row.productName || "—"}</td>
+                      <td data-label="Sebep">{row.reason || "—"}</td>
+                      <td data-label="Durum">{row.status}</td>
                     </tr>
                   ))}
                   {!workspace?.refundRequests?.length && (
@@ -597,13 +597,13 @@ export default function AdminBranchDetail() {
                   <tbody>
                     {(workspace?.staff || []).map((person) => (
                       <tr key={person.id}>
-                        <td>
+                        <td data-label="İsim">
                           <strong>
                             {person.name} {person.surname}
                           </strong>
                           <small>{person.active ? "Aktif" : "Pasif"}</small>
                         </td>
-                        <td>
+                        <td data-label="Login">
                           <div className="staff-login-cell">
                             <code>{person.login || "—"}</code>
                             {person.login ? (
@@ -620,10 +620,10 @@ export default function AdminBranchDetail() {
                             <small className="staff-password-warn">Parola yok — giriş yapamaz, yeni parola kaydedin.</small>
                           )}
                         </td>
-                        <td>{person.phone || "—"}</td>
-                        <td>{person.role || "—"}</td>
-                        <td>{person.startedAt ? formatDateTime(person.startedAt) : "—"}</td>
-                        <td>
+                        <td data-label="Telefon">{person.phone || "—"}</td>
+                        <td data-label="Rol">{person.role || "—"}</td>
+                        <td data-label="İşe başlama">{person.startedAt ? formatDateTime(person.startedAt) : "—"}</td>
+                        <td data-label="Maaş">
                           <input
                             className="crm-inline-input"
                             type="number"
@@ -634,15 +634,15 @@ export default function AdminBranchDetail() {
                             }
                           />
                         </td>
-                        <td>
+                        <td data-label="Günlük satış">
                           {formatMoney(person.todayTotal)}
                           <small>{person.todayCount} satış</small>
                         </td>
-                        <td>
+                        <td data-label="Aylık satış">
                           {formatMoney(person.monthTotal)}
                           <small>{person.monthCount} satış</small>
                         </td>
-                        <td>
+                        <td data-label="Yeni parola">
                           <input
                             className="crm-inline-input staff-password-input"
                             type="password"
@@ -654,7 +654,7 @@ export default function AdminBranchDetail() {
                             }
                           />
                         </td>
-                        <td>
+                        <td data-label="">
                           <div className="staff-row-actions">
                             <button
                               type="button"
@@ -787,10 +787,10 @@ export default function AdminBranchDetail() {
               <tbody>
                 {sale.items.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.name}</td>
-                    <td>{item.qty}</td>
-                    <td>{formatMoney(item.price)}</td>
-                    <td>{formatMoney(item.qty * item.price - (item.discount || 0))}</td>
+                    <td data-label="Ürün">{item.name}</td>
+                    <td data-label="Adet">{item.qty}</td>
+                    <td data-label="Fiyat">{formatMoney(item.price)}</td>
+                    <td data-label="Tutar">{formatMoney(item.qty * item.price - (item.discount || 0))}</td>
                   </tr>
                 ))}
               </tbody>

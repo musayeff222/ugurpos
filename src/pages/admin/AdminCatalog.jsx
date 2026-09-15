@@ -223,11 +223,11 @@ export default function AdminCatalog() {
             <tbody>
               {groups.map((g) => (
                 <tr key={g.id}>
-                  <td>
+                  <td data-label="Grup">
                     <strong>{g.name}</strong>
                   </td>
-                  <td>{products.filter((p) => p.groupId === g.id).length}</td>
-                  <td>
+                  <td data-label="Ürün">{products.filter((p) => p.groupId === g.id).length}</td>
+                  <td data-label="">
                     <button
                       type="button"
                       className="btn btn-default btn-sm"
@@ -284,7 +284,7 @@ export default function AdminCatalog() {
                 <tbody>
                   {filtered.map((p) => (
                     <tr key={p.id}>
-                      <td>
+                      <td data-label="Ürün">
                         <span className="crm-account">
                           {p.hasImage ? (
                             <img className="crm-avatar" src={getProductImageSrc(p)} alt="" />
@@ -297,14 +297,14 @@ export default function AdminCatalog() {
                           </span>
                         </span>
                       </td>
-                      <td>{p.groupName || "—"}</td>
-                      <td>{formatMoney(p.price1 || 0)}</td>
-                      <td>
+                      <td data-label="Grup">{p.groupName || "—"}</td>
+                      <td data-label="Fiyat">{formatMoney(p.price1 || 0)}</td>
+                      <td data-label="Durum">
                         <span className={`admin-badge ${p.active ? "ok" : "off"}`}>
                           {p.active ? "Aktif" : "Pasif"}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="">
                         <button type="button" className="btn btn-default btn-sm" onClick={() => startEdit(p)}>
                           Aç
                         </button>{" "}

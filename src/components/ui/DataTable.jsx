@@ -79,7 +79,9 @@ export default function DataTable({
               slice.map((row, idx) => (
                 <tr key={row.id ?? idx}>
                   {columns.map((col) => (
-                    <td key={col.key}>{col.render ? col.render(row) : row[col.key]}</td>
+                    <td key={col.key} data-label={col.label || undefined}>
+                      {col.render ? col.render(row) : row[col.key]}
+                    </td>
                   ))}
                 </tr>
               ))

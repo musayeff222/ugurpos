@@ -170,11 +170,11 @@ export default function AdminPaymentMethods() {
             <tbody>
               {methods.map((method) => (
                 <tr key={method.id}>
-                  <td>
+                  <td data-label="Yöntem">
                     <strong>{method.name}</strong>
                   </td>
-                  <td>{method.active ? "Aktif" : "Pasif"}</td>
-                  <td>
+                  <td data-label="Durum">{method.active ? "Aktif" : "Pasif"}</td>
+                  <td data-label="">
                     <div className="staff-row-actions">
                       <button type="button" className="btn btn-default btn-sm" onClick={() => startEdit(method)}>
                         Düzenle
