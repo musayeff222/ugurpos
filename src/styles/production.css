@@ -235,13 +235,47 @@
   gap: 6px;
 }
 
+.prod-card header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.prod-card header h3 .fa {
+  color: #0176d3;
+}
+
+.prod-card--warn header h3 .fa {
+  color: #c23934;
+}
+
 .prod-icon {
   border: 0;
-  background: #f4f8fc;
+  background: #eef5fb;
+  color: #032d60;
   border-radius: 8px;
   width: 36px;
   height: 36px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prod-icon:hover {
+  background: #d6e9f8;
+  color: #0176d3;
+}
+
+.prod-icon--add {
+  background: #e8f6ee;
+  color: #2e844a;
+}
+
+.prod-icon--add:hover {
+  background: #cfead9;
 }
 
 .prod-tag {

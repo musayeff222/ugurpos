@@ -130,13 +130,13 @@ export default function ProductionRawMaterials() {
                   <td>{row.unit}</td>
                   <td className="prod-actions">
                     <button type="button" className="prod-icon" title="Düzəlt" onClick={() => { setEditRow(row); setEditForm({ name: row.name, unit: row.unit }); }}>
-                      ✏️
+                      <i className="fa fa-pencil" aria-hidden />
                     </button>
-                    <button type="button" className="prod-icon" title="Tarixçə" onClick={() => openHistory(row)}>
-                      👁️
+                    <button type="button" className="prod-icon" title="Stok tarixçəsi" onClick={() => openHistory(row)}>
+                      <i className="fa fa-eye" aria-hidden />
                     </button>
-                    <button type="button" className="prod-icon" title="Stok əlavə et" onClick={() => { setStockRow(row); setStockQty(""); }}>
-                      ➕
+                    <button type="button" className="prod-icon prod-icon--add" title="Stok əlavə et" onClick={() => { setStockRow(row); setStockQty(""); }}>
+                      <i className="fa fa-plus" aria-hidden />
                     </button>
                   </td>
                 </tr>
@@ -183,7 +183,7 @@ export default function ProductionRawMaterials() {
 
       <Modal open={!!editRow} title="Düzəlt" onClose={() => setEditRow(null)}>
         <form className="erp-form" onSubmit={saveEdit}>
-          <p className="hint-text">Yalnız ad və ölçü vahidi dəyişir. Stok ➕ ilə artırılır.</p>
+          <p className="hint-text">Yalnız ad və ölçü vahidi dəyişir. Stok miqdarı plus düyməsi ilə artırılır.</p>
           <label className="erp-field">
             <span>Ad *</span>
             <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />

@@ -11,7 +11,9 @@ export default function ProductionOverviewCards({ summary }) {
     <div className="prod-dash-grid">
       <section className="prod-card">
         <header>
-          <h3>Son istifadə olunan xammallar</h3>
+          <h3>
+            <i className="fa fa-clock-o" aria-hidden /> Son istifadə olunan xammallar
+          </h3>
           <Link to="/istehsalat/istifade">İstifadə</Link>
         </header>
         {recentUsage.length ? (
@@ -33,7 +35,9 @@ export default function ProductionOverviewCards({ summary }) {
       </section>
       <section className="prod-card">
         <header>
-          <h3>Aşağı stok xəbərdarlıqları</h3>
+          <h3>
+            <i className="fa fa-exclamation-triangle" aria-hidden /> Aşağı stok xəbərdarlıqları
+          </h3>
         </header>
         {low.length ? (
           <ul>
@@ -53,7 +57,9 @@ export default function ProductionOverviewCards({ summary }) {
       </section>
       <section className="prod-card prod-card--warn">
         <header>
-          <h3>Kritik stoklar</h3>
+          <h3>
+            <i className="fa fa-warning" aria-hidden /> Kritik stoklar
+          </h3>
         </header>
         {critical.length ? (
           <ul>
@@ -73,7 +79,9 @@ export default function ProductionOverviewCards({ summary }) {
       </section>
       <section className="prod-card">
         <header>
-          <h3>Son hazırlanan məhsullar</h3>
+          <h3>
+            <i className="fa fa-archive" aria-hidden /> Son hazırlanan məhsullar
+          </h3>
           <Link to="/istehsalat/mehsullar">Hamısı</Link>
         </header>
         {recentBatches.length ? (

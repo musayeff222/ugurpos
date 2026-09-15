@@ -60,8 +60,8 @@ export default function ProductionProducts() {
         {products.map((item) => (
           <article key={item.id} className="prod-product-card">
             <h3>{item.name}</h3>
-            <button type="button" className="prod-icon" title="Tarixçə" onClick={() => openHistory(item)}>
-              👁️
+            <button type="button" className="prod-icon" title="Hazırlanma tarixçəsi" onClick={() => openHistory(item)}>
+              <i className="fa fa-eye" aria-hidden />
             </button>
           </article>
         ))}

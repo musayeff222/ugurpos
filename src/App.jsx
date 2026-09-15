@@ -52,7 +52,6 @@ import AdminCatalog from "./pages/admin/AdminCatalog";
 import AdminStaff from "./pages/admin/AdminStaff";
 import AdminPaymentMethods from "./pages/admin/AdminPaymentMethods";
 import ProductionLayout from "./layouts/ProductionLayout";
-import ProductionHome from "./pages/production/ProductionHome";
 import ProductionRawMaterials from "./pages/production/ProductionRawMaterials";
 import ProductionUsage from "./pages/production/ProductionUsage";
 import ProductionProducts from "./pages/production/ProductionProducts";
@@ -105,7 +104,7 @@ export default function App() {
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />
       <Route path="/istehsalat" element={<ProductionLayout />}>
-        <Route index element={<ProductionHome />} />
+        <Route index element={<Navigate to="xammaddeler" replace />} />
         <Route path="xammaddeler" element={<ProductionRawMaterials />} />
         <Route path="xam-maddeler" element={<Navigate to="/istehsalat/xammaddeler" replace />} />
         <Route path="istifade" element={<ProductionUsage />} />

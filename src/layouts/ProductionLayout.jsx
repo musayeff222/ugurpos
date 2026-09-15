@@ -7,10 +7,9 @@ import "../styles/admin.css";
 import "../styles/production.css";
 
 const nav = [
-  { to: "/istehsalat", label: "Ana səhifə", icon: "fa-home", end: true },
   { to: "/istehsalat/xammaddeler", label: "Xammaddələr", icon: "fa-cubes" },
-  { to: "/istehsalat/istifade", label: "İstifadə", icon: "fa-exchange" },
-  { to: "/istehsalat/mehsullar", label: "Hazırlanan məhsullar", icon: "fa-cutlery" },
+  { to: "/istehsalat/istifade", label: "İstifadə", icon: "fa-industry" },
+  { to: "/istehsalat/mehsullar", label: "Hazırlanan məhsullar", icon: "fa-archive" },
 ];
 
 function initials(text) {
@@ -62,7 +61,6 @@ export default function ProductionLayout() {
       <NavLink
         key={item.to}
         to={item.to}
-        end={item.end}
         className={({ isActive }) => (isActive ? "active" : "")}
         onClick={onNavigate}
       >
