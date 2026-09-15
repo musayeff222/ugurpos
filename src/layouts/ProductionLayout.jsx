@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ImpersonationBanner from "../components/ImpersonationBanner";
@@ -6,14 +7,25 @@ import "../styles/admin.css";
 import "../styles/production.css";
 
 const nav = [
-  { to: "/istehsalat/xam-maddeler", label: "Xam maddələr", icon: "fa-cubes" },
-  { to: "/istehsalat/istehsalat", label: "İstehsalat", icon: "fa-industry" },
+  { to: "/istehsalat", label: "Ana səhifə", icon: "fa-home", end: true },
+  { to: "/istehsalat/xammaddeler", label: "Xammaddələr", icon: "fa-cubes" },
+  { to: "/istehsalat/istifade", label: "İstifadə", icon: "fa-exchange" },
+  { to: "/istehsalat/mehsullar", label: "Hazırlanan məhsullar", icon: "fa-cutlery" },
 ];
+
+function initials(text) {
+  const value = String(text || "İS").trim();
+  const parts = value.split(/[\s._@-]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return value.slice(0, 2).toUpperCase();
+}
 
 export default function ProductionLayout() {
   const { isAuthenticated, isAdmin, isImpersonating, user, logout, returnToAdminPanel } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;
@@ -27,12 +39,15 @@ export default function ProductionLayout() {
     return <Navigate to="/dashboard" replace />;
   }
 
+  const displayName = user?.staffName || user?.email || user?.branchEmail || "İstifadəçi";
+  const roleLabel = isImpersonating ? "Admin baxışı" : "İstehsalat";
+
   const handleLogout = () => {
     if (isImpersonating) {
       const lastBranch = sessionStorage.getItem("ugurpos_admin_last_branch") || user?.branchId || "";
       const restored = returnToAdminPanel();
-      if (restored && lastBranch) navigate(`/admin/branches/${lastBranch}`);
-      else if (restored) navigate("/admin/branches");
+      if (restored && lastBranch) navigate(`/admin/istehsalat/${lastBranch}`);
+      else if (restored) navigate("/admin/istehsalat");
       else navigate("/login/admin");
       return;
     }
@@ -40,50 +55,67 @@ export default function ProductionLayout() {
     navigate("/login");
   };
 
+  const showText = !collapsed || mobileOpen;
+
+  const renderNav = (onNavigate) =>
+    nav.map((item) => (
+      <NavLink
+        key={item.to}
+        to={item.to}
+        end={item.end}
+        className={({ isActive }) => (isActive ? "active" : "")}
+        onClick={onNavigate}
+      >
+        <i className={`fa ${item.icon}`} aria-hidden />
+        {showText && <span>{item.label}</span>}
+      </NavLink>
+    ));
+
   return (
-    <div className="admin-shell erp-shell production-shell">
-      <aside className="admin-sidebar admin-sidebar--desktop erp-sidebar">
-        <div className="erp-brand">
-          <div className="erp-brand__mark">İS</div>
-          <div>
-            <strong>İstehsalat</strong>
-            <span>{user?.branchName || "Şöbə"}</span>
-          </div>
-        </div>
-        <nav className="admin-nav erp-nav">
-          {nav.map((item) => (
-            <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? "active" : "")}>
-              <i className={`fa ${item.icon}`} aria-hidden />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-        <div className="admin-sidebar-footer erp-sidebar-footer">
-          <div className="erp-user-chip">
-            <span className="erp-avatar">{String(user?.branchName || "İS").slice(0, 2).toUpperCase()}</span>
+    <div className={`production-shell ${collapsed ? "production-shell--collapsed" : ""} ${mobileOpen ? "production-shell--mobile" : ""}`}>
+      {mobileOpen && <button type="button" className="prod-backdrop" aria-label="Bağla" onClick={() => setMobileOpen(false)} />}
+      <aside className="prod-sidebar">
+        <div className="prod-user">
+          <span className="prod-user__avatar">{initials(displayName)}</span>
+          {showText && (
             <div>
-              <strong>{user?.branchName || "İstehsalat"}</strong>
-              <small>{user?.email || user?.branchEmail || ""}</small>
+              <strong>{displayName}</strong>
+              <small>{user?.branchName || "İstehsalat şöbəsi"}</small>
+              <small>{roleLabel}</small>
             </div>
-          </div>
-          <button type="button" className="admin-back admin-logout-btn" onClick={handleLogout}>
-            <i className="fa fa-sign-out" /> {isImpersonating ? "Admin panele dön" : "Çıxış"}
+          )}
+        </div>
+        <button
+          type="button"
+          className="prod-collapse"
+          onClick={() => setCollapsed((open) => !open)}
+          aria-label={collapsed ? "Menyunu aç" : "Menyunu bağla"}
+        >
+          <i className={`fa ${collapsed ? "fa-angle-right" : "fa-angle-left"}`} />
+          {!collapsed || mobileOpen ? <span>Menyu</span> : null}
+        </button>
+        <nav className="prod-nav">{renderNav(() => setMobileOpen(false))}</nav>
+        <div className="prod-sidebar__foot">
+          <button type="button" className="prod-logout" onClick={handleLogout}>
+            <i className="fa fa-sign-out" />
+            {showText && <span>{isImpersonating ? "Admin panele dön" : "Çıxış"}</span>}
           </button>
         </div>
       </aside>
-      <main className="admin-main erp-main">
+      <main className="prod-main">
         {isImpersonating && <ImpersonationBanner />}
-        <nav className="production-mobile-nav">
-          {nav.map((item) => (
-            <NavLink key={item.to} to={item.to}>
-              {item.label}
-            </NavLink>
-          ))}
+        <header className="prod-mobile-bar">
+          <button type="button" className="prod-hamburger" onClick={() => setMobileOpen((open) => !open)} aria-label="Menyu">
+            <span />
+            <span />
+            <span />
+          </button>
+          <strong>{user?.branchName || "Ləvazimatlar"}</strong>
           <button type="button" onClick={handleLogout}>
             {isImpersonating ? "Admin" : "Çıxış"}
           </button>
-        </nav>
-        <div className="admin-page erp-page production-page">
+        </header>
+        <div className="prod-content">
           <Outlet />
         </div>
       </main>

@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatDateTime, formatMoney } from "../../utils/format";
+import { adminListPath, isProductionKind } from "../../utils/adminPaths";
 import Modal from "../../components/ui/Modal";
 
 const PAYMENT_LABELS = {
@@ -135,7 +136,9 @@ export default function AdminBranchDetail() {
     setError("");
     try {
       await api.deleteBranch(id);
-      navigate("/admin/branches", { state: { message: "Şube silindi." } });
+      navigate(adminListPath(isProductionKind(branch) ? "production" : "sales"), {
+        state: { message: isProductionKind(branch) ? "İstehsalat silindi." : "Şube silindi." },
+      });
     } catch (err) {
       setError(err.message);
     }
@@ -241,7 +244,7 @@ export default function AdminBranchDetail() {
                 </span>
               </div>
               <div className="crm-record__actions">
-                <Link to="/admin/branches" className="btn btn-default btn-sm">
+                <Link to={adminListPath(isProduction ? "production" : "sales")} className="btn btn-default btn-sm">
                   Liste
                 </Link>
                 {branch.active && (

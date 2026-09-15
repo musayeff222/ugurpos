@@ -3,8 +3,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { formatMoney } from "../../utils/format";
 import { getBranchLabel } from "../../utils/branchDisplay";
+import { adminCreatePath, adminRecordPath, isProductionKind } from "../../utils/adminPaths";
 
-export default function AdminBranches() {
+export default function AdminBranches({ kind = "sales" }) {
+  const isProduction = kind === "production";
   const [branches, setBranches] = useState([]);
   const [error, setError] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,10 +24,15 @@ export default function AdminBranches() {
       .catch((e) => setError(e.message));
   }, []);
 
+  const scoped = useMemo(
+    () => branches.filter((b) => (isProduction ? isProductionKind(b) : !isProductionKind(b))),
+    [branches, isProduction]
+  );
+
   const rows = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return branches;
-    return branches.filter((b) => {
+    if (!term) return scoped;
+    return scoped.filter((b) => {
       const label = getBranchLabel(b).toLowerCase();
       return (
         label.includes(term) ||
@@ -33,7 +40,7 @@ export default function AdminBranches() {
         String(b.branchNo || "").includes(term)
       );
     });
-  }, [branches, q]);
+  }, [scoped, q]);
 
   const applySearch = (e) => {
     e.preventDefault();
@@ -42,13 +49,16 @@ export default function AdminBranches() {
     else setSearchParams({});
   };
 
+  const createTo = adminCreatePath(kind);
+  const listLabel = isProduction ? "İstehsalat" : "Şubeler";
+
   return (
     <div className="admin-page erp-page">
       <div className="crm-listbar">
         <div>
-          <h2>Hesaplar</h2>
+          <h2>{listLabel}</h2>
           <span>
-            {rows.length} / {branches.length} kayıt
+            {rows.length} / {scoped.length} kayıt
           </span>
         </div>
         <div className="crm-listbar__tools">
@@ -60,11 +70,8 @@ export default function AdminBranches() {
               placeholder="Ada, e-posta, no..."
             />
           </form>
-          <Link to="/admin/branches/new" className="btn btn-primary btn-sm">
-            Yeni
-          </Link>
-          <Link to="/admin/branches/new?kind=production" className="btn btn-default btn-sm">
-            İstehsalat
+          <Link to={createTo} className="btn btn-primary btn-sm">
+            {isProduction ? "Yeni istehsalat" : "Yeni şube"}
           </Link>
         </div>
       </div>
@@ -75,46 +82,45 @@ export default function AdminBranches() {
           <table className="erp-table">
             <thead>
               <tr>
-                <th>Hesap adı</th>
+                <th>{isProduction ? "İstehsalat adı" : "Şube adı"}</th>
                 <th>Durum</th>
-                <th>Bugünkü ciro</th>
-                <th>Ürün</th>
-                <th>Müşteri</th>
-                <th>Sahip</th>
+                {!isProduction && <th>Bugünkü ciro</th>}
+                {!isProduction && <th>Ürün</th>}
+                {!isProduction && <th>Müşteri</th>}
+                {isProduction && <th>Login</th>}
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {rows.map((b) => (
                 <tr key={b.id}>
                   <td>
-                    <Link className="crm-account" to={`/admin/branches/${b.id}`}>
+                    <Link className="crm-account" to={adminRecordPath(b)}>
                       <span className="crm-avatar">{String(getBranchLabel(b)).slice(0, 2).toUpperCase()}</span>
                       <span>
                         <strong>{getBranchLabel(b)}</strong>
-                        <small>
-                          {b.email || "E-posta yok"}
-                          {b.kind === "production" ? " · İstehsalat" : ""}
-                        </small>
+                        <small>{b.email || "E-posta yok"}</small>
                       </span>
                     </Link>
                   </td>
                   <td>
                     <span className={`admin-badge ${b.active ? "ok" : "off"}`}>{b.active ? "Aktif" : "Pasif"}</span>
                   </td>
-                  <td>{formatMoney(b.stats?.todayTotal || 0)}</td>
-                  <td>{b.stats?.productCount || 0}</td>
-                  <td>{b.stats?.customerCount || 0}</td>
+                  {!isProduction && <td>{formatMoney(b.stats?.todayTotal || 0)}</td>}
+                  {!isProduction && <td>{b.stats?.productCount || 0}</td>}
+                  {!isProduction && <td>{b.stats?.customerCount || 0}</td>}
+                  {isProduction && <td>{b.email || "—"}</td>}
                   <td>
-                    <Link to={`/admin/branches/${b.id}`}>Aç</Link>
+                    <Link to={adminRecordPath(b)}>Aç</Link>
                   </td>
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="erp-table__empty">
-                    {branches.length === 0 ? (
+                  <td colSpan={isProduction ? 4 : 6} className="erp-table__empty">
+                    {scoped.length === 0 ? (
                       <>
-                        Kayıt yok. <Link to="/admin/branches/new">İlk hesabı oluştur</Link>
+                        Kayıt yok. <Link to={createTo}>{isProduction ? "İlk istehsalatı oluştur" : "İlk şubeyi oluştur"}</Link>
                       </>
                     ) : (
                       "Bu aramada sonuç yok."
@@ -130,7 +136,7 @@ export default function AdminBranches() {
           {rows.map((b) => (
             <Link
               key={b.id}
-              to={`/admin/branches/${b.id}`}
+              to={adminRecordPath(b)}
               className={`admin-branch-card admin-branch-card--link ${b.active ? "" : "inactive"}`}
             >
               <div className="admin-branch-card__head">
@@ -140,16 +146,18 @@ export default function AdminBranches() {
                 </div>
                 <span className={`admin-badge ${b.active ? "ok" : "off"}`}>{b.active ? "Aktif" : "Pasif"}</span>
               </div>
-              <div className="admin-branch-card__stats admin-branch-card__stats--2">
-                <div>
-                  <span>Bugün</span>
-                  <strong>{formatMoney(b.stats?.todayTotal || 0)}</strong>
+              {!isProduction && (
+                <div className="admin-branch-card__stats admin-branch-card__stats--2">
+                  <div>
+                    <span>Bugün</span>
+                    <strong>{formatMoney(b.stats?.todayTotal || 0)}</strong>
+                  </div>
+                  <div>
+                    <span>Ürün</span>
+                    <strong>{b.stats?.productCount || 0}</strong>
+                  </div>
                 </div>
-                <div>
-                  <span>Ürün</span>
-                  <strong>{b.stats?.productCount || 0}</strong>
-                </div>
-              </div>
+              )}
             </Link>
           ))}
         </div>

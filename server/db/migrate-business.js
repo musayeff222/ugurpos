@@ -183,4 +183,63 @@ export function migrateBusiness(db) {
       CREATE INDEX IF NOT EXISTS idx_production_batch_items_batch ON production_batch_items(batch_id);
     `);
   }
+
+  addColumnIfMissing(db, "raw_materials", "critical_stock", db.dialect === "mysql" ? "DOUBLE DEFAULT 5" : "REAL DEFAULT 5");
+  addColumnIfMissing(db, "production_batches", "product_id", db.dialect === "mysql" ? "VARCHAR(64)" : "TEXT");
+
+  if (db.dialect === "mysql") {
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS production_products (
+          id VARCHAR(64) PRIMARY KEY,
+          branch_id VARCHAR(64) NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          created_at VARCHAR(40),
+          INDEX idx_production_products_branch (branch_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS raw_material_movements (
+          id VARCHAR(64) PRIMARY KEY,
+          branch_id VARCHAR(64) NOT NULL,
+          raw_material_id VARCHAR(64) NOT NULL,
+          type VARCHAR(16) NOT NULL,
+          qty DOUBLE NOT NULL,
+          stock_after DOUBLE DEFAULT 0,
+          note TEXT,
+          batch_id VARCHAR(64),
+          created_by VARCHAR(255),
+          created_at VARCHAR(40),
+          INDEX idx_raw_movements_material (raw_material_id),
+          INDEX idx_raw_movements_branch (branch_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+    } catch {
+      /* already exists */
+    }
+  } else {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS production_products (
+        id TEXT PRIMARY KEY,
+        branch_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        created_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_production_products_branch ON production_products(branch_id);
+      CREATE TABLE IF NOT EXISTS raw_material_movements (
+        id TEXT PRIMARY KEY,
+        branch_id TEXT NOT NULL,
+        raw_material_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        qty REAL NOT NULL,
+        stock_after REAL DEFAULT 0,
+        note TEXT,
+        batch_id TEXT,
+        created_by TEXT,
+        created_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_raw_movements_material ON raw_material_movements(raw_material_id);
+      CREATE INDEX IF NOT EXISTS idx_raw_movements_branch ON raw_material_movements(branch_id);
+    `);
+  }
 }

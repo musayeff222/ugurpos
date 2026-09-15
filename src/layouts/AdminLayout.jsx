@@ -11,7 +11,8 @@ const adminNav = [
     title: "Satış",
     items: [
       { to: "/admin", label: "Ana sayfa", icon: "fa-home", end: true },
-      { to: "/admin/branches", label: "Hesaplar", icon: "fa-building" },
+      { to: "/admin/branches", label: "Şubeler", icon: "fa-building" },
+      { to: "/admin/istehsalat", label: "İstehsalat", icon: "fa-industry" },
       { to: "/admin/products", label: "Ürünler", icon: "fa-cube" },
       { to: "/admin/staff", label: "Çalışanlar", icon: "fa-users" },
       { to: "/admin/activity", label: "Aktiviteler", icon: "fa-list-alt", badge: "activity" },
@@ -71,6 +72,7 @@ export default function AdminLayout() {
   const isNavActive = (item) =>
     location.pathname === item.to ||
     (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches")) ||
+    (item.to === "/admin/istehsalat" && location.pathname.startsWith("/admin/istehsalat")) ||
     (item.to === "/admin/products" && location.pathname.startsWith("/admin/products")) ||
     (item.to === "/admin/staff" && location.pathname.startsWith("/admin/staff")) ||
     (item.to === "/admin/qr-menu" && location.pathname.startsWith("/admin/qr-menu")) ||
@@ -81,13 +83,21 @@ export default function AdminLayout() {
 
   const activeItem = flatNav.find((item) => isNavActive(item));
   const pageTitle =
-    activeItem?.label || (location.pathname.includes("/branches/new") ? "Yeni hesap" : "Konsol");
+    activeItem?.label ||
+    (location.pathname.includes("/istehsalat/new")
+      ? "Yeni istehsalat"
+      : location.pathname.includes("/branches/new")
+        ? "Yeni şube"
+        : "Konsol");
 
   const breadcrumb = useMemo(() => {
     if (location.pathname === "/admin") return ["UgurPOS", "Ana sayfa"];
-    if (location.pathname.startsWith("/admin/branches/new")) return ["UgurPOS", "Hesaplar", "Yeni kayıt"];
-    if (location.pathname.startsWith("/admin/branches/")) return ["UgurPOS", "Hesaplar", "Kayıt"];
-    if (location.pathname.startsWith("/admin/branches")) return ["UgurPOS", "Hesaplar"];
+    if (location.pathname.startsWith("/admin/istehsalat/new")) return ["UgurPOS", "İstehsalat", "Yeni kayıt"];
+    if (location.pathname.startsWith("/admin/istehsalat/")) return ["UgurPOS", "İstehsalat", "Kayıt"];
+    if (location.pathname.startsWith("/admin/istehsalat")) return ["UgurPOS", "İstehsalat"];
+    if (location.pathname.startsWith("/admin/branches/new")) return ["UgurPOS", "Şubeler", "Yeni kayıt"];
+    if (location.pathname.startsWith("/admin/branches/")) return ["UgurPOS", "Şubeler", "Kayıt"];
+    if (location.pathname.startsWith("/admin/branches")) return ["UgurPOS", "Şubeler"];
     return ["UgurPOS", pageTitle];
   }, [location.pathname, pageTitle]);
 
@@ -195,7 +205,7 @@ export default function AdminLayout() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Hesap, e-posta veya şube no..."
+              placeholder="Şube, istehsalat, e-posta..."
             />
           </form>
           <div className="erp-topbar__right">

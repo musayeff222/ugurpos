@@ -52,8 +52,10 @@ import AdminCatalog from "./pages/admin/AdminCatalog";
 import AdminStaff from "./pages/admin/AdminStaff";
 import AdminPaymentMethods from "./pages/admin/AdminPaymentMethods";
 import ProductionLayout from "./layouts/ProductionLayout";
+import ProductionHome from "./pages/production/ProductionHome";
 import ProductionRawMaterials from "./pages/production/ProductionRawMaterials";
-import ProductionWork from "./pages/production/ProductionWork";
+import ProductionUsage from "./pages/production/ProductionUsage";
+import ProductionProducts from "./pages/production/ProductionProducts";
 import PublicMenuLanding from "./pages/public/PublicMenuLanding";
 import PublicBranchMenu from "./pages/public/PublicBranchMenu";
 import PublicBranchCart from "./pages/public/PublicBranchCart";
@@ -87,9 +89,12 @@ export default function App() {
       <Route path="/m/:slug" element={<LegacyMenuRedirect />} />
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
-        <Route path="branches" element={<AdminBranches />} />
+        <Route path="branches" element={<AdminBranches kind="sales" />} />
         <Route path="branches/new" element={<AdminBranchCreate />} />
         <Route path="branches/:id" element={<AdminBranchDetail />} />
+        <Route path="istehsalat" element={<AdminBranches kind="production" />} />
+        <Route path="istehsalat/new" element={<AdminBranchCreate />} />
+        <Route path="istehsalat/:id" element={<AdminBranchDetail />} />
         <Route path="qr-menu" element={<AdminQrMenu />} />
         <Route path="activity" element={<AdminActivity />} />
         <Route path="cash-reports" element={<AdminCashReports />} />
@@ -100,9 +105,12 @@ export default function App() {
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />
       <Route path="/istehsalat" element={<ProductionLayout />}>
-        <Route index element={<Navigate to="xam-maddeler" replace />} />
-        <Route path="xam-maddeler" element={<ProductionRawMaterials />} />
-        <Route path="istehsalat" element={<ProductionWork />} />
+        <Route index element={<ProductionHome />} />
+        <Route path="xammaddeler" element={<ProductionRawMaterials />} />
+        <Route path="xam-maddeler" element={<Navigate to="/istehsalat/xammaddeler" replace />} />
+        <Route path="istifade" element={<ProductionUsage />} />
+        <Route path="istehsalat" element={<Navigate to="/istehsalat/istifade" replace />} />
+        <Route path="mehsullar" element={<ProductionProducts />} />
       </Route>
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomeRedirect />} />

@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { adminListPath } from "../utils/adminPaths";
+import { isProductionAccount } from "../utils/authRedirect";
 
 function staffRoleLabel(role) {
   const value = String(role || "").toLocaleLowerCase("tr");
@@ -18,8 +20,10 @@ export default function ImpersonationBanner() {
     const lastBranch =
       sessionStorage.getItem("ugurpos_admin_last_branch") || user?.returnToBranchId || "";
     const restored = returnToAdminPanel();
-    if (restored && lastBranch) navigate(`/admin/branches/${lastBranch}`);
-    else if (restored) navigate("/admin/branches");
+    if (restored && lastBranch) {
+      const base = isProductionAccount(user) ? "/admin/istehsalat" : "/admin/branches";
+      navigate(`${base}/${lastBranch}`);
+    } else if (restored) navigate(adminListPath(isProductionAccount(user) ? "production" : "sales"));
     else navigate("/login/admin");
   };
 

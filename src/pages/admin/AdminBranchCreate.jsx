@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
+import { adminListPath, adminRecordPath } from "../../utils/adminPaths";
 
 export default function AdminBranchCreate() {
   const { refreshBranches } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const isProduction = searchParams.get("kind") === "production";
+  const isProduction = location.pathname.startsWith("/admin/istehsalat") || searchParams.get("kind") === "production";
+  const listTo = adminListPath(isProduction ? "production" : "sales");
   const [form, setForm] = useState({ name: "", email: "", password: "", address: "" });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -16,7 +19,7 @@ export default function AdminBranchCreate() {
     e.preventDefault();
     setError("");
     if (!form.name.trim()) {
-      setError("Şube adı zorunludur.");
+      setError(isProduction ? "İstehsalat adı zorunludur." : "Şube adı zorunludur.");
       return;
     }
     if (!form.email.trim()) {
@@ -34,10 +37,10 @@ export default function AdminBranchCreate() {
         kind: isProduction ? "production" : "sales",
       });
       await refreshBranches();
-      navigate(`/admin/branches/${created.id}`, {
+      navigate(adminRecordPath(created), {
         state: {
           message: isProduction
-            ? "İstehsalat şubesi oluşturuldu. Login ve parolayla /login üzerinden girilir."
+            ? "İstehsalat oluşturuldu. Login ve parolayla /login üzerinden girilir."
             : `Şube #${created.branchNo} oluşturuldu.`,
         },
       });
@@ -52,11 +55,11 @@ export default function AdminBranchCreate() {
     <div className="admin-page erp-page">
       <div className="crm-listbar">
         <div>
-          <h2>{isProduction ? "İstehsalat şubesi" : "Yeni hesap"}</h2>
+          <h2>{isProduction ? "Yeni istehsalat" : "Yeni şube"}</h2>
           <span>{isProduction ? "Login + parola ile üretim paneli" : "Şube kaydı · numara otomatik"}</span>
         </div>
         <div className="crm-listbar__tools">
-          <Link to="/admin/branches" className="btn btn-default btn-sm">
+          <Link to={listTo} className="btn btn-default btn-sm">
             İptal
           </Link>
         </div>
@@ -97,11 +100,11 @@ export default function AdminBranchCreate() {
           </label>
         </div>
         <div className="form-actions">
-          <Link to="/admin/branches" className="btn btn-default">
+          <Link to={listTo} className="btn btn-default">
             İptal
           </Link>
           <button type="submit" className="btn btn-success" disabled={saving}>
-            {saving ? "Kaydediliyor..." : isProduction ? "İstehsalat şubesi oluştur" : "Şube oluştur"}
+            {saving ? "Kaydediliyor..." : isProduction ? "İstehsalat oluştur" : "Şube oluştur"}
           </button>
         </div>
       </form>

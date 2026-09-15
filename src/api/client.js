@@ -75,7 +75,15 @@ export const api = {
     request("/production/raw-materials", { method: "POST", body: JSON.stringify(payload) }),
   updateProductionRawMaterial: (id, payload) =>
     request(`/production/raw-materials/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  addProductionRawStock: (id, payload) =>
+    request(`/production/raw-materials/${id}/stock`, { method: "POST", body: JSON.stringify(payload) }),
+  getProductionRawMovements: (id) => request(`/production/raw-materials/${id}/movements`),
   deleteProductionRawMaterial: (id) => request(`/production/raw-materials/${id}`, { method: "DELETE" }),
+  getProductionSummary: () => request("/production/summary"),
+  getProductionProducts: () => request("/production/products"),
+  createProductionProduct: (payload) =>
+    request("/production/products", { method: "POST", body: JSON.stringify(payload) }),
+  getProductionProductHistory: (id) => request(`/production/products/${id}/history`),
   getProductionBatches: () => request("/production/batches"),
   createProductionBatch: (payload) =>
     request("/production/batches", { method: "POST", body: JSON.stringify(payload) }),

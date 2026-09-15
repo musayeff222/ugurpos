@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import { formatMoney } from "../../utils/format";
 import { getBranchLabel } from "../../utils/branchDisplay";
+import { adminRecordPath, isProductionKind } from "../../utils/adminPaths";
 
 const TYPE_LABELS = {
   branch_login: "Giriş",
@@ -32,6 +33,8 @@ export default function AdminDashboard() {
       ]
     : [];
 
+  const salesBranches = (summary?.branches || []).filter((b) => !isProductionKind(b));
+
   return (
     <div className="admin-page erp-page">
       <div className="crm-listbar">
@@ -40,14 +43,14 @@ export default function AdminDashboard() {
           <span>Firma özeti · bugün</span>
         </div>
         <div className="crm-listbar__tools">
-          <Link to="/admin/products" className="btn btn-default btn-sm">
-            Ürünler
+          <Link to="/admin/branches" className="btn btn-default btn-sm">
+            Şubeler
+          </Link>
+          <Link to="/admin/istehsalat" className="btn btn-default btn-sm">
+            İstehsalat
           </Link>
           <Link to="/admin/branches/new" className="btn btn-primary btn-sm">
-            Yeni hesap
-          </Link>
-          <Link to="/admin/branches/new?kind=production" className="btn btn-default btn-sm">
-            İstehsalat şubesi
+            Yeni şube
           </Link>
         </div>
       </div>
@@ -69,14 +72,14 @@ export default function AdminDashboard() {
           <div className="erp-split">
             <section className="erp-panel">
               <header className="erp-panel__head">
-                <h3>Son görüntülenen hesaplar</h3>
+                <h3>Şubeler</h3>
                 <Link to="/admin/branches">Tüm liste</Link>
               </header>
               <div className="admin-table-wrap">
                 <table className="erp-table">
                   <thead>
                     <tr>
-                      <th>Hesap adı</th>
+                      <th>Şube adı</th>
                       <th>Durum</th>
                       <th>Bugün</th>
                       <th>Ürün</th>
@@ -84,17 +87,14 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {summary.branches.map((b) => (
+                    {salesBranches.map((b) => (
                       <tr key={b.id}>
                         <td>
-                          <Link className="crm-account" to={`/admin/branches/${b.id}`}>
+                          <Link className="crm-account" to={adminRecordPath(b)}>
                             <span className="crm-avatar">{String(getBranchLabel(b)).slice(0, 2).toUpperCase()}</span>
                             <span>
                               <strong>{getBranchLabel(b)}</strong>
-                              <small>
-                                {b.email || "—"}
-                                {b.kind === "production" ? " · İstehsalat" : ""}
-                              </small>
+                              <small>{b.email || "—"}</small>
                             </span>
                           </Link>
                         </td>
@@ -108,10 +108,10 @@ export default function AdminDashboard() {
                         <td>{b.saleCount}</td>
                       </tr>
                     ))}
-                    {summary.branches.length === 0 && (
+                    {salesBranches.length === 0 && (
                       <tr>
                         <td colSpan={5} className="erp-table__empty">
-                          Kayıt yok. <Link to="/admin/branches/new">Hesap oluştur</Link>
+                          Kayıt yok. <Link to="/admin/branches/new">Şube oluştur</Link>
                         </td>
                       </tr>
                     )}
