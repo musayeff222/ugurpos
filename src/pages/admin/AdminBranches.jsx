@@ -63,6 +63,9 @@ export default function AdminBranches() {
           <Link to="/admin/branches/new" className="btn btn-primary btn-sm">
             Yeni
           </Link>
+          <Link to="/admin/branches/new?kind=production" className="btn btn-default btn-sm">
+            İstehsalat
+          </Link>
         </div>
       </div>
       {error && <div className="alert alert-danger">{error}</div>}
@@ -88,7 +91,10 @@ export default function AdminBranches() {
                       <span className="crm-avatar">{String(getBranchLabel(b)).slice(0, 2).toUpperCase()}</span>
                       <span>
                         <strong>{getBranchLabel(b)}</strong>
-                        <small>{b.email || "E-posta yok"}</small>
+                        <small>
+                          {b.email || "E-posta yok"}
+                          {b.kind === "production" ? " · İstehsalat" : ""}
+                        </small>
                       </span>
                     </Link>
                   </td>

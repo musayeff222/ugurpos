@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 
 export default function AdminBranchCreate() {
   const { refreshBranches } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isProduction = searchParams.get("kind") === "production";
   const [form, setForm] = useState({ name: "", email: "", password: "", address: "" });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -18,7 +20,7 @@ export default function AdminBranchCreate() {
       return;
     }
     if (!form.email.trim()) {
-      setError("Şube e-postası zorunludur.");
+      setError("Giriş e-postası zorunludur.");
       return;
     }
     if (!form.password.trim()) {
@@ -27,10 +29,17 @@ export default function AdminBranchCreate() {
     }
     setSaving(true);
     try {
-      const created = await api.createBranch(form);
+      const created = await api.createBranch({
+        ...form,
+        kind: isProduction ? "production" : "sales",
+      });
       await refreshBranches();
       navigate(`/admin/branches/${created.id}`, {
-        state: { message: `Şube #${created.branchNo} oluşturuldu.` },
+        state: {
+          message: isProduction
+            ? "İstehsalat şubesi oluşturuldu. Login ve parolayla /login üzerinden girilir."
+            : `Şube #${created.branchNo} oluşturuldu.`,
+        },
       });
     } catch (err) {
       setError(err.message || "Kayıt başarısız.");
@@ -43,8 +52,8 @@ export default function AdminBranchCreate() {
     <div className="admin-page erp-page">
       <div className="crm-listbar">
         <div>
-          <h2>Yeni hesap</h2>
-          <span>Şube kaydı · numara otomatik</span>
+          <h2>{isProduction ? "İstehsalat şubesi" : "Yeni hesap"}</h2>
+          <span>{isProduction ? "Login + parola ile üretim paneli" : "Şube kaydı · numara otomatik"}</span>
         </div>
         <div className="crm-listbar__tools">
           <Link to="/admin/branches" className="btn btn-default btn-sm">
@@ -58,11 +67,11 @@ export default function AdminBranchCreate() {
       <form className="erp-panel erp-form" onSubmit={handleSubmit}>
         <div className="erp-form-grid">
           <label className="erp-field">
-            <span>Şube adı *</span>
+            <span>{isProduction ? "İstehsalat adı *" : "Şube adı *"}</span>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           </label>
           <label className="erp-field">
-            <span>Giriş e-postası *</span>
+            <span>Giriş e-postası (login) *</span>
             <input
               type="email"
               value={form.email}
@@ -73,12 +82,12 @@ export default function AdminBranchCreate() {
             />
           </label>
           <label className="erp-field">
-            <span>POS şifresi *</span>
+            <span>Parola *</span>
             <input
               type="password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="Şube personeli bu şifreyle girer"
+              placeholder={isProduction ? "İstehsalat girişi bu parolayla yapılır" : "Şube personeli bu şifreyle girer"}
               required
             />
           </label>
@@ -92,7 +101,7 @@ export default function AdminBranchCreate() {
             İptal
           </Link>
           <button type="submit" className="btn btn-success" disabled={saving}>
-            {saving ? "Kaydediliyor..." : "Şube oluştur"}
+            {saving ? "Kaydediliyor..." : isProduction ? "İstehsalat şubesi oluştur" : "Şube oluştur"}
           </button>
         </div>
       </form>

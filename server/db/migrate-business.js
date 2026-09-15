@@ -3,6 +3,7 @@ import { addColumnIfMissing } from "./columns.js";
 export function migrateBusiness(db) {
   addColumnIfMissing(db, "branches", "business_open_time", db.dialect === "mysql" ? "VARCHAR(8) DEFAULT '08:00'" : "TEXT DEFAULT '08:00'");
   addColumnIfMissing(db, "branches", "business_close_time", db.dialect === "mysql" ? "VARCHAR(8) DEFAULT '17:00'" : "TEXT DEFAULT '17:00'");
+  addColumnIfMissing(db, "branches", "kind", db.dialect === "mysql" ? "VARCHAR(32) DEFAULT 'sales'" : "TEXT DEFAULT 'sales'");
   addColumnIfMissing(db, "staff", "can_cash_expense", db.dialect === "mysql" ? "TINYINT DEFAULT 0" : "INTEGER DEFAULT 0");
   addColumnIfMissing(db, "staff", "salary", db.dialect === "mysql" ? "DOUBLE DEFAULT 0" : "REAL DEFAULT 0");
   addColumnIfMissing(db, "staff", "phone", db.dialect === "mysql" ? "VARCHAR(64)" : "TEXT");
@@ -109,5 +110,77 @@ export function migrateBusiness(db) {
     ).run();
   } catch {
     /* ignore */
+  }
+
+  if (db.dialect === "mysql") {
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS raw_materials (
+          id VARCHAR(64) PRIMARY KEY,
+          branch_id VARCHAR(64) NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          unit VARCHAR(32) DEFAULT 'kq',
+          stock DOUBLE DEFAULT 0,
+          note TEXT,
+          created_at VARCHAR(40),
+          INDEX idx_raw_materials_branch (branch_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS production_batches (
+          id VARCHAR(64) PRIMARY KEY,
+          branch_id VARCHAR(64) NOT NULL,
+          product_name VARCHAR(255) NOT NULL,
+          qty DOUBLE NOT NULL,
+          unit VARCHAR(32) DEFAULT 'əd',
+          note TEXT,
+          created_at VARCHAR(40),
+          INDEX idx_production_batches_branch (branch_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS production_batch_items (
+          id VARCHAR(64) PRIMARY KEY,
+          batch_id VARCHAR(64) NOT NULL,
+          raw_material_id VARCHAR(64),
+          raw_material_name VARCHAR(255),
+          qty DOUBLE NOT NULL,
+          INDEX idx_production_batch_items_batch (batch_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+    } catch {
+      /* already exists */
+    }
+  } else {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS raw_materials (
+        id TEXT PRIMARY KEY,
+        branch_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        unit TEXT DEFAULT 'kq',
+        stock REAL DEFAULT 0,
+        note TEXT,
+        created_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_raw_materials_branch ON raw_materials(branch_id);
+      CREATE TABLE IF NOT EXISTS production_batches (
+        id TEXT PRIMARY KEY,
+        branch_id TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        qty REAL NOT NULL,
+        unit TEXT DEFAULT 'əd',
+        note TEXT,
+        created_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_production_batches_branch ON production_batches(branch_id);
+      CREATE TABLE IF NOT EXISTS production_batch_items (
+        id TEXT PRIMARY KEY,
+        batch_id TEXT NOT NULL,
+        raw_material_id TEXT,
+        raw_material_name TEXT,
+        qty REAL NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_production_batch_items_batch ON production_batch_items(batch_id);
+    `);
   }
 }

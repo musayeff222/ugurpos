@@ -17,6 +17,7 @@ export function signAdminToken(user, branchId, branchName, options = {}) {
     role: user.role || "admin",
     loginType: "admin",
     impersonating: !!options.impersonating,
+    branchKind: options.branchKind || "sales",
   });
 }
 
@@ -31,6 +32,7 @@ export function signBranchToken(branch, firmName) {
     branchNo: branch.code ? String(parseInt(branch.code, 10) || branch.code) : "",
     role: "branch",
     loginType: "branch",
+    branchKind: branch.kind === "production" ? "production" : "sales",
   });
 }
 

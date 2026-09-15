@@ -9,6 +9,7 @@ import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
 import apiRoutes from "./routes/api.js";
 import publicRoutes from "./routes/public.js";
+import productionRoutes from "./routes/production.js";
 import { startBusinessDayScheduler } from "./utils/businessDayScheduler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -38,6 +39,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/public", publicRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", authMiddleware, adminRoutes);
+app.use("/api/production", authMiddleware, productionRoutes);
 app.use("/api", authMiddleware, apiRoutes);
 
 export default app;

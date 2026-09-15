@@ -69,6 +69,16 @@ export const api = {
   createBranch: (branch) => request("/admin/branches", { method: "POST", body: JSON.stringify(branch) }),
   updateBranch: (id, patch) => request(`/admin/branches/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteBranch: (id) => request(`/admin/branches/${id}`, { method: "DELETE" }),
+
+  getProductionRawMaterials: () => request("/production/raw-materials"),
+  createProductionRawMaterial: (payload) =>
+    request("/production/raw-materials", { method: "POST", body: JSON.stringify(payload) }),
+  updateProductionRawMaterial: (id, payload) =>
+    request(`/production/raw-materials/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteProductionRawMaterial: (id) => request(`/production/raw-materials/${id}`, { method: "DELETE" }),
+  getProductionBatches: () => request("/production/batches"),
+  createProductionBatch: (payload) =>
+    request("/production/batches", { method: "POST", body: JSON.stringify(payload) }),
   getAdminStaff: () => request("/admin/staff"),
   createAdminStaff: (payload) => request("/admin/staff", { method: "POST", body: JSON.stringify(payload) }),
   updateAdminStaff: (id, payload) =>

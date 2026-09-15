@@ -38,6 +38,7 @@ import { listActivityLogs, rowToActivityLog } from "../utils/activityLog.js";
 import { localDateISO, normalizeTime } from "../utils/businessHours.js";
 import { sql as SQL } from "../db/dialect.js";
 import { listFirmPaymentMethods, rowToFirmPaymentMethod } from "../utils/firmPaymentMethods.js";
+import { normalizeBranchKind } from "../utils/branchKind.js";
 
 const router = Router();
 router.use(adminMiddleware);
@@ -640,7 +641,8 @@ router.post("/branches/:id/enter", (req, res) => {
   if (!branch.active) return res.status(400).json({ error: "Pasif şubeye giriş yapılamaz" });
 
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
-  const token = signAdminToken(user, branch.id, branch.name, { impersonating: true });
+  const branchKind = branch.kind === "production" ? "production" : "sales";
+  const token = signAdminToken(user, branch.id, branch.name, { impersonating: true, branchKind });
 
   res.json({
     token,
@@ -655,6 +657,7 @@ router.post("/branches/:id/enter", (req, res) => {
       role: "admin",
       loginType: "admin",
       impersonating: true,
+      branchKind,
       branches: [rowToBranch(branch)],
     },
   });
@@ -662,7 +665,7 @@ router.post("/branches/:id/enter", (req, res) => {
 
 router.post("/branches", (req, res) => {
   const db = getDb();
-  const { name, email, password, address } = req.body;
+  const { name, email, password, address, kind } = req.body;
   if (!name?.trim()) {
     return res.status(400).json({ error: "Şube adı zorunludur" });
   }
@@ -685,13 +688,17 @@ router.post("/branches", (req, res) => {
   const id = uid("br");
   const branchNo = getNextBranchNumber(db, req.user.firmId);
   const passwordHash = hashBranchPassword(password);
+  const branchKind = normalizeBranchKind(kind);
+  const menuEnabled = branchKind === "production" ? 0 : 1;
 
   const tx = db.transaction(() => {
     db.prepare(
-      "INSERT INTO branches (id, firm_id, name, code, email, password_hash, address, active, menu_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)"
-    ).run(id, req.user.firmId, name.trim(), branchNo, normalizedEmail, passwordHash, address?.trim() || "");
-    seedBranchDefaults(db, id);
-    syncFirmCatalogToBranch(db, req.user.firmId, id);
+      "INSERT INTO branches (id, firm_id, name, code, email, password_hash, address, active, menu_enabled, kind) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+    ).run(id, req.user.firmId, name.trim(), branchNo, normalizedEmail, passwordHash, address?.trim() || "", menuEnabled, branchKind);
+    if (branchKind !== "production") {
+      seedBranchDefaults(db, id);
+      syncFirmCatalogToBranch(db, req.user.firmId, id);
+    }
   });
 
   tx();

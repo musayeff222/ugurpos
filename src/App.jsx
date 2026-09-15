@@ -51,6 +51,9 @@ import AdminCashReports from "./pages/admin/AdminCashReports";
 import AdminCatalog from "./pages/admin/AdminCatalog";
 import AdminStaff from "./pages/admin/AdminStaff";
 import AdminPaymentMethods from "./pages/admin/AdminPaymentMethods";
+import ProductionLayout from "./layouts/ProductionLayout";
+import ProductionRawMaterials from "./pages/production/ProductionRawMaterials";
+import ProductionWork from "./pages/production/ProductionWork";
 import PublicMenuLanding from "./pages/public/PublicMenuLanding";
 import PublicBranchMenu from "./pages/public/PublicBranchMenu";
 import PublicBranchCart from "./pages/public/PublicBranchCart";
@@ -96,6 +99,11 @@ export default function App() {
         <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />
+      <Route path="/istehsalat" element={<ProductionLayout />}>
+        <Route index element={<Navigate to="xam-maddeler" replace />} />
+        <Route path="xam-maddeler" element={<ProductionRawMaterials />} />
+        <Route path="istehsalat" element={<ProductionWork />} />
+      </Route>
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomeRedirect />} />
         <Route path="menu" element={<MobileMenuPage />} />

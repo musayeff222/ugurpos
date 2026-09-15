@@ -46,6 +46,9 @@ export default function AdminDashboard() {
           <Link to="/admin/branches/new" className="btn btn-primary btn-sm">
             Yeni hesap
           </Link>
+          <Link to="/admin/branches/new?kind=production" className="btn btn-default btn-sm">
+            İstehsalat şubesi
+          </Link>
         </div>
       </div>
 
@@ -88,7 +91,10 @@ export default function AdminDashboard() {
                             <span className="crm-avatar">{String(getBranchLabel(b)).slice(0, 2).toUpperCase()}</span>
                             <span>
                               <strong>{getBranchLabel(b)}</strong>
-                              <small>{b.email || "—"}</small>
+                              <small>
+                                {b.email || "—"}
+                                {b.kind === "production" ? " · İstehsalat" : ""}
+                              </small>
                             </span>
                           </Link>
                         </td>

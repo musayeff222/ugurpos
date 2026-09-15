@@ -35,6 +35,7 @@ export function getBranchesForFirm(firmId) {
       address: row.address || "",
       phone: row.phone || "",
       active: !!row.active,
+      kind: row.kind === "production" ? "production" : "sales",
       createdAt: row.created_at,
     }));
 }

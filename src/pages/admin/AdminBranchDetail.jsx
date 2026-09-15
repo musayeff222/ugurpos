@@ -110,7 +110,7 @@ export default function AdminBranchDetail() {
     try {
       sessionStorage.setItem("ugurpos_admin_last_branch", id);
       await enterBranchAsAdmin(id);
-      navigate("/sales");
+      navigate(branch?.kind === "production" ? "/istehsalat" : "/sales");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -212,6 +212,9 @@ export default function AdminBranchDetail() {
 
   const label = branch ? getBranchLabel(branch) : "Hesap";
   const report = workspace?.report;
+  const isProduction = branch?.kind === "production";
+  const visibleTabs = isProduction ? [{ id: "settings", label: "Ayarlar" }] : TABS;
+  const currentTab = isProduction ? "settings" : tab;
 
   return (
     <div className="admin-page erp-page">
@@ -225,7 +228,7 @@ export default function AdminBranchDetail() {
               <div className="crm-record__id">
                 <span className="crm-avatar crm-avatar--lg">{String(label).slice(0, 2).toUpperCase()}</span>
                 <div>
-                  <p className="crm-object">Hesap · Şube</p>
+                  <p className="crm-object">{isProduction ? "Hesap · İstehsalat" : "Hesap · Şube"}</p>
                   <h2>{label}</h2>
                   <p className="crm-record__meta">
                     {branch.email || "—"}
@@ -243,11 +246,12 @@ export default function AdminBranchDetail() {
                 </Link>
                 {branch.active && (
                   <button type="button" className="btn btn-primary btn-sm" onClick={handleEnterPos} disabled={entering}>
-                    {entering ? "..." : "Şubeye geç"}
+                    {entering ? "..." : isProduction ? "İstehsalata geç" : "Şubeye geç"}
                   </button>
                 )}
               </div>
             </div>
+            {!isProduction && (
             <dl className="crm-highlights">
               <div>
                 <dt>Bugün</dt>
@@ -270,19 +274,20 @@ export default function AdminBranchDetail() {
                 <small>{workspace?.withdrawals?.length || 0} kayıt</small>
               </div>
             </dl>
+            )}
           </section>
 
           <ul className="admin-tabs erp-tabs">
-            {TABS.map((item) => (
+            {visibleTabs.map((item) => (
               <li key={item.id}>
-                <button type="button" className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}>
+                <button type="button" className={currentTab === item.id ? "active" : ""} onClick={() => setTab(item.id)}>
                   {item.label}
                 </button>
               </li>
             ))}
           </ul>
 
-          {tab === "stock" && (
+          {currentTab === "stock" && (
             <section className="erp-panel erp-panel--flush">
               <div className="admin-table-wrap">
                 <table className="erp-table">
@@ -361,7 +366,7 @@ export default function AdminBranchDetail() {
             </section>
           )}
 
-          {tab === "cash" && (
+          {currentTab === "cash" && (
             <section className="erp-panel erp-panel--flush">
               <div className="crm-metrics crm-metrics--4">
                 <article>
@@ -437,7 +442,7 @@ export default function AdminBranchDetail() {
             </section>
           )}
 
-          {tab === "expenses" && (
+          {currentTab === "expenses" && (
             <section className="erp-panel erp-panel--flush">
               <div className="crm-metrics crm-metrics--4">
                 <article>
@@ -480,7 +485,7 @@ export default function AdminBranchDetail() {
             </section>
           )}
 
-          {tab === "reports" && (
+          {currentTab === "reports" && (
             <section className="erp-panel">
               <div className="crm-metrics crm-metrics--4">
                 <article>
@@ -564,7 +569,7 @@ export default function AdminBranchDetail() {
             </section>
           )}
 
-          {tab === "staff" && (
+          {currentTab === "staff" && (
             <section className="erp-panel erp-panel--flush">
               <p className="hint-text admin-staff-hint">
                 Giriş bilgisi olarak login adı gösterilir. Eski parola hash olarak saklanır, görüntülenemez.
@@ -681,7 +686,7 @@ export default function AdminBranchDetail() {
             </section>
           )}
 
-          {tab === "settings" && (
+          {currentTab === "settings" && (
             <form className="erp-panel erp-form admin-branch-form" onSubmit={handleSave}>
               <p className="hint-text">
                 Eski şifre hash olarak saklanır, görüntülenemez. Yeni şifre yazarsanız şube girişi değişir.

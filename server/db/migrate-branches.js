@@ -182,6 +182,7 @@ export function rowToBranch(row) {
     businessOpenTime: row.business_open_time || row.menu_open_time || "08:00",
     businessCloseTime: row.business_close_time || row.menu_close_time || "17:00",
     active: !!row.active,
+    kind: row.kind === "production" ? "production" : "sales",
     createdAt: row.created_at,
   };
 }

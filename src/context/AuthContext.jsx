@@ -172,6 +172,7 @@ export function AuthProvider({ children }) {
         isBranchUser: user?.role === "branch" || user?.loginType === "branch" || user?.role === "staff" || user?.loginType === "staff",
         isStaffUser: user?.role === "staff" || user?.loginType === "staff",
         isImpersonating: !!user?.impersonating,
+        isProductionBranch: user?.branchKind === "production",
         activeBranchId: user?.branchId,
         activeBranchName: user?.branchName,
         activeStaffId: user?.staffId,

@@ -28,6 +28,7 @@ function buildAdminResponse(db, user, branchId) {
     branchEmail: branch?.email || "",
     role: user.role || "admin",
     loginType: "admin",
+    branchKind: branch?.kind === "production" ? "production" : "sales",
     branches,
   };
 }
@@ -44,6 +45,7 @@ function buildBranchResponse(db, branch) {
     email: branch.email,
     role: "branch",
     loginType: "branch",
+    branchKind: branch.kind === "production" ? "production" : "sales",
     branches: [rowToBranch(branch)],
   };
 }
@@ -228,7 +230,12 @@ router.get("/me", authMiddleware, (req, res) => {
 
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
   if (!user) return res.status(404).json({ error: "User not found" });
-  res.json({ user: buildAdminResponse(db, user, req.user.branchId) });
+  res.json({
+    user: {
+      ...buildAdminResponse(db, user, req.user.branchId),
+      impersonating: !!req.user.impersonating,
+    },
+  });
 });
 
 router.get("/branches", authMiddleware, (req, res) => {

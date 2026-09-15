@@ -9,11 +9,12 @@ import Topbar from "../components/Topbar";
 import MobileMenu from "../components/MobileMenu";
 import ImpersonationBanner from "../components/ImpersonationBanner";
 import useIsDesktop from "../hooks/useIsDesktop";
+import { isProductionAccount } from "../utils/authRedirect";
 import "../styles/layout.css";
 import "../styles/mobile-menu.css";
 
 export default function MainLayout() {
-  const { isAuthenticated, isAdmin, isBranchUser, isImpersonating, isStaffUser, activeStaffRole, canCashExpense } = useAuth();
+  const { isAuthenticated, isAdmin, isBranchUser, isImpersonating, isStaffUser, activeStaffRole, canCashExpense, user } = useAuth();
   const { isOnline } = useOffline();
   const { latestOrder, clearLatest } = useWebOrders();
   const location = useLocation();
@@ -37,6 +38,10 @@ export default function MainLayout() {
 
   if (isAdmin && !isBranchUser && !isImpersonating && isOnline) {
     return <Navigate to="/admin" replace />;
+  }
+
+  if (isProductionAccount(user)) {
+    return <Navigate to="/istehsalat" replace />;
   }
 
   const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
