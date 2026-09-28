@@ -5,7 +5,7 @@ import { api } from "../api/client";
 import { createDefaultState } from "./defaults";
 import { loadStateCache, saveStateCache } from "../offline/cache";
 import { enqueueItem, mergeQueueIntoState } from "../offline/queue";
-import { isNetworkError } from "../offline/network";
+import { isNetworkError, isAppOnline } from "../offline/network";
 import { newClientId } from "../offline/ids";
 import { buildLocalCashWithdrawal, buildLocalExpense, buildLocalSale } from "../offline/localRecords";
 
@@ -116,17 +116,21 @@ export function StoreProvider({ children }) {
         const clientSaleId = payload.clientSaleId || newClientId("sale");
         const createdAt = payload.createdAt || new Date().toISOString();
         const body = { ...payload, clientSaleId, createdAt };
+        const keepLocal = () => {
+          const local = buildLocalSale(body, clientSaleId);
+          enqueueItem({ id: clientSaleId, type: "sale", payload: body, local });
+          const next = applyState(activeBranchId, { ...state });
+          setState(next);
+          return local;
+        };
+        if (!isAppOnline()) return keepLocal();
         try {
           const sale = await api.createSale(body);
           await refresh();
           return sale;
         } catch (err) {
           if (!isNetworkError(err)) throw err;
-          const local = buildLocalSale(body, clientSaleId);
-          enqueueItem({ id: clientSaleId, type: "sale", payload: body, local });
-          const next = applyState(activeBranchId, { ...state });
-          setState(next);
-          return local;
+          return keepLocal();
         }
       },
 
