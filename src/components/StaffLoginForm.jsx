@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocale } from "../context/LocaleContext";
 
-export default function StaffLoginForm({ onSubmit, loading = false, compact = false, submitLabel }) {
+export default function StaffLoginForm({ onSubmit, loading = false, compact = false }) {
   const { t } = useLocale();
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
@@ -46,7 +46,7 @@ export default function StaffLoginForm({ onSubmit, loading = false, compact = fa
       </div>
       {error && <p className="login-error">{error}</p>}
       <button type="submit" className="btn-login" disabled={loading}>
-        {loading ? "…" : submitLabel || t("login.staffSubmit")}
+        {loading ? "…" : t("login.staffSubmit")}
       </button>
     </form>
   );

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useAdminAlerts } from "../context/AdminAlertsContext";
-import { getPostLoginPath } from "../utils/authRedirect";
 import { useOffline } from "../offline/OfflineContext";
 import SyncStatus from "../components/SyncStatus";
 import "../styles/admin.css";
@@ -91,7 +90,7 @@ export default function AdminLayout() {
   }
 
   if (!isAdmin) {
-    return <Navigate to={user ? getPostLoginPath(user) : "/login/sube"} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (!isOnline) {
@@ -188,7 +187,7 @@ export default function AdminLayout() {
               <small>{user?.email}</small>
             </div>
           </div>
-          <Link to="/login/sube" className="admin-sidebar-link" target="_blank" rel="noopener noreferrer">
+          <Link to="/login" className="admin-sidebar-link" target="_blank" rel="noopener noreferrer">
             <i className="fa fa-external-link" /> POS
           </Link>
           <button type="button" className="admin-back admin-logout-btn" onClick={handleLogout}>
@@ -223,7 +222,7 @@ export default function AdminLayout() {
             </div>
           </div>
           <Link
-            to="/login/sube"
+            to="/login"
             className="admin-sidebar-link"
             target="_blank"
             rel="noopener noreferrer"
@@ -307,7 +306,7 @@ export default function AdminLayout() {
               <i className="fa fa-bell-o" />
               {pendingQrOrders > 0 && <span>{pendingQrOrders}</span>}
             </Link>
-            <Link to="/login/sube" className="admin-pos-link erp-pos-btn" target="_blank" rel="noopener noreferrer">
+            <Link to="/login" className="admin-pos-link erp-pos-btn" target="_blank" rel="noopener noreferrer">
               POS
             </Link>
             <div className="erp-user-chip erp-user-chip--top">

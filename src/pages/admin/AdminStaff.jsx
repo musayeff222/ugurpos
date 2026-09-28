@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
-import Modal from "../../components/ui/Modal";
 import { useAuth } from "../../context/AuthContext";
 import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatMoney } from "../../utils/format";
@@ -40,7 +39,6 @@ export default function AdminStaff() {
   const [staff, setStaff] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
-  const [formOpen, setFormOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -96,7 +94,6 @@ export default function AdminStaff() {
       if (editId) await api.updateAdminStaff(editId, payload);
       else await api.createAdminStaff(payload);
       await load();
-      setFormOpen(false);
       setEditId(null);
       setForm({ ...emptyForm, branchId: form.branchId });
       setMessage(editId ? "Çalışan güncellendi." : "Çalışan oluşturuldu ve seçilen şubeye atandı.");
@@ -107,22 +104,8 @@ export default function AdminStaff() {
     }
   };
 
-  const closeForm = () => {
-    setFormOpen(false);
-    setEditId(null);
-  };
-
-  const openCreate = () => {
-    setEditId(null);
-    setForm({ ...emptyForm, branchId: branches[0]?.id || "" });
-    setError("");
-    setFormOpen(true);
-  };
-
   const startEdit = (person) => {
     setEditId(person.id);
-    setError("");
-    setFormOpen(true);
     setForm({
       name: person.name,
       surname: person.surname,
@@ -174,16 +157,14 @@ export default function AdminStaff() {
             <i className="fa fa-search" aria-hidden />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ad, login, şube..." />
           </form>
-          <button type="button" className="btn btn-primary" onClick={openCreate}>
-            Çalışan oluştur
-          </button>
         </div>
       </div>
 
-      {error && !formOpen && <div className="alert alert-danger">{error}</div>}
+      {error && <div className="alert alert-danger">{error}</div>}
       {message && <div className="alert alert-info">{message}</div>}
 
-      <section className="erp-panel erp-panel--flush">
+      <div className="erp-split">
+        <section className="erp-panel erp-panel--flush">
           <div className="admin-table-wrap">
             <table className="erp-table">
               <thead>
@@ -264,27 +245,22 @@ export default function AdminStaff() {
                 {!rows.length && (
                   <tr>
                     <td colSpan={6} className="erp-table__empty">
-                      Henüz çalışan yok. Çalışan oluştur düğmesine basın.
+                      Henüz çalışan yok. Sağdaki formdan ekleyin.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-      </section>
+        </section>
 
-      <Modal
-        open={formOpen}
-        size="lg"
-        title={editId ? "Çalışanı düzenle" : "Yeni çalışan"}
-        onClose={closeForm}
-      >
-        <form className="erp-form" onSubmit={save}>
+        <form className="erp-panel erp-form" onSubmit={save}>
+          <header className="erp-panel__head">
+            <h3>{editId ? "Çalışanı düzenle" : "Yeni çalışan"}</h3>
+          </header>
           <p className="hint-text">
             Eski parola hash olarak saklanır, görüntülenemez. Yeni parola yazarsanız çalışan girişi değişir.
           </p>
-          {error && <div className="alert alert-danger">{error}</div>}
-          <div className="erp-form-grid">
           <label className="erp-field">
             <span>Ad *</span>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
@@ -357,17 +333,25 @@ export default function AdminStaff() {
             />
             <small>Anlaşılan aylık ücret. Kassadan otomatik çıxmaz.</small>
           </label>
-          </div>
           <div className="form-actions">
-            <button type="button" className="btn btn-default" onClick={closeForm}>
-              Vazgeç
-            </button>
+            {editId && (
+              <button
+                type="button"
+                className="btn btn-default"
+                onClick={() => {
+                  setEditId(null);
+                  setForm({ ...emptyForm, branchId: branches[0]?.id || "" });
+                }}
+              >
+                Yeni
+              </button>
+            )}
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? "Kaydediliyor..." : editId ? "Güncelle" : "Çalışan oluştur"}
             </button>
           </div>
         </form>
-      </Modal>
+      </div>
     </div>
   );
 }

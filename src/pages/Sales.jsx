@@ -9,7 +9,7 @@ import CashExpenseModal from "../components/CashExpenseModal";
 import StaffLoginForm from "../components/StaffLoginForm";
 import { navigation } from "../data/navigation";
 import { calcCartTotal, formatMoney, uid } from "../utils/format";
-import { getPostLoginPath, loginPathForAccount } from "../utils/authRedirect";
+import { getPostLoginPath } from "../utils/authRedirect";
 import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
 import { playPosItemAddedSound, playPosPaymentSound } from "../utils/posSounds";
@@ -572,9 +572,8 @@ export default function Sales() {
       navigate(lastBranch ? `/admin/branches/${lastBranch}` : "/admin/branches", { replace: true });
       return;
     }
-    const next = loginPathForAccount(user);
     logout();
-    navigate(next, { replace: true });
+    navigate("/login", { replace: true });
   };
 
   const handleShiftEndRequest = () => {

@@ -2162,20 +2162,6 @@
   margin-bottom: 16px;
 }
 
-.admin-branch-date-filter label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: #706e6b;
-  min-width: 180px;
-}
-
-.admin-branch-date-filter input[type="date"] {
-  width: auto;
-  min-width: 180px;
-}
-
 .erp-filters select,
 .erp-filters input,
 .erp-inline-row input,

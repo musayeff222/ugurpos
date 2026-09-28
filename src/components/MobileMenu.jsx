@@ -5,7 +5,6 @@ import { useLocale } from "../context/LocaleContext";
 import { mobileMenuItems } from "../data/mobileMenu";
 import { useOffline } from "../offline/OfflineContext";
 import { offlineNavigation } from "../offline/paths";
-import { loginPathForAccount } from "../utils/authRedirect";
 import "../styles/mobile-menu.css";
 
 export default function MobileMenu({ overlay = false, onClose }) {
@@ -25,9 +24,8 @@ export default function MobileMenu({ overlay = false, onClose }) {
   };
 
   const handleLogout = () => {
-    const next = loginPathForAccount(user);
     logout();
-    navigate(next);
+    navigate("/login");
   };
 
   return (

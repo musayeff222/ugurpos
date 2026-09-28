@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { loginPathForAccount } from "../utils/authRedirect";
 import { useWebOrders } from "../context/WebOrdersContext";
 import { useOffline } from "../offline/OfflineContext";
 import LanguageSwitcher from "./public/LanguageSwitcher";
@@ -15,9 +14,8 @@ export default function Topbar({ menuOpen, onMenuToggle }) {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = () => {
-    const next = loginPathForAccount(user);
     logout();
-    navigate(next);
+    navigate("/login");
   };
 
   return (

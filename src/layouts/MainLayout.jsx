@@ -14,7 +14,7 @@ import "../styles/layout.css";
 import "../styles/mobile-menu.css";
 
 export default function MainLayout() {
-  const { isAuthenticated, isAdmin, isBranchUser, isImpersonating, user } = useAuth();
+  const { isAuthenticated, isAdmin, isBranchUser, isImpersonating, isStaffUser, activeStaffRole, canCashExpense, user } = useAuth();
   const { isOnline } = useOffline();
   const { latestOrder, clearLatest } = useWebOrders();
   const location = useLocation();
@@ -33,7 +33,7 @@ export default function MainLayout() {
   }, [location.pathname]);
 
   if (!isAuthenticated) {
-    return <Navigate to={sessionStorage.getItem("ugurpos_login_path") || "/login/sube"} replace state={{ from: location }} />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   if (isAdmin && !isBranchUser && !isImpersonating && isOnline) {
@@ -44,6 +44,12 @@ export default function MainLayout() {
     return <Navigate to="/istehsalat" replace />;
   }
 
+  const isCashier = isStaffUser && String(activeStaffRole || "").toLocaleLowerCase("tr").includes("kasiyer");
+  const cashierAllowedPaths = ["/sales"];
+  if (canCashExpense) cashierAllowedPaths.push("/cash-expense");
+  if (isCashier && !cashierAllowedPaths.includes(location.pathname) && isOnline) {
+    return <Navigate to="/sales" replace />;
+  }
   if (!isOnline && !isOfflineAllowedPath(location.pathname)) {
     return <Navigate to="/sales" replace />;
   }
