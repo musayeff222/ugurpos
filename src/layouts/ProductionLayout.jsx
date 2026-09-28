@@ -27,7 +27,7 @@ export default function ProductionLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    return <Navigate to="/login/istesalat" replace state={{ from: location }} />;
   }
 
   if (isAdmin && !isImpersonating) {
@@ -51,7 +51,7 @@ export default function ProductionLayout() {
       return;
     }
     logout();
-    navigate("/login");
+    navigate("/login/istesalat");
   };
 
   const showText = !collapsed || mobileOpen;
