@@ -1,5 +1,6 @@
 node_modules/
 desktop/dist/
+desktop/app/
 captured/
 login.html
 server/data/

@@ -29,6 +29,7 @@ import {
   listFirmPaymentMethodsForBranch,
   rowToFirmPaymentMethod,
 } from "../utils/firmPaymentMethods.js";
+import { closeStaffShift } from "../utils/staffShifts.js";
 
 const router = Router();
 router.use(branchMiddleware);
@@ -749,6 +750,34 @@ router.patch("/cash-withdrawals/:id", (req, res) => {
   res.json(rowToCashWithdrawal(db.prepare("SELECT * FROM cash_withdrawals WHERE id = ?").get(req.params.id)));
 });
 
+router.post("/staff/end-shift", (req, res) => {
+  const db = getDb();
+  const staffId = req.user?.staffId;
+  if (!staffId) return res.status(403).json({ error: "Yalnızca personel növbəni bitirə bilər" });
+  const closed = closeStaffShift(db, staffId);
+  if (closed) {
+    logActivity(db, {
+      firmId: req.user.firmId,
+      branchId: req.branchId,
+      branchName: req.user.branchName || "",
+      type: "staff_shift_end",
+      title: `${req.user.staffName || "Personel"} növbəni bitirdi`,
+      detail: staffId,
+      refId: closed.id,
+    });
+  }
+  res.json({
+    ok: true,
+    shift: closed
+      ? {
+          id: closed.id,
+          startedAt: closed.started_at,
+          endedAt: closed.ended_at,
+        }
+      : null,
+  });
+});
+
 // Staff
 router.get("/staff", (req, res) => {
   res.json(
@@ -766,6 +795,7 @@ router.get("/staff", (req, res) => {
         active: !!r.active,
         canCashExpense: !!r.can_cash_expense,
         salary: Number(r.salary || 0),
+        commissionPercent: Number(r.commission_percent || 0),
         phone: r.phone || "",
         startedAt: r.started_at || "",
       }))
@@ -1248,6 +1278,48 @@ router.patch("/qr-orders/:id", (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+router.get("/notifications", (req, res) => {
+  const db = getDb();
+  const unreadOnly = String(req.query.unread || "") === "1";
+  let sql = "SELECT * FROM branch_notifications WHERE branch_id = ?";
+  if (unreadOnly) sql += " AND read_at IS NULL";
+  sql += " ORDER BY created_at DESC LIMIT 30";
+  try {
+    const rows = db.prepare(sql).all(req.branchId).map((row) => ({
+      id: row.id,
+      type: row.type,
+      title: row.title,
+      detail: row.detail || "",
+      createdAt: row.created_at,
+      readAt: row.read_at || null,
+    }));
+    res.json(rows);
+  } catch {
+    res.json([]);
+  }
+});
+
+router.post("/notifications/read", (req, res) => {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const ids = Array.isArray(req.body.ids) ? req.body.ids.filter(Boolean) : [];
+  try {
+    if (ids.length) {
+      const stmt = db.prepare(
+        "UPDATE branch_notifications SET read_at = ? WHERE id = ? AND branch_id = ? AND read_at IS NULL"
+      );
+      ids.forEach((id) => stmt.run(now, id, req.branchId));
+    } else {
+      db.prepare(
+        "UPDATE branch_notifications SET read_at = ? WHERE branch_id = ? AND read_at IS NULL"
+      ).run(now, req.branchId);
+    }
+  } catch {
+    /* table missing */
+  }
+  res.json({ ok: true });
 });
 
 export default router;

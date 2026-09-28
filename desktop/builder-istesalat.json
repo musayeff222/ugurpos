@@ -1,0 +1,45 @@
+{
+  "appId": "az.cigkofte.ugurpos.istesalat",
+  "productName": "UgurPOS Istesalat",
+  "copyright": "İstanbul Çiğköfte",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "main.cjs",
+    "preload.cjs",
+    "offline.html",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "app",
+      "to": "app"
+    }
+  ],
+  "extraMetadata": {
+    "version": "1.0.0",
+    "description": "UgurPOS istehsalat girişi",
+    "ugurposProfile": {
+      "startPath": "/login/istesalat",
+      "title": "UgurPOS Istesalat",
+      "fullscreen": true
+    }
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "UgurPOS Istesalat",
+    "artifactName": "UgurPOS-Istesalat-Setup-${version}.exe"
+  }
+}

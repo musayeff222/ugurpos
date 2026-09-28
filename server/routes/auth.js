@@ -6,6 +6,7 @@ import { signAdminToken, signBranchToken, signStaffToken, authMiddleware } from 
 import { getBranchesForFirm } from "../middleware/branch.js";
 import { verifyBranchPassword, normalizeBranchEmail } from "../utils/branchAuth.js";
 import { logActivity } from "../utils/activityLog.js";
+import { openStaffShift } from "../utils/staffShifts.js";
 
 const router = Router();
 
@@ -191,6 +192,12 @@ router.post("/staff-login", (req, res) => {
   if (!branch) return res.status(403).json({ error: "Şube aktif değil" });
 
   const firmName = getFirmName(db, branch.firm_id);
+  const staffName = `${staff.name || ""} ${staff.surname || ""}`.trim() || staff.name;
+  const shift = openStaffShift(db, {
+    staffId: staff.id,
+    branchId: branch.id,
+    staffName,
+  });
   const token = signStaffToken(staff, branch, firmName);
   logActivity(db, {
     firmId: branch.firm_id,
@@ -202,7 +209,10 @@ router.post("/staff-login", (req, res) => {
   });
   res.json({
     token,
-    user: buildStaffResponse(db, staff, branch),
+    user: {
+      ...buildStaffResponse(db, staff, branch),
+      shiftStartedAt: shift?.started_at || new Date().toISOString(),
+    },
   });
 });
 

@@ -6,9 +6,12 @@ import { formatDateTime } from "../../utils/format";
 export default function ProductionProducts() {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [createName, setCreateName] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [history, setHistory] = useState(null);
+  const [readyProduct, setReadyProduct] = useState(null);
+  const [readyGrams, setReadyGrams] = useState("");
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -22,10 +25,12 @@ export default function ProductionProducts() {
   const create = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setError("");
     try {
       await api.createProductionProduct({ name: createName.trim() });
       setCreateName("");
       setCreateOpen(false);
+      setMessage("Məhsul yaradıldı.");
       await load();
     } catch (err) {
       setError(err.message);
@@ -42,27 +47,70 @@ export default function ProductionProducts() {
     }
   };
 
+  const remove = async (product) => {
+    const ok = window.confirm(`"${product.name}" silinsin?`);
+    if (!ok) return;
+    setError("");
+    try {
+      await api.deleteProductionProduct(product.id);
+      setMessage("Məhsul silindi.");
+      await load();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const markReady = async (e) => {
+    e.preventDefault();
+    if (!readyProduct) return;
+    setSaving(true);
+    setError("");
+    try {
+      await api.markProductionProductReady(readyProduct.id, { qtyGrams: Number(readyGrams) });
+      setReadyProduct(null);
+      setReadyGrams("");
+      setMessage(`${readyProduct.name} istifadəyə hazır stoka əlavə olundu.`);
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="prod-page">
       <div className="prod-hero">
         <div>
           <p className="prod-kicker">Kataloq</p>
           <h1>Hazırlanan məhsullar</h1>
-          <span>Çiy köftə, pizza, burger və s.</span>
+          <span>Hazır düyməsi ilə qram yazıb istifadəyə hazır stoka keçirin</span>
         </div>
         <button type="button" className="prod-btn prod-btn--primary" onClick={() => setCreateOpen(true)}>
           + Yeni hazırlanan məhsul
         </button>
       </div>
       {error && <div className="alert alert-danger">{error}</div>}
+      {message && <div className="alert alert-info">{message}</div>}
 
       <div className="prod-product-grid">
         {products.map((item) => (
           <article key={item.id} className="prod-product-card">
-            <h3>{item.name}</h3>
-            <button type="button" className="prod-icon" title="Hazırlanma tarixçəsi" onClick={() => openHistory(item)}>
-              <i className="fa fa-eye" aria-hidden />
-            </button>
+            <div>
+              <h3>{item.name}</h3>
+              <small>{Number(item.readyStock || 0) > 0 ? `${item.readyStock} qram hazır` : "Hazır stok yoxdur"}</small>
+            </div>
+            <div className="prod-actions">
+              <button type="button" className="prod-btn prod-btn--primary prod-btn--sm" onClick={() => { setReadyProduct(item); setReadyGrams(""); }}>
+                Hazır
+              </button>
+              <button type="button" className="prod-icon" title="Hazırlanma tarixçəsi" onClick={() => openHistory(item)}>
+                <i className="fa fa-eye" aria-hidden />
+              </button>
+              <button type="button" className="prod-icon prod-icon--danger" title="Sil" onClick={() => remove(item)}>
+                <i className="fa fa-trash" aria-hidden />
+              </button>
+            </div>
           </article>
         ))}
         {!products.length && <p className="prod-empty">Hələ məhsul yoxdur. İstifadə zamanı da yarada bilərsiniz.</p>}
@@ -80,6 +128,23 @@ export default function ProductionProducts() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={!!readyProduct} title={readyProduct ? `${readyProduct.name} — hazır` : "Hazır"} onClose={() => setReadyProduct(null)}>
+        {readyProduct ? (
+          <form className="erp-form" onSubmit={markReady}>
+            <p className="hint-text">Qram yazın. Məsələn 1000 = 1 kq. Sistem qramla işləyir.</p>
+            <label className="erp-field">
+              <span>Hazır qram *</span>
+              <input type="number" min="1" step="1" value={readyGrams} onChange={(e) => setReadyGrams(e.target.value)} required />
+            </label>
+            <div className="form-actions">
+              <button type="submit" className="prod-btn prod-btn--primary" disabled={saving}>
+                İstifadəyə hazır et
+              </button>
+            </div>
+          </form>
+        ) : null}
       </Modal>
 
       <Modal

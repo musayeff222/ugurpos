@@ -15,6 +15,7 @@ const emptyForm = {
   password: "",
   role: "Kasiyer",
   salary: "",
+  commissionPercent: "",
   startedAt: "",
 };
 
@@ -33,6 +34,21 @@ function toInputDateTime(value) {
   return String(value).slice(0, 16);
 }
 
+function formatHours(value) {
+  const n = Number(value) || 0;
+  if (n <= 0) return "—";
+  return `${n.toFixed(n % 1 === 0 ? 0 : 1)} saat`;
+}
+
+function personName(person) {
+  return `${person.name || ""} ${person.surname || ""}`.trim() || "—";
+}
+
+function topBy(list, key) {
+  if (!list.length) return null;
+  return [...list].sort((a, b) => Number(b[key] || 0) - Number(a[key] || 0))[0];
+}
+
 export default function AdminStaff() {
   const navigate = useNavigate();
   const { enterStaffAsAdmin } = useAuth();
@@ -46,7 +62,6 @@ export default function AdminStaff() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [enteringStaffId, setEnteringStaffId] = useState("");
-  const [copiedLogin, setCopiedLogin] = useState("");
 
   const load = async () => {
     const [branchList, people] = await Promise.all([api.getAdminBranches(), api.getAdminStaff()]);
@@ -67,6 +82,9 @@ export default function AdminStaff() {
       return hay.includes(term);
     });
   }, [staff, query]);
+
+  const topSeller = useMemo(() => topBy(staff, "todayTotal"), [staff]);
+  const topHours = useMemo(() => topBy(staff, "todayHours"), [staff]);
 
   const save = async (e) => {
     e.preventDefault();
@@ -90,6 +108,7 @@ export default function AdminStaff() {
         login: form.login.trim(),
         role: form.role,
         salary: Number(form.salary) || 0,
+        commissionPercent: Number(form.commissionPercent) || 0,
         startedAt: form.startedAt || "",
       };
       if (form.password.trim()) payload.password = form.password.trim();
@@ -132,20 +151,13 @@ export default function AdminStaff() {
       password: "",
       role: person.role || "Kasiyer",
       salary: person.salary || "",
+      commissionPercent:
+        person.commissionPercent != null && person.commissionPercent !== ""
+          ? String(person.commissionPercent)
+          : "",
       startedAt: toInputDateTime(person.startedAt),
     });
     setMessage("");
-  };
-
-  const copyStaffLogin = async (login) => {
-    if (!login) return;
-    try {
-      await navigator.clipboard.writeText(login);
-      setCopiedLogin(login);
-      setMessage(`Login kopyalandı: ${login}`);
-    } catch {
-      setError("Login kopyalanamadı.");
-    }
   };
 
   const handleEnterStaff = async (person) => {
@@ -167,7 +179,7 @@ export default function AdminStaff() {
       <div className="crm-listbar">
         <div>
           <h2>Çalışanlar</h2>
-          <span>Firma personeli · şubeye atanır</span>
+          <span>Bugünkü satış, iş saatı və aylıq prim</span>
         </div>
         <div className="crm-listbar__tools">
           <form className="crm-global-search crm-global-search--inline" onSubmit={(e) => e.preventDefault()}>
@@ -183,16 +195,49 @@ export default function AdminStaff() {
       {error && !formOpen && <div className="alert alert-danger">{error}</div>}
       {message && <div className="alert alert-info">{message}</div>}
 
+      <div className="crm-metrics crm-metrics--4 staff-rank-metrics">
+        <article>
+          <span>Bugün ən çox satan</span>
+          <strong>{topSeller && Number(topSeller.todayTotal) > 0 ? personName(topSeller) : "—"}</strong>
+          <small>
+            {topSeller && Number(topSeller.todayTotal) > 0
+              ? `${formatMoney(topSeller.todayTotal)} · ${topSeller.todayCount || 0} satış`
+              : "Hələ satış yoxdur"}
+          </small>
+        </article>
+        <article>
+          <span>Bugün ən çox işləyən</span>
+          <strong>{topHours && Number(topHours.todayHours) > 0 ? personName(topHours) : "—"}</strong>
+          <small>
+            {topHours && Number(topHours.todayHours) > 0
+              ? formatHours(topHours.todayHours)
+              : "Növbə/satış məlumatı yoxdur"}
+          </small>
+        </article>
+        <article>
+          <span>Bu ay ümumi satış</span>
+          <strong>{formatMoney(staff.reduce((sum, p) => sum + Number(p.monthTotal || 0), 0))}</strong>
+          <small>{staff.reduce((sum, p) => sum + Number(p.monthCount || 0), 0)} satış</small>
+        </article>
+        <article>
+          <span>Bu ay ümumi prim</span>
+          <strong>{formatMoney(staff.reduce((sum, p) => sum + Number(p.monthCommission || 0), 0))}</strong>
+          <small>Satış × prim %</small>
+        </article>
+      </div>
+
       <section className="erp-panel erp-panel--flush">
           <div className="admin-table-wrap">
             <table className="erp-table">
               <thead>
                 <tr>
                   <th>Çalışan</th>
-                  <th>Login</th>
                   <th>Şube</th>
-                  <th>Görev</th>
-                  <th>Maaş</th>
+                  <th>Bugün satış</th>
+                  <th>Bugün saat</th>
+                  <th>Bu ay satış</th>
+                  <th>Prim %</th>
+                  <th>Bu ay prim</th>
                   <th></th>
                 </tr>
               </thead>
@@ -203,32 +248,29 @@ export default function AdminStaff() {
                       <strong>
                         {person.name} {person.surname}
                       </strong>
-                      <small>{person.phone || "—"}</small>
-                    </td>
-                    <td data-label="Login">
-                      <div className="staff-login-cell">
-                        <code>{person.login || "—"}</code>
-                        {person.login ? (
-                          <button
-                            type="button"
-                            className="btn btn-default btn-sm"
-                            onClick={() => copyStaffLogin(person.login)}
-                          >
-                            {copiedLogin === person.login ? "Kopyalandı" : "Kopyala"}
-                          </button>
-                        ) : null}
-                      </div>
-                      {!person.hasPassword && (
-                        <small className="staff-password-warn">Parola yok — giriş yapamaz</small>
-                      )}
+                      <small>
+                        {roleLabel(person.role)} · {person.login || "—"}
+                      </small>
                     </td>
                     <td data-label="Şube">
                       <Link to={`/admin/branches/${person.branchId}`}>
                         {getBranchLabel({ name: person.branchName }) || person.branchName}
                       </Link>
                     </td>
-                    <td data-label="Görev">{roleLabel(person.role)}</td>
-                    <td data-label="Maaş">{formatMoney(person.salary || 0)}</td>
+                    <td data-label="Bugün satış">
+                      <strong>{formatMoney(person.todayTotal || 0)}</strong>
+                      <small>{person.todayCount || 0} satış</small>
+                    </td>
+                    <td data-label="Bugün saat">{formatHours(person.todayHours)}</td>
+                    <td data-label="Bu ay satış">
+                      <strong>{formatMoney(person.monthTotal || 0)}</strong>
+                      <small>{person.monthCount || 0} satış</small>
+                    </td>
+                    <td data-label="Prim %">%{Number(person.commissionPercent || 0)}</td>
+                    <td data-label="Bu ay prim">
+                      <strong>{formatMoney(person.monthCommission || 0)}</strong>
+                      <small>Bugün: {formatMoney(person.todayCommission || 0)}</small>
+                    </td>
                     <td data-label="">
                       <div className="staff-row-actions">
                         <button type="button" className="btn btn-default btn-sm" onClick={() => startEdit(person)}>
@@ -240,7 +282,7 @@ export default function AdminStaff() {
                           disabled={enteringStaffId === person.id}
                           onClick={() => handleEnterStaff(person)}
                         >
-                          {enteringStaffId === person.id ? "..." : "Çalışan hesabına geç"}
+                          {enteringStaffId === person.id ? "..." : "Hesaba keç"}
                         </button>
                         <button
                           type="button"
@@ -263,7 +305,7 @@ export default function AdminStaff() {
                 ))}
                 {!rows.length && (
                   <tr>
-                    <td colSpan={6} className="erp-table__empty">
+                    <td colSpan={8} className="erp-table__empty">
                       Henüz çalışan yok. Çalışan oluştur düğmesine basın.
                     </td>
                   </tr>
@@ -281,7 +323,7 @@ export default function AdminStaff() {
       >
         <form className="erp-form" onSubmit={save}>
           <p className="hint-text">
-            Eski parola hash olarak saklanır, görüntülenemez. Yeni parola yazarsanız çalışan girişi değişir.
+            Prim % aylıq satış məbləğinə vurulur (məs. 5% → satış × 0.05). Növbə saatları giriş/çıxışdan hesablanır.
           </p>
           {error && <div className="alert alert-danger">{error}</div>}
           <div className="erp-form-grid">
@@ -318,7 +360,7 @@ export default function AdminStaff() {
             />
           </label>
           <label className="erp-field">
-            <span>{editId ? "Yeni parola (boş = değişmez, eski parola gösterilemez)" : "Parola *"}</span>
+            <span>{editId ? "Yeni parola (boş = değişmez)" : "Parola *"}</span>
             <input
               type="password"
               value={form.password}
@@ -357,7 +399,40 @@ export default function AdminStaff() {
             />
             <small>Anlaşılan aylık ücret. Kassadan otomatik çıxmaz.</small>
           </label>
+          <label className="erp-field">
+            <span>Aylıq prim %</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              value={form.commissionPercent}
+              onChange={(e) => setForm({ ...form, commissionPercent: e.target.value })}
+              placeholder="Örn: 5"
+            />
+            <small>Satış məbləği × bu faiz = prim pulu.</small>
+          </label>
           </div>
+          {editId && (
+            <div className="staff-form-preview">
+              <div>
+                <span>Bu ay satış</span>
+                <strong>
+                  {formatMoney(staff.find((p) => p.id === editId)?.monthTotal || 0)}
+                </strong>
+              </div>
+              <div>
+                <span>Hesablanan prim</span>
+                <strong>
+                  {formatMoney(
+                    ((Number(staff.find((p) => p.id === editId)?.monthTotal) || 0) *
+                      (Number(form.commissionPercent) || 0)) /
+                      100
+                  )}
+                </strong>
+              </div>
+            </div>
+          )}
           <div className="form-actions">
             <button type="button" className="btn btn-default" onClick={closeForm}>
               Vazgeç

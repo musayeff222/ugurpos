@@ -88,15 +88,29 @@ export const api = {
   getProductionProducts: () => request("/production/products"),
   createProductionProduct: (payload) =>
     request("/production/products", { method: "POST", body: JSON.stringify(payload) }),
+  deleteProductionProduct: (id) => request(`/production/products/${id}`, { method: "DELETE" }),
+  markProductionProductReady: (id, payload) =>
+    request(`/production/products/${id}/ready`, { method: "POST", body: JSON.stringify(payload) }),
+  getProductionReady: () => request("/production/ready"),
+  getProductionSalesBranches: () => request("/production/sales-branches"),
+  transferProductionProduct: (payload) =>
+    request("/production/transfer", { method: "POST", body: JSON.stringify(payload) }),
   getProductionProductHistory: (id) => request(`/production/products/${id}/history`),
   getProductionBatches: () => request("/production/batches"),
   createProductionBatch: (payload) =>
     request("/production/batches", { method: "POST", body: JSON.stringify(payload) }),
+  getBranchNotifications: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/notifications${q ? `?${q}` : ""}`);
+  },
+  markBranchNotificationsRead: (payload = {}) =>
+    request("/notifications/read", { method: "POST", body: JSON.stringify(payload) }),
   getAdminStaff: () => request("/admin/staff"),
   createAdminStaff: (payload) => request("/admin/staff", { method: "POST", body: JSON.stringify(payload) }),
   updateAdminStaff: (id, payload) =>
     request(`/admin/staff/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteAdminStaff: (id) => request(`/admin/staff/${id}`, { method: "DELETE" }),
+  endStaffShift: () => request("/staff/end-shift", { method: "POST", body: JSON.stringify({}) }),
 
   getAdminActivity: () => request("/admin/activity"),
   getAdminActivityPoll: (after) =>

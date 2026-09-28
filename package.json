@@ -27,7 +27,7 @@
     "seed:cigkofte": "node scripts/seed-cigkofte-products.mjs",
     "preview": "vite preview",
     "desktop:dev": "npm --prefix desktop start",
-    "desktop:build": "npm --prefix desktop run dist"
+    "desktop:build": "npm run build && npm --prefix desktop run dist"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.5.2",

@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatDateTime, formatMoney } from "../../utils/format";
+import { formatStockLabel, isGramUnit, formatGrams } from "../../utils/grams";
 import { adminListPath, isProductionKind } from "../../utils/adminPaths";
 import Modal from "../../components/ui/Modal";
 
@@ -414,11 +415,20 @@ export default function AdminBranchDetail() {
                       return (
                         <tr key={p.id}>
                           <td data-label="Ürün">
-                            <strong>{p.name}</strong>
+                            <strong>
+                              {isGramUnit(p.unit) ? (
+                                <>
+                                  <em>{formatGrams(p.stock)} </em>
+                                  {p.name}
+                                </>
+                              ) : (
+                                p.name
+                              )}
+                            </strong>
                             {p.stock <= p.criticalStock && <small>kritik stok</small>}
                           </td>
                           <td data-label="Grup">{p.groupName || "—"}</td>
-                          <td data-label="Stokta kalan">{p.stock}</td>
+                          <td data-label="Stokta kalan">{formatStockLabel(p.stock, p.unit)}</td>
                           <td data-label="Fiyat">
                             <input
                               className="crm-inline-input"
@@ -484,7 +494,7 @@ export default function AdminBranchDetail() {
                 <article>
                   <span>Ümumi miqdar</span>
                   <strong>{report?.soldQty || 0}</strong>
-                  <small>ədət</small>
+                  <small>qram / ədəd</small>
                 </article>
                 <article>
                   <span>Satış məbləği</span>
@@ -505,9 +515,18 @@ export default function AdminBranchDetail() {
                     {soldProducts.map((row) => (
                       <tr key={`${row.productId}-${row.name}`}>
                         <td data-label="Ürün">
-                          <strong>{row.name}</strong>
+                          <strong>
+                            {isGramUnit(row.unit) ? (
+                              <>
+                                <em>{formatGrams(row.qty)} </em>
+                                {row.name}
+                              </>
+                            ) : (
+                              row.name
+                            )}
+                          </strong>
                         </td>
-                        <td data-label="Miqdar">{row.qty}</td>
+                        <td data-label="Miqdar">{formatStockLabel(row.qty, row.unit)}</td>
                         <td data-label="Məbləğ">{formatMoney(row.amount)}</td>
                       </tr>
                     ))}

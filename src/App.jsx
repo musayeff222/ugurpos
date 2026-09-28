@@ -55,6 +55,8 @@ import ProductionLayout from "./layouts/ProductionLayout";
 import ProductionRawMaterials from "./pages/production/ProductionRawMaterials";
 import ProductionUsage from "./pages/production/ProductionUsage";
 import ProductionProducts from "./pages/production/ProductionProducts";
+import ProductionReady from "./pages/production/ProductionReady";
+import ProductionBranches from "./pages/production/ProductionBranches";
 import PublicMenuLanding from "./pages/public/PublicMenuLanding";
 import PublicBranchMenu from "./pages/public/PublicBranchMenu";
 import PublicBranchCart from "./pages/public/PublicBranchCart";
@@ -115,6 +117,8 @@ export default function App() {
         <Route path="istifade" element={<ProductionUsage />} />
         <Route path="istehsalat" element={<Navigate to="/istehsalat/istifade" replace />} />
         <Route path="mehsullar" element={<ProductionProducts />} />
+        <Route path="hazir" element={<ProductionReady />} />
+        <Route path="subeler" element={<ProductionBranches />} />
       </Route>
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomeRedirect />} />

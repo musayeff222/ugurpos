@@ -14,12 +14,28 @@ import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
 import { playPosItemAddedSound, playPosPaymentSound } from "../utils/posSounds";
 import { getSalePaymentParts, groupOtherPaymentTotals } from "../utils/salePayments";
+import {
+  cartLineLabel,
+  formatGrams,
+  formatStockLabel,
+  isGramUnit,
+  unitPriceForCart,
+} from "../utils/grams";
 import "../styles/sales.css";
 
 const TAB_COUNT = 5;
+const SHIFT_LOCK_KEY = "ugurpos_shift_locked";
 
 function emptyCarts() {
   return Array.from({ length: TAB_COUNT }, () => []);
+}
+
+function readShiftLocked() {
+  try {
+    return sessionStorage.getItem(SHIFT_LOCK_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 export default function Sales() {
@@ -55,7 +71,11 @@ export default function Sales() {
   const [mobileView, setMobileView] = useState("products");
   const [terminalMenuOpen, setTerminalMenuOpen] = useState(false);
   const [staffLoginOpen, setStaffLoginOpen] = useState(false);
-  const [shiftEndStep, setShiftEndStep] = useState(null);
+  const [shiftEndStep, setShiftEndStep] = useState(() => (readShiftLocked() ? "summary" : null));
+  const [shiftLocked, setShiftLocked] = useState(() => readShiftLocked());
+  const [gramProduct, setGramProduct] = useState(null);
+  const [gramQty, setGramQty] = useState("");
+  const [notifications, setNotifications] = useState([]);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [expenseLoading, setExpenseLoading] = useState(false);
   const [cashRegisterBalance, setCashRegisterBalance] = useState(null);
@@ -111,10 +131,17 @@ export default function Sales() {
     const withdrawalsTotal = shiftWithdrawals.reduce((sum, row) => sum + Number(row.amount || 0), 0);
     let cash = 0;
     let pos = 0;
+    let gramsSold = 0;
     shiftSales.forEach((sale) => {
       const parts = getSalePaymentParts(sale);
       cash += parts.cash;
       pos += parts.pos;
+      (sale.items || []).forEach((item) => {
+        const product = state.products.find((p) => p.id === item.productId);
+        if (isGramUnit(product?.unit) || isGramUnit(item.unit)) {
+          gramsSold += Number(item.qty) || 0;
+        }
+      });
     });
     const partialSales = shiftSales.filter((sale) => sale.paymentType === "partial");
     const otherMethods = groupOtherPaymentTotals(shiftSales);
@@ -123,6 +150,7 @@ export default function Sales() {
       total: shiftSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
       cash,
       pos,
+      gramsSold,
       partialTotal: partialSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
       partialCount: partialSales.length,
       otherMethods,
@@ -130,7 +158,7 @@ export default function Sales() {
       cashRegister: cash - withdrawalsTotal,
       withdrawals: shiftWithdrawals,
     };
-  }, [shiftSales, state.cashWithdrawals, cashierName, shiftStartedAt]);
+  }, [shiftSales, state.cashWithdrawals, state.products, cashierName, shiftStartedAt]);
   const change = Math.max(0, (Number(paid) || 0) - total);
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
   const money = (value) => formatMoney(value, "az");
@@ -261,6 +289,38 @@ export default function Sales() {
     window.localStorage.setItem("posAutoPrintEnabled", autoPrint ? "1" : "0");
   }, [autoPrint]);
 
+  useEffect(() => {
+    if (shiftLocked) setShiftEndStep("summary");
+  }, [shiftLocked]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadNotifications = async () => {
+      try {
+        const rows = await api.getBranchNotifications({ unread: "1" });
+        if (!cancelled) setNotifications(Array.isArray(rows) ? rows : []);
+      } catch {
+        if (!cancelled) setNotifications([]);
+      }
+    };
+    loadNotifications();
+    const timer = setInterval(loadNotifications, 20000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [user?.branchId]);
+
+  const dismissNotifications = async () => {
+    const ids = notifications.map((n) => n.id);
+    setNotifications([]);
+    try {
+      await api.markBranchNotificationsRead(ids.length ? { ids } : {});
+    } catch {
+      /* ignore */
+    }
+  };
+
   const setCartForTab = (updater) => {
     setCarts((prev) => {
       const next = [...prev];
@@ -278,11 +338,19 @@ export default function Sales() {
   };
 
   const addProductToCart = (product, qty = 1) => {
-    const price = product[priceType] ?? product.price1;
+    if (shiftLocked) {
+      setMessage("Növbə bitib. Yenidən satış etmək olmaz — çıxış edin.");
+      return;
+    }
+    const price = unitPriceForCart(product, priceType);
+    const gramLine = isGramUnit(product.unit);
     setCartForTab((prev) => {
-      const existing = prev.find((i) => i.productId === product.id);
-      if (existing) {
+      const existing = prev.find((i) => i.productId === product.id && (!gramLine || i.unit === "qram"));
+      if (existing && !gramLine) {
         return prev.map((i) => (i.productId === product.id ? { ...i, qty: i.qty + qty } : i));
+      }
+      if (existing && gramLine) {
+        return prev.map((i) => (i.id === existing.id ? { ...i, qty: Number(i.qty) + Number(qty) } : i));
       }
       return [
         ...prev,
@@ -292,6 +360,7 @@ export default function Sales() {
           name: product.name,
           qty,
           price,
+          unit: gramLine ? "qram" : product.unit || "",
           discount: 0,
           note: "",
         },
@@ -302,6 +371,36 @@ export default function Sales() {
     setMobileView("cart");
     barcodeRef.current?.focus();
     playPosItemAddedSound();
+  };
+
+  const requestAddProduct = (product) => {
+    if (shiftLocked) {
+      setMessage("Növbə bitib. Yenidən satış etmək olmaz — çıxış edin.");
+      return;
+    }
+    if (isGramUnit(product.unit)) {
+      setGramProduct(product);
+      setGramQty("");
+      return;
+    }
+    addProductToCart(product);
+  };
+
+  const confirmGramAdd = (e) => {
+    e.preventDefault();
+    if (!gramProduct) return;
+    const qty = Number(gramQty);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      setMessage("Qram miqdarı düzgün deyil.");
+      return;
+    }
+    if (Number(gramProduct.stock || 0) > 0 && qty > Number(gramProduct.stock)) {
+      setMessage(`Stokda yalnız ${formatGrams(gramProduct.stock)} var.`);
+      return;
+    }
+    addProductToCart(gramProduct, qty);
+    setGramProduct(null);
+    setGramQty("");
   };
 
   const handleBarcodeInput = (value) => {
@@ -328,7 +427,7 @@ export default function Sales() {
     const product =
       state.products.find((p) => p.barcode === barcode.trim()) ||
       state.products.find((p) => p.stockCode === barcode.trim());
-    if (product) addProductToCart(product);
+    if (product) requestAddProduct(product);
     else setMessage("Ürün bulunamadı.");
   };
 
@@ -353,7 +452,15 @@ export default function Sales() {
 
   const updateQty = (lineId, qty) => {
     setCartForTab((prev) =>
-      prev.map((i) => (i.id === lineId ? { ...i, qty: Math.max(1, qty) } : i)).filter((i) => i.qty > 0)
+      prev
+        .map((i) => {
+          if (i.id !== lineId) return i;
+          const next = Number(qty);
+          if (!Number.isFinite(next) || next <= 0) return { ...i, qty: 0 };
+          if (i.unit === "qram" || isGramUnit(i.unit)) return { ...i, qty: next };
+          return { ...i, qty: Math.max(1, next) };
+        })
+        .filter((i) => i.qty > 0)
     );
   };
 
@@ -371,6 +478,10 @@ export default function Sales() {
   };
 
   const finalize = useCallback(async (paymentType, options = {}) => {
+    if (shiftLocked) {
+      setMessage("Növbə bitib. Yenidən satış etmək olmaz — çıxış edin.");
+      return;
+    }
     if (!cart.length) {
       setMessage("Sepet boş.");
       return;
@@ -449,7 +560,7 @@ export default function Sales() {
         setSplitError(err.message || "Satış kaydedilemedi.");
       }
     }
-  }, [autoPrint, cart, completeSale, customerId, discount, discountType, note, paid, total, selectedCustomer, user?.firmName, user?.staffName]);
+  }, [autoPrint, cart, completeSale, customerId, discount, discountType, note, paid, total, selectedCustomer, shiftLocked, user?.firmName, user?.staffName]);
 
   const openSplitModal = useCallback(() => {
     if (!cart.length) {
@@ -560,9 +671,10 @@ export default function Sales() {
     navigate(getPostLoginPath(account), { replace: true });
   };
 
-  const handleEndShift = () => {
+  const handleEndShift = async () => {
     const lastBranch = sessionStorage.getItem("ugurpos_admin_last_branch");
-    const result = endStaffShift();
+    const result = await endStaffShift();
+    setShiftLocked(false);
     setShiftEndStep(null);
     if (result === "branch") {
       navigate("/sales", { replace: true });
@@ -582,18 +694,52 @@ export default function Sales() {
     setShiftEndStep("confirm");
   };
 
-  const handleShiftEndConfirm = () => {
+  const handleShiftEndConfirm = async () => {
+    try {
+      sessionStorage.setItem(SHIFT_LOCK_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setShiftLocked(true);
     setShiftEndStep("summary");
+    if (isStaffUser && !user?.impersonating) {
+      try {
+        await api.endStaffShift();
+      } catch {
+        /* offline — still lock UI */
+      }
+    }
   };
 
   return (
     <div className={`sales-page bp-sales sales-terminal dzy-sales dzy-sales--${mobileView}`}>
+      {notifications.length > 0 && (
+        <div className="alert alert-info sales-alert sales-stock-alert">
+          <div>
+            {notifications.slice(0, 3).map((n) => (
+              <p key={n.id}>
+                <strong>{n.title}</strong>
+                {n.detail ? ` — ${n.detail}` : ""}
+              </p>
+            ))}
+            {notifications.length > 3 && <small>+{notifications.length - 3} digər bildiriş</small>}
+          </div>
+          <button type="button" onClick={dismissNotifications}>
+            Oxundu
+          </button>
+        </div>
+      )}
       {message && (
         <div className="alert alert-info sales-alert">
           {message}
           <button type="button" onClick={() => setMessage("")}>
             ×
           </button>
+        </div>
+      )}
+      {shiftLocked && (
+        <div className="alert alert-danger sales-alert">
+          Növbə bağlanıb. Səhifəni yeniləsəniz belə satış davam etməz — çıxış edin.
         </div>
       )}
 
@@ -750,7 +896,7 @@ export default function Sales() {
       {searchResults.length > 0 && (
         <div className="dzy-sales__search-results">
           {searchResults.map((p) => (
-            <button key={p.id} type="button" onClick={() => addProductToCart(p)}>
+            <button key={p.id} type="button" onClick={() => requestAddProduct(p)}>
               <span>{p.name}</span>
               <strong>{money(p[priceType] ?? p.price1)}</strong>
             </button>
@@ -796,28 +942,31 @@ export default function Sales() {
                   cart.map((line) => (
                     <tr key={line.id}>
                       <td>
-                        <strong>{line.name}</strong>
-                        <button type="button" className="dzy-cart__remove" onClick={() => removeLine(line.id)}>
+                        <strong>{cartLineLabel(line)}</strong>
+                        <button type="button" className="dzy-cart__remove" onClick={() => removeLine(line.id)} disabled={shiftLocked}>
                           <i className="fa fa-trash" />
                         </button>
                       </td>
                       <td>
                         <div className="dzy-cart__qty">
-                          <button type="button" onClick={() => updateQty(line.id, line.qty - 1)}>
+                          <button type="button" onClick={() => updateQty(line.id, line.qty - (line.unit === "qram" ? 10 : 1))} disabled={shiftLocked}>
                             -
                           </button>
                           <input
                             type="number"
-                            min="1"
+                            min={line.unit === "qram" ? "1" : "1"}
+                            step={line.unit === "qram" ? "1" : "1"}
                             value={line.qty}
                             onChange={(e) => updateQty(line.id, Number(e.target.value))}
+                            disabled={shiftLocked}
                           />
-                          <button type="button" onClick={() => updateQty(line.id, line.qty + 1)}>
+                          <button type="button" onClick={() => updateQty(line.id, line.qty + (line.unit === "qram" ? 10 : 1))} disabled={shiftLocked}>
                             +
                           </button>
                         </div>
+                        {(line.unit === "qram" || isGramUnit(line.unit)) && <small>qram</small>}
                       </td>
-                      <td>{line.price.toFixed(2)}</td>
+                      <td>{line.price.toFixed(4)}</td>
                       <td>{(line.qty * line.price).toFixed(2)}</td>
                     </tr>
                   ))
@@ -860,7 +1009,7 @@ export default function Sales() {
               <p className="dzy-products__empty">Bu qrupda məhsul yoxdur.</p>
             ) : (
               visibleProducts.map((p) => (
-              <button key={p.id} type="button" className="dzy-product-card" onClick={() => addProductToCart(p)}>
+              <button key={p.id} type="button" className="dzy-product-card" onClick={() => requestAddProduct(p)} disabled={shiftLocked}>
                 {p.hasImage ? (
                   <img src={getProductImageSrc(p)} alt="" loading="lazy" />
                 ) : (
@@ -868,8 +1017,18 @@ export default function Sales() {
                     <i className="fa fa-shopping-bag" />
                   </span>
                 )}
-                <span>{p.name}</span>
+                <span>
+                  {isGramUnit(p.unit) ? (
+                    <>
+                      <em>{formatStockLabel(p.stock, p.unit)} </em>
+                      {p.name}
+                    </>
+                  ) : (
+                    p.name
+                  )}
+                </span>
                 <strong>{money(p.price1)}</strong>
+                {isGramUnit(p.unit) && <small className="dzy-product-card__unit">AZN/kq</small>}
               </button>
               ))
             )}
@@ -1034,6 +1193,10 @@ export default function Sales() {
               <strong>{money(shiftSummary.total)}</strong>
             </div>
             <div>
+              <span>Satılan qram</span>
+              <strong>{formatGrams(shiftSummary.gramsSold || 0)}</strong>
+            </div>
+            <div>
               <span>Nakit</span>
               <strong>{money(shiftSummary.cash)}</strong>
             </div>
@@ -1143,6 +1306,45 @@ export default function Sales() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={!!gramProduct}
+        title={gramProduct ? `${gramProduct.name} — qram` : "Qram"}
+        onClose={() => setGramProduct(null)}
+      >
+        {gramProduct ? (
+          <form className="erp-form" onSubmit={confirmGramAdd}>
+            <p className="hint-text">
+              Stok: {formatStockLabel(gramProduct.stock, gramProduct.unit)}. Qiymət: {money(gramProduct.price1)} / kq.
+            </p>
+            <label className="erp-field">
+              <span>Satılacaq qram *</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={gramQty}
+                onChange={(e) => setGramQty(e.target.value)}
+                autoFocus
+                required
+              />
+            </label>
+            {Number(gramQty) > 0 && (
+              <p className="hint-text">
+                Məbləğ: {money((Number(gramQty) * unitPriceForCart(gramProduct, priceType)) || 0)}
+              </p>
+            )}
+            <div className="form-actions">
+              <button type="button" className="btn btn-default" onClick={() => setGramProduct(null)}>
+                Ləğv
+              </button>
+              <button type="submit" className="btn btn-primary">
+                Səbətə əlavə et
+              </button>
+            </div>
+          </form>
+        ) : null}
       </Modal>
 
       <Modal open={staffLoginOpen} title={t("login.staffTitle")} onClose={() => setStaffLoginOpen(false)}>

@@ -38,6 +38,7 @@ import { listActivityLogs, rowToActivityLog } from "../utils/activityLog.js";
 import { localDateISO, normalizeTime } from "../utils/businessHours.js";
 import { sql as SQL } from "../db/dialect.js";
 import { listFirmPaymentMethods, rowToFirmPaymentMethod } from "../utils/firmPaymentMethods.js";
+import { staffWorkHoursMonth, staffWorkHoursToday } from "../utils/staffShifts.js";
 import { normalizeBranchKind } from "../utils/branchKind.js";
 
 const router = Router();
@@ -222,6 +223,7 @@ router.get("/branches/:id/workspace", (req, res) => {
       criticalStock: Number(p.critical_stock || 0),
       price1: Number(p.price1 || 0),
       buyPrice: Number(p.buy_price || 0),
+      unit: p.unit || "Adet",
       active: !!p.active,
       firmProductId: p.firm_product_id || null,
     }));
@@ -330,10 +332,12 @@ router.get("/branches/:id/workspace", (req, res) => {
     .prepare(
       `SELECT COALESCE(si.product_id, '') as product_id,
               MAX(si.name) as product_name,
+              MAX(COALESCE(p.unit, '')) as unit,
               COALESCE(SUM(si.qty),0) as qty,
               COALESCE(SUM(si.qty * si.price - COALESCE(si.discount,0)),0) as amount
        FROM sale_items si
        JOIN sales s ON s.id = si.sale_id
+       LEFT JOIN products p ON p.id = si.product_id
        WHERE s.branch_id = ? AND s.payment_type != 'refund' AND ${saleDayExpr} = ?
        GROUP BY si.product_id, si.name
        ORDER BY qty DESC, product_name ASC`
@@ -342,6 +346,7 @@ router.get("/branches/:id/workspace", (req, res) => {
     .map((row) => ({
       productId: row.product_id || "",
       name: row.product_name || "—",
+      unit: row.unit || "",
       qty: Number(row.qty || 0),
       amount: Number(row.amount || 0),
     }));
@@ -464,7 +469,26 @@ function normalizeStaffRole(role) {
   return "Kasiyer";
 }
 
-function rowToAdminStaff(row, branch) {
+function clampCommissionPercent(value, fallback = 0) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return Number(fallback) || 0;
+  return Math.max(0, Math.min(100, Math.round(n * 100) / 100));
+}
+
+function rowToAdminStaff(row, branch, db = null) {
+  const commissionPercent = clampCommissionPercent(row.commission_percent);
+  const sales = db && branch ? staffSalesTotals(db, branch.id, row) : {
+    todayTotal: 0,
+    todayCount: 0,
+    monthTotal: 0,
+    monthCount: 0,
+  };
+  const fullName = `${row.name || ""} ${row.surname || ""}`.trim();
+  const names = [...new Set([fullName, row.name].filter(Boolean))];
+  const todayHours = db ? staffWorkHoursToday(db, row.id, branch?.id, names) : 0;
+  const monthHours = db ? staffWorkHoursMonth(db, row.id) : 0;
+  const todayCommission = Math.round(((sales.todayTotal * commissionPercent) / 100) * 100) / 100;
+  const monthCommission = Math.round(((sales.monthTotal * commissionPercent) / 100) * 100) / 100;
   return {
     id: row.id,
     name: row.name,
@@ -473,11 +497,20 @@ function rowToAdminStaff(row, branch) {
     login: row.login || "",
     role: row.role || "Kasiyer",
     salary: Number(row.salary || 0),
+    commissionPercent,
     startedAt: row.started_at || "",
     active: !!row.active,
     branchId: row.branch_id,
     branchName: branch ? branch.name : "",
     hasPassword: !!row.password_hash,
+    todayTotal: sales.todayTotal,
+    todayCount: sales.todayCount,
+    monthTotal: sales.monthTotal,
+    monthCount: sales.monthCount,
+    todayHours,
+    monthHours,
+    todayCommission,
+    monthCommission,
   };
 }
 
@@ -487,13 +520,15 @@ router.get("/staff", (req, res) => {
   const branchMap = Object.fromEntries(branches.map((b) => [b.id, b]));
   const rows = db.prepare("SELECT * FROM staff ORDER BY name").all();
   res.json(
-    rows.filter((row) => branchMap[row.branch_id]).map((row) => rowToAdminStaff(row, branchMap[row.branch_id]))
+    rows
+      .filter((row) => branchMap[row.branch_id])
+      .map((row) => rowToAdminStaff(row, branchMap[row.branch_id], db))
   );
 });
 
 router.post("/staff", (req, res) => {
   const db = getDb();
-  const { name, surname, phone, branchId, login, password, role, salary, startedAt } = req.body;
+  const { name, surname, phone, branchId, login, password, role, salary, commissionPercent, startedAt } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: "Ad zorunludur" });
   if (!branchId) return res.status(400).json({ error: "Şube seçin" });
   if (!login?.trim()) return res.status(400).json({ error: "Login zorunludur" });
@@ -506,9 +541,10 @@ router.post("/staff", (req, res) => {
   const nextRole = normalizeStaffRole(role);
   const canCash = nextRole === "Kasiyer" ? 1 : 0;
   const id = uid("s");
+  const commission = clampCommissionPercent(commissionPercent);
   db.prepare(
-    `INSERT INTO staff (id, name, surname, login, password_hash, code, role, active, can_cash_expense, branch_id, salary, phone, started_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`
+    `INSERT INTO staff (id, name, surname, login, password_hash, code, role, active, can_cash_expense, branch_id, salary, phone, started_at, commission_percent)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     name.trim(),
@@ -521,10 +557,11 @@ router.post("/staff", (req, res) => {
     branch.id,
     Number(salary) || 0,
     phone?.trim() || "",
-    startedAt?.trim() || ""
+    startedAt?.trim() || "",
+    commission
   );
   const row = db.prepare("SELECT * FROM staff WHERE id = ?").get(id);
-  res.status(201).json(rowToAdminStaff(row, branch));
+  res.status(201).json(rowToAdminStaff(row, branch, db));
 });
 
 router.patch("/staff/:id", (req, res) => {
@@ -546,8 +583,12 @@ router.patch("/staff/:id", (req, res) => {
   }
   const nextRole = s.role !== undefined ? normalizeStaffRole(s.role) : existing.role || "Kasiyer";
   const passwordHash = s.password?.trim() ? hashBranchPassword(s.password) : existing.password_hash;
+  const nextCommission =
+    s.commissionPercent !== undefined
+      ? clampCommissionPercent(s.commissionPercent, existing.commission_percent)
+      : clampCommissionPercent(existing.commission_percent);
   db.prepare(
-    `UPDATE staff SET name=?, surname=?, login=?, password_hash=?, role=?, active=?, can_cash_expense=?, branch_id=?, salary=?, phone=?, started_at=?
+    `UPDATE staff SET name=?, surname=?, login=?, password_hash=?, role=?, active=?, can_cash_expense=?, branch_id=?, salary=?, phone=?, started_at=?, commission_percent=?
      WHERE id=?`
   ).run(
     s.name?.trim() || existing.name,
@@ -561,10 +602,11 @@ router.patch("/staff/:id", (req, res) => {
     s.salary != null ? Number(s.salary) || 0 : Number(existing.salary || 0),
     s.phone !== undefined ? s.phone.trim() : existing.phone || "",
     s.startedAt !== undefined ? s.startedAt : existing.started_at || "",
+    nextCommission,
     existing.id
   );
   const row = db.prepare("SELECT * FROM staff WHERE id = ?").get(existing.id);
-  res.json(rowToAdminStaff(row, nextBranch));
+  res.json(rowToAdminStaff(row, nextBranch, db));
 });
 
 router.delete("/staff/:id", (req, res) => {

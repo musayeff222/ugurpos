@@ -2234,6 +2234,30 @@
   font-weight: 700;
 }
 
+.dzy-product-card > span em {
+  font-style: normal;
+  color: #0176d3;
+  font-weight: 700;
+}
+
+.dzy-product-card__unit {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  color: #706e6b;
+}
+
+.sales-stock-alert {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.sales-stock-alert p {
+  margin: 0 0 4px;
+}
+
 .dzy-product-card strong {
   color: #24608e;
   font-size: 16px;

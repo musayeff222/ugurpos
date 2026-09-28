@@ -1,0 +1,45 @@
+{
+  "appId": "az.cigkofte.ugurpos.admin",
+  "productName": "UgurPOS Admin",
+  "copyright": "İstanbul Çiğköfte",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "main.cjs",
+    "preload.cjs",
+    "offline.html",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "app",
+      "to": "app"
+    }
+  ],
+  "extraMetadata": {
+    "version": "1.0.0",
+    "description": "UgurPOS admin girişi",
+    "ugurposProfile": {
+      "startPath": "/login/admin",
+      "title": "UgurPOS Admin",
+      "fullscreen": true
+    }
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "UgurPOS Admin",
+    "artifactName": "UgurPOS-Admin-Setup-${version}.exe"
+  }
+}

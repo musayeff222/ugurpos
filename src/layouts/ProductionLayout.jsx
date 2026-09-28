@@ -10,6 +10,8 @@ const nav = [
   { to: "/istehsalat/xammaddeler", label: "Xammaddələr", icon: "fa-cubes" },
   { to: "/istehsalat/istifade", label: "İstifadə", icon: "fa-industry" },
   { to: "/istehsalat/mehsullar", label: "Hazırlanan məhsullar", icon: "fa-archive" },
+  { to: "/istehsalat/hazir", label: "İstifadəyə hazır", icon: "fa-check-circle" },
+  { to: "/istehsalat/subeler", label: "Şubələr", icon: "fa-truck" },
 ];
 
 function initials(text) {

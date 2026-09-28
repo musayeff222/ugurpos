@@ -37,7 +37,12 @@ function rowToRawMaterial(row) {
 }
 
 function rowToProduct(row) {
-  return { id: row.id, name: row.name, createdAt: row.created_at || "" };
+  return {
+    id: row.id,
+    name: row.name,
+    readyStock: Number(row.ready_stock || 0),
+    createdAt: row.created_at || "",
+  };
 }
 
 function rowToMovement(row) {
@@ -305,6 +310,178 @@ router.post("/batches", (req, res) => {
   }
 
   res.status(201).json(loadBatch(db, id, req.branchId));
+});
+
+router.delete("/products/:id", (req, res) => {
+  const db = getDb();
+  const product = db.prepare("SELECT * FROM production_products WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
+  if (!product) return res.status(404).json({ error: "Məhsul tapılmadı" });
+  if (Number(product.ready_stock || 0) > 0) {
+    return res.status(400).json({ error: "İstifadəyə hazır stoku olan məhsul silinə bilməz" });
+  }
+  db.prepare("DELETE FROM production_products WHERE id = ? AND branch_id = ?").run(product.id, req.branchId);
+  res.json({ ok: true });
+});
+
+router.post("/products/:id/ready", (req, res) => {
+  const db = getDb();
+  const product = db.prepare("SELECT * FROM production_products WHERE id = ? AND branch_id = ?").get(req.params.id, req.branchId);
+  if (!product) return res.status(404).json({ error: "Məhsul tapılmadı" });
+  const qtyGrams = Number(req.body.qtyGrams ?? req.body.qty);
+  if (!Number.isFinite(qtyGrams) || qtyGrams <= 0) {
+    return res.status(400).json({ error: "Qram miqdarı düzgün deyil" });
+  }
+  const next = Number(product.ready_stock || 0) + qtyGrams;
+  db.prepare("UPDATE production_products SET ready_stock = ? WHERE id = ? AND branch_id = ?").run(next, product.id, req.branchId);
+  res.json(rowToProduct(db.prepare("SELECT * FROM production_products WHERE id = ?").get(product.id)));
+});
+
+router.get("/ready", (req, res) => {
+  const rows = getDb()
+    .prepare("SELECT * FROM production_products WHERE branch_id = ? AND ready_stock > 0 ORDER BY name")
+    .all(req.branchId)
+    .map(rowToProduct);
+  res.json(rows);
+});
+
+router.get("/sales-branches", (req, res) => {
+  const db = getDb();
+  const source = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.branchId);
+  if (!source) return res.status(404).json({ error: "Şube tapılmadı" });
+  const branches = db
+    .prepare(
+      `SELECT * FROM branches
+       WHERE firm_id = ? AND active = 1 AND id != ? AND (kind IS NULL OR kind != 'production')
+       ORDER BY name`
+    )
+    .all(source.firm_id, req.branchId)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      branchNo: row.code ? String(parseInt(row.code, 10) || row.code) : "",
+    }));
+
+  const ready = db
+    .prepare("SELECT * FROM production_products WHERE branch_id = ? AND ready_stock > 0 ORDER BY name")
+    .all(req.branchId)
+    .map(rowToProduct);
+
+  const branchStocks = {};
+  branches.forEach((branch) => {
+    branchStocks[branch.id] = {};
+    ready.forEach((product) => {
+      const match = db
+        .prepare(
+          `SELECT * FROM products
+           WHERE branch_id = ? AND LOWER(name) = LOWER(?)
+           LIMIT 1`
+        )
+        .get(branch.id, product.name);
+      branchStocks[branch.id][product.id] = {
+        productId: match?.id || "",
+        stockGrams: Number(match?.stock || 0),
+      };
+    });
+  });
+
+  res.json({ branches, readyProducts: ready, branchStocks });
+});
+
+router.post("/transfer", (req, res) => {
+  const db = getDb();
+  const productId = String(req.body.productId || "").trim();
+  const targetBranchId = String(req.body.targetBranchId || "").trim();
+  const qtyGrams = Number(req.body.qtyGrams ?? req.body.qty);
+  if (!productId || !targetBranchId) return res.status(400).json({ error: "Məhsul və şube seçin" });
+  if (!Number.isFinite(qtyGrams) || qtyGrams <= 0) return res.status(400).json({ error: "Qram miqdarı düzgün deyil" });
+
+  const source = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.branchId);
+  const target = db.prepare("SELECT * FROM branches WHERE id = ? AND firm_id = ?").get(targetBranchId, source?.firm_id);
+  if (!source || !target) return res.status(404).json({ error: "Şube tapılmadı" });
+  if (String(target.kind || "") === "production") {
+    return res.status(400).json({ error: "İstehsalat şubesinə göndərilə bilməz" });
+  }
+
+  const product = db.prepare("SELECT * FROM production_products WHERE id = ? AND branch_id = ?").get(productId, req.branchId);
+  if (!product) return res.status(404).json({ error: "Məhsul tapılmadı" });
+  const ready = Number(product.ready_stock || 0);
+  if (qtyGrams > ready) return res.status(400).json({ error: `Yetərli hazır stok yoxdur (${ready} qram)` });
+
+  const createdAt = new Date().toISOString();
+  const transferId = uid("pt");
+  let targetProductId = "";
+  let targetStockAfter = 0;
+
+  try {
+    const tx = db.transaction(() => {
+      db.prepare("UPDATE production_products SET ready_stock = ? WHERE id = ? AND branch_id = ?").run(
+        ready - qtyGrams,
+        product.id,
+        req.branchId
+      );
+
+      let match = db
+        .prepare(
+          `SELECT * FROM products
+           WHERE branch_id = ? AND LOWER(name) = LOWER(?)
+           LIMIT 1`
+        )
+        .get(target.id, product.name);
+
+      if (!match) {
+        targetProductId = uid("p");
+        const stockCode = `PR${String(Date.now()).slice(-8)}`;
+        db.prepare(
+          `INSERT INTO products
+            (id, barcode, stock_code, name, group_id, stock, critical_stock, vat, buy_price, price1, price2, unit, on_sale_page, active, branch_id)
+           VALUES (?, ?, ?, ?, NULL, ?, 0, 0, 0, 0, 0, 'qram', 1, 1, ?)`
+        ).run(targetProductId, stockCode, stockCode, product.name, qtyGrams, target.id);
+        targetStockAfter = qtyGrams;
+      } else {
+        targetProductId = match.id;
+        targetStockAfter = Number(match.stock || 0) + qtyGrams;
+        db.prepare("UPDATE products SET stock = ?, unit = COALESCE(NULLIF(unit,''), 'qram') WHERE id = ? AND branch_id = ?").run(
+          targetStockAfter,
+          match.id,
+          target.id
+        );
+      }
+
+      db.prepare(
+        `INSERT INTO production_transfers
+          (id, from_branch_id, to_branch_id, product_id, product_name, qty_grams, created_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(transferId, req.branchId, target.id, product.id, product.name, qtyGrams, actorName(req), createdAt);
+
+      const notifId = uid("bn");
+      db.prepare(
+        `INSERT INTO branch_notifications (id, branch_id, type, title, detail, created_at, read_at)
+         VALUES (?, ?, ?, ?, ?, ?, NULL)`
+      ).run(
+        notifId,
+        target.id,
+        "stock_in",
+        `${product.name} stoka əlavə olundu`,
+        `${qtyGrams} qram ${product.name} istehsalatdan əlavə edildi. Yeni stok: ${targetStockAfter} qram.`,
+        createdAt
+      );
+    });
+    tx();
+  } catch (err) {
+    return res.status(400).json({ error: err.message || "Göndərmə alınmadı" });
+  }
+
+  res.status(201).json({
+    id: transferId,
+    productId: product.id,
+    productName: product.name,
+    qtyGrams,
+    targetBranchId: target.id,
+    targetBranchName: target.name,
+    targetProductId,
+    targetStockAfter,
+    readyStock: ready - qtyGrams,
+  });
 });
 
 export default router;

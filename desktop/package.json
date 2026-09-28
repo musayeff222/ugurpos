@@ -1,21 +1,25 @@
 {
-  "name": "ugurpos-desktop",
-  "version": "1.0.0",
-  "private": true,
-  "author": "İstanbul Çiğköfte",
-  "description": "UgurPOS Windows kassa — cigkofte.az",
-  "main": "main.cjs",
-  "scripts": {
-    "start": "electron .",
-    "dist": "electron-builder --win nsis"
-  },
+    "name": "ugurpos-kassir",
+    "version": "1.2.0",
+    "private": true,
+    "author": "İstanbul Çiğköfte",
+    "description": "UgurPOS Kassir — internetsiz satış, internet gələndə serverə yüklənir",
+    "main": "main.cjs",
+    "scripts": {
+      "prepare-app": "node prepare-app.cjs",
+      "start": "node prepare-app.cjs && electron .",
+      "dist": "node prepare-app.cjs && electron-builder --win nsis",
+      "dist:sube": "node prepare-app.cjs && electron-builder --win nsis --config builder-sube.json",
+      "dist:admin": "node prepare-app.cjs && electron-builder --win nsis --config builder-admin.json",
+      "dist:istesalat": "node prepare-app.cjs && electron-builder --win nsis --config builder-istesalat.json"
+    },
   "devDependencies": {
     "electron": "^36.7.5",
     "electron-builder": "^26.0.12"
   },
   "build": {
-    "appId": "az.cigkofte.ugurpos",
-    "productName": "UgurPOS",
+    "appId": "az.cigkofte.ugurpos.kassir",
+    "productName": "UgurPOS Kassir",
     "copyright": "İstanbul Çiğköfte",
     "directories": {
       "output": "dist"
@@ -25,6 +29,12 @@
       "preload.cjs",
       "offline.html",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "app",
+        "to": "app"
+      }
     ],
     "win": {
       "target": [
@@ -39,8 +49,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "UgurPOS",
-      "artifactName": "UgurPOS-Setup-${version}.exe"
+      "shortcutName": "UgurPOS Kassir",
+      "artifactName": "UgurPOS-Kassir-Setup-${version}.exe"
     }
   }
 }

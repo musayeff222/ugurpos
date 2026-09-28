@@ -1,9 +1,10 @@
 const { contextBridge } = require("electron");
 
-const siteUrl = process.env.UGURPOS_URL || "https://cigkofte.az";
+const startArg = process.argv.find((arg) => arg.startsWith("--ugurpos-start="));
+const startUrl = startArg ? startArg.slice("--ugurpos-start=".length) : "/login/kasiyer";
 
 contextBridge.exposeInMainWorld("ugurpos", {
   isDesktop: true,
-  siteUrl,
-  startUrl: `${siteUrl.replace(/\/$/, "")}/login/admin`,
+  siteUrl: "https://cigkofte.az",
+  startUrl,
 });

@@ -58,7 +58,10 @@ export function AuthProvider({ children }) {
 
       const { token, user: account } = await api.staffLogin({ login, password });
       sessionStorage.removeItem(ADMIN_BACKUP_KEY);
-      const accountWithShift = { ...account, shiftStartedAt: new Date().toISOString() };
+      const accountWithShift = {
+        ...account,
+        shiftStartedAt: account.shiftStartedAt || new Date().toISOString(),
+      };
       persistUser(accountWithShift, token);
       return accountWithShift;
     } finally {
@@ -134,9 +137,28 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const endStaffShift = () => {
-    if (returnToBranchSession()) return "branch";
+  const endStaffShift = async () => {
     const current = JSON.parse(localStorage.getItem(USER_KEY) || "null");
+    const alreadyClosed = (() => {
+      try {
+        return sessionStorage.getItem("ugurpos_shift_locked") === "1";
+      } catch {
+        return false;
+      }
+    })();
+    if (current?.loginType === "staff" && !current?.impersonating && !alreadyClosed) {
+      try {
+        await api.endStaffShift();
+      } catch {
+        /* offline / already closed — still log out */
+      }
+    }
+    try {
+      sessionStorage.removeItem("ugurpos_shift_locked");
+    } catch {
+      /* ignore */
+    }
+    if (returnToBranchSession()) return "branch";
     if (current?.impersonating && returnToAdminPanel()) return "admin";
     logout();
     return "logout";

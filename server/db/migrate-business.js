@@ -242,4 +242,110 @@ export function migrateBusiness(db) {
       CREATE INDEX IF NOT EXISTS idx_raw_movements_branch ON raw_material_movements(branch_id);
     `);
   }
+
+  addColumnIfMissing(
+    db,
+    "production_products",
+    "ready_stock",
+    db.dialect === "mysql" ? "DOUBLE DEFAULT 0" : "REAL DEFAULT 0"
+  );
+
+  if (db.dialect === "mysql") {
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS branch_notifications (
+          id VARCHAR(64) PRIMARY KEY,
+          branch_id VARCHAR(64) NOT NULL,
+          type VARCHAR(40) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          detail TEXT,
+          created_at VARCHAR(40) NOT NULL,
+          read_at VARCHAR(40),
+          INDEX idx_branch_notifications_branch (branch_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS production_transfers (
+          id VARCHAR(64) PRIMARY KEY,
+          from_branch_id VARCHAR(64) NOT NULL,
+          to_branch_id VARCHAR(64) NOT NULL,
+          product_id VARCHAR(64),
+          product_name VARCHAR(255) NOT NULL,
+          qty_grams DOUBLE NOT NULL,
+          created_by VARCHAR(255),
+          created_at VARCHAR(40) NOT NULL,
+          INDEX idx_production_transfers_from (from_branch_id),
+          INDEX idx_production_transfers_to (to_branch_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+    } catch {
+      /* already exists */
+    }
+  } else {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS branch_notifications (
+        id TEXT PRIMARY KEY,
+        branch_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        detail TEXT,
+        created_at TEXT NOT NULL,
+        read_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_branch_notifications_branch ON branch_notifications(branch_id);
+      CREATE TABLE IF NOT EXISTS production_transfers (
+        id TEXT PRIMARY KEY,
+        from_branch_id TEXT NOT NULL,
+        to_branch_id TEXT NOT NULL,
+        product_id TEXT,
+        product_name TEXT NOT NULL,
+        qty_grams REAL NOT NULL,
+        created_by TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_production_transfers_from ON production_transfers(from_branch_id);
+      CREATE INDEX IF NOT EXISTS idx_production_transfers_to ON production_transfers(to_branch_id);
+    `);
+  }
+
+  addColumnIfMissing(
+    db,
+    "staff",
+    "commission_percent",
+    db.dialect === "mysql" ? "DOUBLE DEFAULT 0" : "REAL DEFAULT 0"
+  );
+
+  if (db.dialect === "mysql") {
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS staff_shifts (
+          id VARCHAR(64) PRIMARY KEY,
+          staff_id VARCHAR(64) NOT NULL,
+          branch_id VARCHAR(64) NOT NULL,
+          staff_name VARCHAR(255),
+          started_at VARCHAR(40) NOT NULL,
+          ended_at VARCHAR(40),
+          INDEX idx_staff_shifts_staff (staff_id),
+          INDEX idx_staff_shifts_branch (branch_id),
+          INDEX idx_staff_shifts_started (started_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+    } catch {
+      /* already exists */
+    }
+  } else {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS staff_shifts (
+        id TEXT PRIMARY KEY,
+        staff_id TEXT NOT NULL,
+        branch_id TEXT NOT NULL,
+        staff_name TEXT,
+        started_at TEXT NOT NULL,
+        ended_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_staff_shifts_staff ON staff_shifts(staff_id);
+      CREATE INDEX IF NOT EXISTS idx_staff_shifts_branch ON staff_shifts(branch_id);
+      CREATE INDEX IF NOT EXISTS idx_staff_shifts_started ON staff_shifts(started_at);
+    `);
+  }
 }
