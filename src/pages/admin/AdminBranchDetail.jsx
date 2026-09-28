@@ -190,8 +190,9 @@ export default function AdminBranchDetail() {
     setError("");
     try {
       sessionStorage.setItem("ugurpos_admin_last_branch", id);
-      await enterBranchAsAdmin(id);
-      navigate(branch?.kind === "production" ? "/istehsalat" : "/sales");
+      const account = await enterBranchAsAdmin(id);
+      const production = account?.branchKind === "production" || branch?.kind === "production";
+      navigate(production ? "/istehsalat/xammaddeler" : "/sales");
     } catch (err) {
       setError(err.message);
     } finally {

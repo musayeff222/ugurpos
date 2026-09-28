@@ -26,24 +26,36 @@ export default function ProductionLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  if (!isAuthenticated) {
+  // localStorage is written before React state flushes after admin "Geç"
+  let sessionUser = user;
+  try {
+    const saved = JSON.parse(localStorage.getItem("benimpos_user") || "null");
+    if (saved?.impersonating || saved?.branchKind === "production") sessionUser = saved;
+  } catch {
+    /* ignore */
+  }
+
+  if (!isAuthenticated && !sessionUser) {
     return <Navigate to="/login/istesalat" replace state={{ from: location }} />;
   }
 
-  if (isAdmin && !isImpersonating) {
+  const adminOnly = (sessionUser?.role === "admin" || isAdmin) && !(sessionUser?.impersonating || isImpersonating);
+  if (adminOnly) {
     return <Navigate to="/admin" replace />;
   }
 
-  if (!isProductionAccount(user)) {
+  if (!isProductionAccount(sessionUser || user)) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const displayName = user?.staffName || user?.email || user?.branchEmail || "İstifadəçi";
-  const roleLabel = isImpersonating ? "Admin baxışı" : "İstehsalat";
+  const activeUser = sessionUser || user;
+  const viewingAsAdmin = !!(activeUser?.impersonating || isImpersonating);
+  const displayName = activeUser?.staffName || activeUser?.email || activeUser?.branchEmail || "İstifadəçi";
+  const roleLabel = viewingAsAdmin ? "Admin baxışı" : "İstehsalat";
 
   const handleLogout = () => {
-    if (isImpersonating) {
-      const lastBranch = sessionStorage.getItem("ugurpos_admin_last_branch") || user?.branchId || "";
+    if (viewingAsAdmin) {
+      const lastBranch = sessionStorage.getItem("ugurpos_admin_last_branch") || activeUser?.branchId || "";
       const restored = returnToAdminPanel();
       if (restored && lastBranch) navigate(`/admin/istehsalat/${lastBranch}`);
       else if (restored) navigate("/admin/istehsalat");
@@ -78,7 +90,7 @@ export default function ProductionLayout() {
           {showText && (
             <div>
               <strong>{displayName}</strong>
-              <small>{user?.branchName || "İstehsalat şöbəsi"}</small>
+              <small>{activeUser?.branchName || "İstehsalat şöbəsi"}</small>
               <small>{roleLabel}</small>
             </div>
           )}
@@ -96,21 +108,21 @@ export default function ProductionLayout() {
         <div className="prod-sidebar__foot">
           <button type="button" className="prod-logout" onClick={handleLogout}>
             <i className="fa fa-sign-out" />
-            {showText && <span>{isImpersonating ? "Admin panele dön" : "Çıxış"}</span>}
+            {showText && <span>{viewingAsAdmin ? "Admin panele dön" : "Çıxış"}</span>}
           </button>
         </div>
       </aside>
       <main className="prod-main">
-        {isImpersonating && <ImpersonationBanner />}
+        {viewingAsAdmin && <ImpersonationBanner />}
         <header className="prod-mobile-bar">
           <button type="button" className="prod-hamburger" onClick={() => setMobileOpen((open) => !open)} aria-label="Menyu">
             <span />
             <span />
             <span />
           </button>
-          <strong>{user?.branchName || "Ləvazimatlar"}</strong>
+          <strong>{activeUser?.branchName || "Ləvazimatlar"}</strong>
           <button type="button" onClick={handleLogout}>
-            {isImpersonating ? "Admin" : "Çıxış"}
+            {viewingAsAdmin ? "Admin" : "Çıxış"}
           </button>
         </header>
         <div className="prod-content">

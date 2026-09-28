@@ -210,33 +210,35 @@ export default function ProductionRawMaterials() {
       </Modal>
 
       <Modal open={!!stockRow} title={stockRow ? `${stockRow.name} — stok əlavə et` : "Stok"} onClose={() => setStockRow(null)}>
-        <form className="erp-form" onSubmit={addStock}>
-          <p className="hint-text">100 qram yazın. 0.1 kq yazmağa ehtiyac yoxdur — vahidi qram seçin.</p>
-          <label className="erp-field">
-            <span>Miqdar</span>
-            <input type="number" step="any" min="0.001" value={stockQty} onChange={(e) => setStockQty(e.target.value)} required />
-          </label>
-          <label className="erp-field">
-            <span>Ölçü vahidi</span>
-            <select value={stockUnit} onChange={(e) => setStockUnit(e.target.value)}>
-              {compatibleUnits(stockRow.unit).map((unit) => (
-                <option key={unit} value={unit}>
-                  {unit}
-                </option>
-              ))}
-            </select>
-          </label>
-          {stockQty && (
-            <p className="hint-text">
-              Stoka əlavə olunacaq: {roundQty(convertQty(stockQty, stockUnit, stockRow.unit))} {stockRow.unit}
-            </p>
-          )}
-          <div className="form-actions">
-            <button type="submit" className="prod-btn prod-btn--primary" disabled={saving}>
-              Əlavə et
-            </button>
-          </div>
-        </form>
+        {stockRow ? (
+          <form className="erp-form" onSubmit={addStock}>
+            <p className="hint-text">100 qram yazın. 0.1 kq yazmağa ehtiyac yoxdur — vahidi qram seçin.</p>
+            <label className="erp-field">
+              <span>Miqdar</span>
+              <input type="number" step="any" min="0.001" value={stockQty} onChange={(e) => setStockQty(e.target.value)} required />
+            </label>
+            <label className="erp-field">
+              <span>Ölçü vahidi</span>
+              <select value={stockUnit} onChange={(e) => setStockUnit(e.target.value)}>
+                {compatibleUnits(stockRow.unit).map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {stockQty && (
+              <p className="hint-text">
+                Stoka əlavə olunacaq: {roundQty(convertQty(stockQty, stockUnit, stockRow.unit))} {stockRow.unit}
+              </p>
+            )}
+            <div className="form-actions">
+              <button type="submit" className="prod-btn prod-btn--primary" disabled={saving}>
+                Əlavə et
+              </button>
+            </div>
+          </form>
+        ) : null}
       </Modal>
 
       <Modal

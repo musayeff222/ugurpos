@@ -123,6 +123,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .admin-sidebar-link {
@@ -228,6 +229,9 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
 }
 
 .admin-brand strong {
@@ -244,6 +248,10 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .admin-nav a {
@@ -838,6 +846,16 @@
   width: 100%;
   text-align: left;
   font: inherit;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 6px;
+}
+
+.admin-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
 }
 
 .login-links a {
@@ -1592,7 +1610,8 @@
 
   .admin-nav a,
   .admin-sidebar-link,
-  .admin-back {
+  .admin-back,
+  .admin-logout-btn {
     justify-content: center;
     padding: 10px 6px;
   }
@@ -1600,6 +1619,20 @@
   .admin-nav a span,
   .admin-sidebar-link span {
     display: none;
+  }
+
+  .erp-user-chip div,
+  .erp-brand div:not(.erp-brand__mark) {
+    display: none;
+  }
+
+  .admin-logout-btn {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .admin-logout-btn i {
+    font-size: 16px;
   }
 
   .admin-nav-badge {
@@ -1653,6 +1686,10 @@
   position: sticky;
   top: 0;
   height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .erp-brand {
@@ -1697,6 +1734,13 @@
   margin-bottom: 12px;
 }
 
+.erp-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .erp-nav-title {
   margin: 8px 16px 4px;
   color: #7f9db9;
@@ -1731,7 +1775,9 @@
 
 .erp-sidebar-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 12px;
+  padding: 12px 14px 4px;
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 .erp-user-chip {
@@ -2721,8 +2767,19 @@
     padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
     transform: translateX(-105%);
     transition: transform 0.22s ease;
-    overflow-y: auto;
+    overflow: hidden;
     box-shadow: 8px 0 24px rgba(3, 45, 96, 0.28);
+  }
+
+  .admin-drawer .admin-nav,
+  .admin-drawer .erp-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .admin-drawer .admin-sidebar-footer {
+    flex-shrink: 0;
   }
 
   .admin-drawer.is-open {
