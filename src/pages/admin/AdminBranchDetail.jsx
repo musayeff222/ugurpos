@@ -23,12 +23,21 @@ function salePaymentLabel(sale) {
 
 const TABS = [
   { id: "stock", label: "Anbar" },
+  { id: "sold", label: "Satılmış ürünler" },
   { id: "cash", label: "Kasa" },
   { id: "expenses", label: "Xərclər" },
   { id: "reports", label: "Hesabat" },
   { id: "staff", label: "Çalışanlar" },
   { id: "settings", label: "Ayarlar" },
 ];
+
+function todayISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 export default function AdminBranchDetail() {
   const { id } = useParams();
@@ -37,6 +46,7 @@ export default function AdminBranchDetail() {
   const { enterBranchAsAdmin, enterStaffAsAdmin } = useAuth();
 
   const [tab, setTab] = useState("stock");
+  const [workspaceDate, setWorkspaceDate] = useState(todayISO);
   const [branch, setBranch] = useState(null);
   const [workspace, setWorkspace] = useState(null);
   const [form, setForm] = useState({
@@ -60,6 +70,9 @@ export default function AdminBranchDetail() {
   const [savingId, setSavingId] = useState("");
   const [passwordEdits, setPasswordEdits] = useState({});
   const [copiedLogin, setCopiedLogin] = useState("");
+  const [expenseEdit, setExpenseEdit] = useState(null);
+  const [expenseForm, setExpenseForm] = useState({ amount: "", reason: "", note: "" });
+  const [expenseSaving, setExpenseSaving] = useState(false);
 
   const loadBranch = async () => {
     const data = await api.getAdminBranch(id);
@@ -77,17 +90,84 @@ export default function AdminBranchDetail() {
     });
   };
 
-  const loadWorkspace = async () => {
-    const data = await api.getAdminBranchWorkspace(id);
+  const loadWorkspace = async (date = workspaceDate) => {
+    const data = await api.getAdminBranchWorkspace(id, { date });
     setWorkspace(data);
+    if (data?.date) setWorkspaceDate(data.date);
     setStockEdits({});
     setSalaryEdits({});
     setPasswordEdits({});
   };
 
   useEffect(() => {
-    Promise.all([loadBranch(), loadWorkspace()]).catch((e) => setError(e.message));
+    Promise.all([loadBranch(), loadWorkspace(workspaceDate)]).catch((e) => setError(e.message));
   }, [id]);
+
+  const applyDateFilter = async (nextDate) => {
+    setWorkspaceDate(nextDate);
+    setError("");
+    try {
+      await loadWorkspace(nextDate);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const openExpenseEdit = (row) => {
+    setExpenseEdit(row);
+    setExpenseForm({
+      amount: String(row.amount ?? ""),
+      reason: row.reason || "",
+      note: row.note || "",
+    });
+    setError("");
+  };
+
+  const handleExpenseSave = async (e) => {
+    e.preventDefault();
+    if (!expenseEdit) return;
+    setError("");
+    setMessage("");
+    const amount = Number(expenseForm.amount);
+    if (!amount || amount <= 0) {
+      setError("Geçerli məbləğ girin");
+      return;
+    }
+    if (!expenseForm.reason.trim()) {
+      setError("Xərc səbəbi zəruridir");
+      return;
+    }
+    setExpenseSaving(true);
+    try {
+      await api.updateAdminCashWithdrawal(expenseEdit.id, {
+        amount,
+        reason: expenseForm.reason.trim(),
+        note: expenseForm.note.trim(),
+      });
+      setExpenseEdit(null);
+      setMessage("Xərc düzəldildi.");
+      await loadWorkspace();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExpenseSaving(false);
+    }
+  };
+
+  const handleExpenseDelete = async (row) => {
+    const ok = window.confirm(`Bu xərci silmək istəyirsiniz?\n${row.reason} — ${formatMoney(row.amount)}`);
+    if (!ok) return;
+    setError("");
+    setMessage("");
+    try {
+      await api.deleteAdminCashWithdrawal(row.id);
+      if (expenseEdit?.id === row.id) setExpenseEdit(null);
+      setMessage("Xərc silindi.");
+      await loadWorkspace();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -215,9 +295,30 @@ export default function AdminBranchDetail() {
 
   const label = branch ? getBranchLabel(branch) : "Hesap";
   const report = workspace?.report;
+  const soldProducts = workspace?.soldProducts || [];
   const isProduction = branch?.kind === "production";
   const visibleTabs = isProduction ? [{ id: "settings", label: "Ayarlar" }] : TABS;
   const currentTab = isProduction ? "settings" : tab;
+  const showDateFilter = ["sold", "cash", "expenses", "reports"].includes(currentTab);
+
+  const dateFilterBar = showDateFilter ? (
+    <div className="erp-panel erp-filters admin-branch-date-filter">
+      <label>
+        Gün
+        <input
+          type="date"
+          value={workspaceDate}
+          onChange={(e) => applyDateFilter(e.target.value || todayISO())}
+        />
+      </label>
+      <button type="button" className="btn btn-default btn-sm" onClick={() => applyDateFilter(todayISO())}>
+        Bu gün
+      </button>
+      <button type="button" className="btn btn-primary btn-sm" onClick={() => applyDateFilter(workspaceDate)}>
+        Filtrele
+      </button>
+    </div>
+  ) : null;
 
   return (
     <div className="admin-page erp-page">
@@ -289,6 +390,8 @@ export default function AdminBranchDetail() {
               </li>
             ))}
           </ul>
+
+          {dateFilterBar}
 
           {currentTab === "stock" && (
             <section className="erp-panel erp-panel--flush">
@@ -369,6 +472,57 @@ export default function AdminBranchDetail() {
             </section>
           )}
 
+          {currentTab === "sold" && (
+            <section className="erp-panel erp-panel--flush">
+              <div className="crm-metrics crm-metrics--4">
+                <article>
+                  <span>Satılan məhsul</span>
+                  <strong>{soldProducts.length}</strong>
+                  <small>{workspaceDate}</small>
+                </article>
+                <article>
+                  <span>Ümumi miqdar</span>
+                  <strong>{report?.soldQty || 0}</strong>
+                  <small>ədət</small>
+                </article>
+                <article>
+                  <span>Satış məbləği</span>
+                  <strong>{formatMoney(report?.soldAmount || 0)}</strong>
+                  <small>günlük</small>
+                </article>
+              </div>
+              <div className="admin-table-wrap">
+                <table className="erp-table">
+                  <thead>
+                    <tr>
+                      <th>Ürün</th>
+                      <th>Miqdar</th>
+                      <th>Məbləğ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {soldProducts.map((row) => (
+                      <tr key={`${row.productId}-${row.name}`}>
+                        <td data-label="Ürün">
+                          <strong>{row.name}</strong>
+                        </td>
+                        <td data-label="Miqdar">{row.qty}</td>
+                        <td data-label="Məbləğ">{formatMoney(row.amount)}</td>
+                      </tr>
+                    ))}
+                    {!soldProducts.length && (
+                      <tr>
+                        <td colSpan={3} className="erp-table__empty">
+                          Seçilmiş gündə satılmış ürün yoxdur.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
           {currentTab === "cash" && (
             <section className="erp-panel erp-panel--flush">
               <div className="crm-metrics crm-metrics--4">
@@ -435,7 +589,7 @@ export default function AdminBranchDetail() {
                     {!workspace?.sales?.length && (
                       <tr>
                         <td colSpan={5} className="erp-table__empty">
-                          Satış yok.
+                          Seçilmiş gündə satış yoxdur.
                         </td>
                       </tr>
                     )}
@@ -463,6 +617,7 @@ export default function AdminBranchDetail() {
                       <th>Qeyd</th>
                       <th>Kim</th>
                       <th>Məbləğ</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -473,12 +628,22 @@ export default function AdminBranchDetail() {
                         <td data-label="Qeyd">{row.note || "—"}</td>
                         <td data-label="Kim">{row.staffName || "—"}</td>
                         <td data-label="Məbləğ">{formatMoney(row.amount)}</td>
+                        <td data-label="">
+                          <div className="staff-row-actions">
+                            <button type="button" className="btn btn-default btn-sm" onClick={() => openExpenseEdit(row)}>
+                              Düzəlt
+                            </button>
+                            <button type="button" className="btn btn-danger btn-sm" onClick={() => handleExpenseDelete(row)}>
+                              Sil
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                     {!workspace?.withdrawals?.length && (
                       <tr>
-                        <td colSpan={5} className="erp-table__empty">
-                          Kasa xərci yoxdur.
+                        <td colSpan={6} className="erp-table__empty">
+                          Seçilmiş gündə kasa xərci yoxdur.
                         </td>
                       </tr>
                     )}
@@ -800,6 +965,55 @@ export default function AdminBranchDetail() {
             </p>
           </>
         )}
+      </Modal>
+
+      <Modal open={!!expenseEdit} title="Xərci düzəlt" onClose={() => !expenseSaving && setExpenseEdit(null)}>
+        <form className="erp-form" onSubmit={handleExpenseSave}>
+          <div className="erp-form-grid">
+            <label className="erp-field">
+              <span>Məbləğ *</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={expenseForm.amount}
+                onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                required
+              />
+            </label>
+            <label className="erp-field">
+              <span>Səbəb *</span>
+              <input
+                value={expenseForm.reason}
+                onChange={(e) => setExpenseForm({ ...expenseForm, reason: e.target.value })}
+                required
+              />
+            </label>
+            <label className="erp-field erp-field--full">
+              <span>Qeyd</span>
+              <input
+                value={expenseForm.note}
+                onChange={(e) => setExpenseForm({ ...expenseForm, note: e.target.value })}
+              />
+            </label>
+          </div>
+          <div className="form-actions">
+            <button type="button" className="btn btn-default" disabled={expenseSaving} onClick={() => setExpenseEdit(null)}>
+              Ləğv
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger"
+              disabled={expenseSaving}
+              onClick={() => expenseEdit && handleExpenseDelete(expenseEdit)}
+            >
+              Sil
+            </button>
+            <button type="submit" className="btn btn-success" disabled={expenseSaving}>
+              {expenseSaving ? "Saxlanır…" : "Yadda saxla"}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

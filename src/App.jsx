@@ -77,8 +77,12 @@ function HomeRedirect() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<Navigate to="/m" replace />} />
       <Route path="/login/admin" element={<AdminLogin />} />
+      <Route path="/login/kasiyer" element={<Login mode="kasiyer" />} />
+      <Route path="/login/istesalat" element={<Login mode="istesalat" />} />
+      <Route path="/login/sube" element={<Login mode="sube" />} />
+      <Route path="/login/persenol" element={<Login mode="persenol" />} />
       <Route path="/m/order/:orderId" element={<PublicOrderStatus />} />
       <Route path="/m/orders" element={<Navigate to="/m" replace />} />
       <Route path="/m/branch/:branchId/cart" element={<PublicBranchCart />} />
@@ -103,6 +107,7 @@ export default function App() {
         <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />
+      <Route path="/kasiyer" element={<Navigate to="/sales" replace />} />
       <Route path="/istehsalat" element={<ProductionLayout />}>
         <Route index element={<Navigate to="xammaddeler" replace />} />
         <Route path="xammaddeler" element={<ProductionRawMaterials />} />

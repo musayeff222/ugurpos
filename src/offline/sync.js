@@ -1,6 +1,6 @@
 import { api } from "../api/client";
 import { getQueue, removeQueueItem, updateQueueItem } from "./queue";
-import { isNetworkError } from "./network";
+import { isAppOnline, isNetworkError } from "./network";
 
 let running = false;
 
@@ -42,7 +42,7 @@ export async function flushSyncQueue() {
 
 export function startSyncLoop(onChange) {
   const tick = async () => {
-    if (!navigator.onLine) return;
+    if (!isAppOnline()) return;
     const result = await flushSyncQueue();
     onChange?.(result);
   };

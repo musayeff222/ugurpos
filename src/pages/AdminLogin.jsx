@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getPostLoginPath } from "../utils/authRedirect";
 import "../styles/login.css";
 import "../styles/admin.css";
 
 export default function AdminLogin() {
-  const { login, logout, isAuthenticated, isAdmin, isBranchUser } = useAuth();
+  const { login, logout, isAuthenticated, isAdmin, isBranchUser, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");
@@ -17,7 +18,7 @@ export default function AdminLogin() {
   }
 
   if (isAuthenticated && isBranchUser) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={getPostLoginPath(user)} replace />;
   }
 
   const handleSubmit = async (e) => {
@@ -74,7 +75,7 @@ export default function AdminLogin() {
         <button type="submit" className="btn-login admin-login-btn">
           Oturum aç
         </button>
-        <Link className="crm-login__pos" to="/login">
+        <Link className="crm-login__pos" to="/login/sube">
           POS / şube girişi
         </Link>
       </form>

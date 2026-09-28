@@ -53,7 +53,12 @@ export const api = {
   getAdminBranches: () => request("/admin/branches"),
   getAdminBranch: (id) => request(`/admin/branches/${id}`),
   getAdminBranchActivity: (id) => request(`/admin/branches/${id}/activity`),
-  getAdminBranchWorkspace: (id) => request(`/admin/branches/${id}/workspace`),
+  getAdminBranchWorkspace: (id, params = {}) => {
+    const q = new URLSearchParams();
+    if (params.date) q.set("date", params.date);
+    const qs = q.toString();
+    return request(`/admin/branches/${id}/workspace${qs ? `?${qs}` : ""}`);
+  },
   updateAdminBranchProduct: (branchId, productId, patch) =>
     request(`/admin/branches/${branchId}/products/${productId}`, {
       method: "PATCH",
@@ -102,6 +107,8 @@ export const api = {
   },
   updateAdminCashWithdrawal: (id, payload) =>
     request(`/admin/cash-withdrawals/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteAdminCashWithdrawal: (id) =>
+    request(`/admin/cash-withdrawals/${id}`, { method: "DELETE" }),
   getAdminBusinessDayReports: (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return request(`/admin/business-day-reports${q ? `?${q}` : ""}`);

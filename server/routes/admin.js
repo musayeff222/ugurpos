@@ -192,10 +192,20 @@ function staffSalesTotals(db, branchId, staff) {
   };
 }
 
+function parseWorkspaceDate(value) {
+  const raw = String(value || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  return localDateISO();
+}
+
 router.get("/branches/:id/workspace", (req, res) => {
   const db = getDb();
   const branch = getBranchOr404(db, req.params.id, req.user.firmId);
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+
+  const date = parseWorkspaceDate(req.query.date);
+  const dayExpr = SQL.date("created_at");
+  const saleDayExpr = SQL.date("s.created_at");
 
   const products = db
     .prepare(
@@ -217,8 +227,10 @@ router.get("/branches/:id/workspace", (req, res) => {
     }));
 
   const saleIds = db
-    .prepare("SELECT id FROM sales WHERE branch_id = ? ORDER BY created_at DESC LIMIT 40")
-    .all(branch.id);
+    .prepare(
+      `SELECT id FROM sales WHERE branch_id = ? AND ${dayExpr} = ? ORDER BY created_at DESC LIMIT 200`
+    )
+    .all(branch.id, date);
   const sales = saleIds.map(({ id }) => {
     const sale = getSaleWithItems(db, id);
     return {
@@ -238,8 +250,10 @@ router.get("/branches/:id/workspace", (req, res) => {
   });
 
   const withdrawals = db
-    .prepare("SELECT * FROM cash_withdrawals WHERE branch_id = ? ORDER BY created_at DESC LIMIT 50")
-    .all(branch.id)
+    .prepare(
+      `SELECT * FROM cash_withdrawals WHERE branch_id = ? AND ${dayExpr} = ? ORDER BY created_at DESC`
+    )
+    .all(branch.id, date)
     .map((row) => ({
       id: row.id,
       amount: Number(row.amount || 0),
@@ -271,16 +285,17 @@ router.get("/branches/:id/workspace", (req, res) => {
     pay = db
       .prepare(
         `SELECT payment_type, payment_method_id, payment_method_name, COUNT(*) as c, COALESCE(SUM(total),0) as t
-         FROM sales WHERE branch_id = ? GROUP BY payment_type, payment_method_id, payment_method_name`
+         FROM sales WHERE branch_id = ? AND ${dayExpr} = ?
+         GROUP BY payment_type, payment_method_id, payment_method_name`
       )
-      .all(branch.id);
+      .all(branch.id, date);
   } catch {
     pay = db
       .prepare(
         `SELECT payment_type, COUNT(*) as c, COALESCE(SUM(total),0) as t
-         FROM sales WHERE branch_id = ? GROUP BY payment_type`
+         FROM sales WHERE branch_id = ? AND ${dayExpr} = ? GROUP BY payment_type`
       )
-      .all(branch.id);
+      .all(branch.id, date);
   }
   const payMap = {};
   const otherMethodMap = new Map();
@@ -307,20 +322,40 @@ router.get("/branches/:id/workspace", (req, res) => {
        FROM sale_items si
        JOIN sales s ON s.id = si.sale_id
        LEFT JOIN products p ON p.id = si.product_id
-       WHERE s.branch_id = ? AND s.payment_type != 'refund'`
+       WHERE s.branch_id = ? AND s.payment_type != 'refund' AND ${saleDayExpr} = ?`
     )
-    .get(branch.id);
+    .get(branch.id, date);
+
+  const soldProducts = db
+    .prepare(
+      `SELECT COALESCE(si.product_id, '') as product_id,
+              MAX(si.name) as product_name,
+              COALESCE(SUM(si.qty),0) as qty,
+              COALESCE(SUM(si.qty * si.price - COALESCE(si.discount,0)),0) as amount
+       FROM sale_items si
+       JOIN sales s ON s.id = si.sale_id
+       WHERE s.branch_id = ? AND s.payment_type != 'refund' AND ${saleDayExpr} = ?
+       GROUP BY si.product_id, si.name
+       ORDER BY qty DESC, product_name ASC`
+    )
+    .all(branch.id, date)
+    .map((row) => ({
+      productId: row.product_id || "",
+      name: row.product_name || "—",
+      qty: Number(row.qty || 0),
+      amount: Number(row.amount || 0),
+    }));
 
   const refunds = db
     .prepare(
       `SELECT COUNT(*) as c, COALESCE(SUM(total),0) as t FROM sales
-       WHERE branch_id = ? AND payment_type = 'refund'`
+       WHERE branch_id = ? AND payment_type = 'refund' AND ${dayExpr} = ?`
     )
-    .get(branch.id);
+    .get(branch.id, date);
 
   const refundRequests = db
-    .prepare("SELECT * FROM refund_requests WHERE branch_id = ? ORDER BY date DESC LIMIT 20")
-    .all(branch.id)
+    .prepare("SELECT * FROM refund_requests WHERE branch_id = ? AND date = ? ORDER BY date DESC")
+    .all(branch.id, date)
     .map((r) => ({
       id: r.id,
       productName: r.product_name || "",
@@ -330,8 +365,10 @@ router.get("/branches/:id/workspace", (req, res) => {
     }));
 
   res.json({
+    date,
     products,
     sales,
+    soldProducts,
     withdrawals,
     staff,
     refundRequests,
@@ -852,6 +889,18 @@ router.patch("/cash-withdrawals/:id", (req, res) => {
   );
 
   res.json(rowToCashWithdrawal(db.prepare("SELECT * FROM cash_withdrawals WHERE id = ?").get(req.params.id)));
+});
+
+router.delete("/cash-withdrawals/:id", (req, res) => {
+  const db = getDb();
+  const existing = db.prepare("SELECT * FROM cash_withdrawals WHERE id = ?").get(req.params.id);
+  if (!existing) return res.status(404).json({ error: "Xərc tapılmadı" });
+
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ? AND firm_id = ?").get(existing.branch_id, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Xərc tapılmadı" });
+
+  db.prepare("DELETE FROM cash_withdrawals WHERE id = ?").run(req.params.id);
+  res.json({ ok: true, id: req.params.id });
 });
 
 router.get("/business-day-reports", (req, res) => {
