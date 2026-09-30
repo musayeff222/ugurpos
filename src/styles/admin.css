@@ -2029,6 +2029,141 @@
   gap: 16px;
 }
 
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.catalog-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dddbda;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.catalog-card__media {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f3f2f2;
+  display: grid;
+  place-items: center;
+  color: #706e6b;
+  font-weight: 700;
+}
+
+.catalog-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.catalog-card__body {
+  min-width: 0;
+}
+
+.catalog-card__body strong,
+.catalog-card__body small,
+.catalog-card__body b {
+  display: block;
+}
+
+.catalog-card__body strong {
+  color: #181818;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.catalog-card__body small {
+  color: #706e6b;
+  margin: 2px 0 6px;
+}
+
+.catalog-card__body b {
+  color: #0176d3;
+  font-size: 15px;
+}
+
+.catalog-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.catalog-card__actions button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #dddbda;
+  border-radius: 6px;
+  background: #fff;
+  color: #181818;
+  cursor: pointer;
+}
+
+.catalog-card__actions button.is-danger {
+  color: #ba0517;
+}
+
+.catalog-empty {
+  margin: 18px 0;
+  color: #706e6b;
+}
+
+.catalog-branches {
+  border: 1px solid #dddbda;
+  border-radius: 6px;
+  margin: 0 0 12px;
+  padding: 8px 12px 10px;
+}
+
+.catalog-branches legend {
+  padding: 0 4px;
+  font-size: 12px;
+  color: #706e6b;
+}
+
+.catalog-branches label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.catalog-form {
+  max-width: 520px;
+  background: #fff;
+  border: 1px solid #dddbda;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.catalog-back {
+  border: 0;
+  background: transparent;
+  color: #0176d3;
+  padding: 0;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .catalog-card {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .catalog-card__actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+  }
+}
+
 .erp-panel {
   background: #fff;
   border: 1px solid #dddbda;

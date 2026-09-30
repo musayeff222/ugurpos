@@ -18,7 +18,7 @@ export default function Products() {
   const groupMap = useMemo(() => Object.fromEntries(state.groups.map((g) => [g.id, g.name])), [state.groups]);
 
   const rows = useMemo(() => {
-    let list = [...state.products];
+    let list = state.products.filter((p) => p.active !== false);
     if (filter === "instock") list = list.filter((p) => p.stock > 0);
     if (filter === "outstock") list = list.filter((p) => p.stock <= 0);
     if (filter === "critical") list = list.filter((p) => p.stock <= p.criticalStock);

@@ -14,6 +14,7 @@ import {
   syncFirmCatalogToBranch,
   syncFirmGroupToAllBranches,
   syncFirmProductToAllBranches,
+  setFirmProductBranches,
   deactivateFirmProduct,
   removeFirmGroup,
   applyCatalogImageAndSync,
@@ -1363,9 +1364,16 @@ router.post("/catalog/products", (req, res) => {
     deleteCatalogImage(req.user.firmId, id);
   }
 
-  syncFirmProductToAllBranches(db, req.user.firmId, id);
+  const salesIds = db
+    .prepare("SELECT id FROM branches WHERE firm_id = ? AND (kind IS NULL OR kind != 'production')")
+    .all(req.user.firmId)
+    .map((row) => row.id);
+  const branchIds = Array.isArray(p.branchIds) ? p.branchIds : salesIds;
+  setFirmProductBranches(db, req.user.firmId, id, branchIds);
   const row = db.prepare("SELECT * FROM firm_products WHERE id = ?").get(id);
-  res.status(201).json(rowToFirmProduct(row, group.name));
+  const saved = rowToFirmProduct(row, group.name);
+  saved.branchIds = branchIds.filter((branchId) => salesIds.includes(branchId));
+  res.status(201).json(saved);
 });
 
 router.patch("/catalog/products/:id", (req, res) => {
@@ -1406,6 +1414,10 @@ router.patch("/catalog/products/:id", (req, res) => {
     applyCatalogImageAndSync(db, req.user.firmId, existing.id, filename);
   } else {
     syncFirmProductToAllBranches(db, req.user.firmId, existing.id);
+  }
+
+  if (Array.isArray(p.branchIds)) {
+    setFirmProductBranches(db, req.user.firmId, existing.id, p.branchIds);
   }
 
   const row = db.prepare("SELECT * FROM firm_products WHERE id = ?").get(existing.id);

@@ -1,40 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import ProductImageField from "../../components/ProductImageField";
-import { DEFAULT_PRODUCT_UNIT, PRODUCT_UNITS } from "../../data/productUnits";
+import { DEFAULT_PRODUCT_UNIT } from "../../data/productUnits";
 import { formatMoney } from "../../utils/format";
 import { getProductImageSrc } from "../../utils/productImage";
 
 const emptyForm = {
   name: "",
   groupId: "",
-  unit: DEFAULT_PRODUCT_UNIT,
-  vat: 20,
-  buyPrice: 0,
-  price1: 0,
-  price2: 0,
-  onSalePage: true,
+  newGroup: "",
+  price1: "",
+  branchIds: [],
 };
 
 export default function AdminCatalog() {
-  const [tab, setTab] = useState("products");
+  const [view, setView] = useState("list");
   const [groups, setGroups] = useState([]);
   const [products, setProducts] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [groupName, setGroupName] = useState("");
-  const [editingGroup, setEditingGroup] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState(null);
   const [imageValue, setImageValue] = useState(undefined);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
 
+  const salesBranches = branches.filter((branch) => branch.kind !== "production");
+
   const load = async () => {
-    const [g, p] = await Promise.all([api.getAdminCatalogGroups(), api.getAdminCatalogProducts()]);
+    const [g, p, branchList] = await Promise.all([
+      api.getAdminCatalogGroups(),
+      api.getAdminCatalogProducts(),
+      api.getAdminBranches(),
+    ]);
     setGroups(g);
-    setProducts(p);
-    setForm((prev) => (prev.groupId || !g[0] ? prev : { ...prev, groupId: g[0].id }));
+    setProducts(p.filter((item) => item.active !== false));
+    setBranches(branchList || []);
   };
 
   useEffect(() => {
@@ -47,8 +49,7 @@ export default function AdminCatalog() {
     return products.filter(
       (p) =>
         p.name.toLowerCase().includes(term) ||
-        String(p.groupName || "").toLowerCase().includes(term) ||
-        String(p.barcode || "").includes(term)
+        String(p.groupName || "").toLowerCase().includes(term)
     );
   }, [products, query]);
 
@@ -72,6 +73,50 @@ export default function AdminCatalog() {
     }
   };
 
+  const openCreate = () => {
+    setEditId(null);
+    setForm({
+      ...emptyForm,
+      groupId: groups[0]?.id || "",
+      branchIds: salesBranches.map((branch) => branch.id),
+    });
+    setImageValue(undefined);
+    setError("");
+    setMessage("");
+    setView("form");
+  };
+
+  const openEdit = (product) => {
+    setEditId(product.id);
+    setForm({
+      name: product.name,
+      groupId: product.groupId || "",
+      newGroup: "",
+      price1: product.price1 ?? "",
+      branchIds: product.branchIds || [],
+    });
+    setImageValue(undefined);
+    setError("");
+    setMessage("");
+    setView("form");
+  };
+
+  const backToList = () => {
+    setView("list");
+    setEditId(null);
+    setImageValue(undefined);
+    setError("");
+  };
+
+  const resolveGroupId = async () => {
+    const named = form.newGroup.trim();
+    if (named) {
+      const created = await api.createAdminCatalogGroup(named);
+      return created.id;
+    }
+    return form.groupId;
+  };
+
   const saveProduct = async (e) => {
     e.preventDefault();
     setError("");
@@ -80,31 +125,34 @@ export default function AdminCatalog() {
       setError("Ürün adı zorunludur.");
       return;
     }
-    if (!form.groupId) {
-      setError("Önce bir grup oluşturun ve seçin.");
+    if (!form.groupId && !form.newGroup.trim()) {
+      setError("Kategori seçin.");
       return;
     }
     setSaving(true);
     try {
+      const groupId = await resolveGroupId();
+      const price = Number(form.price1) || 0;
       const payload = {
         name: form.name.trim(),
-        groupId: form.groupId,
-        unit: form.unit,
-        vat: Number(form.vat) || 0,
-        buyPrice: Number(form.buyPrice) || 0,
-        price1: Number(form.price1) || 0,
-        price2: Number(form.price2) || 0,
-        onSalePage: !!form.onSalePage,
+        groupId,
+        unit: editing?.unit || DEFAULT_PRODUCT_UNIT,
+        vat: editing?.vat ?? 0,
+        buyPrice: editing?.buyPrice ?? 0,
+        price1: price,
+        price2: editing?.price2 ?? price,
+        onSalePage: editing ? editing.onSalePage !== false : true,
+        branchIds: form.branchIds,
       };
       const saved = editId
         ? await api.updateAdminCatalogProduct(editId, payload)
         : await api.createAdminCatalogProduct(payload);
       await persistImage(saved.id);
       await load();
+      setView("list");
       setEditId(null);
-      setForm({ ...emptyForm, groupId: form.groupId });
       setImageValue(undefined);
-      setMessage(editId ? "Ürün güncellendi. Tüm şubelerde fiyat ve grup yenilendi." : "Ürün tüm şubelere eklendi. Stok her şubede 0.");
+      setMessage(editId ? "Ürün güncellendi." : "Ürün oluşturuldu.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -112,324 +160,161 @@ export default function AdminCatalog() {
     }
   };
 
-  const startEdit = (product) => {
-    setTab("products");
-    setEditId(product.id);
-    setForm({
-      name: product.name,
-      groupId: product.groupId,
-      unit: product.unit || DEFAULT_PRODUCT_UNIT,
-      vat: product.vat,
-      buyPrice: product.buyPrice,
-      price1: product.price1,
-      price2: product.price2,
-      onSalePage: product.onSalePage !== false,
-    });
-    setImageValue(undefined);
-    setMessage("");
-  };
-
-  const saveGroup = async (e) => {
-    e.preventDefault();
+  const removeProduct = async (product) => {
+    if (!window.confirm(`"${product.name}" silinsin?`)) return;
     setError("");
-    setMessage("");
-    if (!groupName.trim()) return;
     try {
-      if (editingGroup) {
-        await api.updateAdminCatalogGroup(editingGroup, groupName.trim());
-      } else {
-        await api.createAdminCatalogGroup(groupName.trim());
-      }
-      setGroupName("");
-      setEditingGroup(null);
+      await api.deleteAdminCatalogProduct(product.id);
       await load();
-      setMessage("Grup kaydedildi. Şubelerde bu isimle görünür.");
+      setMessage("Ürün silindi.");
     } catch (err) {
       setError(err.message);
     }
   };
+
+  if (view === "form") {
+    return (
+      <div className="admin-page erp-page">
+        <div className="crm-listbar">
+          <div>
+            <button type="button" className="catalog-back" onClick={backToList}>
+              <i className="fa fa-arrow-left" aria-hidden /> Listeye dön
+            </button>
+            <h2>{editId ? "Ürünü düzenle" : "Yeni ürün oluştur"}</h2>
+          </div>
+        </div>
+        {error && <div className="alert alert-danger">{error}</div>}
+        <form className="catalog-form" onSubmit={saveProduct}>
+          <label className="erp-field">
+            <span>Resim</span>
+            <ProductImageField
+              product={editing ? { ...editing, imageUrl: getProductImageSrc(editing) } : null}
+              value={imageValue}
+              onChange={setImageValue}
+            />
+          </label>
+          <label className="erp-field">
+            <span>Ürün adı *</span>
+            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          </label>
+          <label className="erp-field">
+            <span>Fiyat *</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.price1}
+              onChange={(e) => setForm({ ...form, price1: e.target.value })}
+              required
+            />
+          </label>
+          <label className="erp-field">
+            <span>Kategori *</span>
+            <select value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })}>
+              <option value="">Seçin</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <fieldset className="catalog-branches">
+            <legend>Görüneceği şubeler</legend>
+            {salesBranches.map((branch) => (
+              <label key={branch.id}>
+                <input
+                  type="checkbox"
+                  checked={form.branchIds.includes(branch.id)}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      branchIds: e.target.checked
+                        ? [...prev.branchIds, branch.id]
+                        : prev.branchIds.filter((id) => id !== branch.id),
+                    }))
+                  }
+                />
+                {branch.name}
+              </label>
+            ))}
+            {!salesBranches.length && <p>Satış şubesi yok.</p>}
+          </fieldset>
+          <label className="erp-field">
+            <span>Yeni kategori</span>
+            <input
+              value={form.newGroup}
+              onChange={(e) => setForm({ ...form, newGroup: e.target.value })}
+              placeholder="Listede yoksa yazın"
+            />
+          </label>
+          <div className="form-actions">
+            <button type="button" className="btn btn-default" onClick={backToList}>
+              Vazgeç
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? "Kaydediliyor..." : editId ? "Güncelle" : "Ürün oluştur"}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page erp-page">
       <div className="crm-listbar">
         <div>
           <h2>Ürünler</h2>
-          <span>Merkez katalog · fiyat burada · stok şubede</span>
+          <span>{filtered.length} ürün</span>
         </div>
         <div className="crm-listbar__tools">
           <form className="crm-global-search crm-global-search--inline" onSubmit={(e) => e.preventDefault()}>
             <i className="fa fa-search" aria-hidden />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ürün veya grup..." />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ürün veya kategori..." />
           </form>
+          <button type="button" className="btn btn-primary" onClick={openCreate}>
+            Yeni ürün oluştur
+          </button>
         </div>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {message && <div className="alert alert-info">{message}</div>}
 
-      <ul className="admin-tabs erp-tabs">
-        <li>
-          <button type="button" className={tab === "products" ? "active" : ""} onClick={() => setTab("products")}>
-            Katalog
-          </button>
-        </li>
-        <li>
-          <button type="button" className={tab === "groups" ? "active" : ""} onClick={() => setTab("groups")}>
-            Gruplar
-          </button>
-        </li>
-      </ul>
-
-      {tab === "groups" && (
-        <section className="erp-panel">
-          <form className="erp-form" onSubmit={saveGroup}>
-            <div className="erp-form-grid">
-              <label className="erp-field erp-field--full">
-                <span>{editingGroup ? "Grup adını düzenle" : "Yeni grup"}</span>
-                <input
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="Örn: Sular"
-                  required
-                />
-              </label>
-            </div>
-            <div className="form-actions">
-              {editingGroup && (
-                <button
-                  type="button"
-                  className="btn btn-default"
-                  onClick={() => {
-                    setEditingGroup(null);
-                    setGroupName("");
-                  }}
-                >
-                  Vazgeç
-                </button>
+      <div className="catalog-grid">
+        {filtered.map((p) => (
+          <article key={p.id} className="catalog-card">
+            <div className="catalog-card__media">
+              {p.hasImage ? (
+                <img src={getProductImageSrc(p)} alt="" />
+              ) : (
+                <span>{p.name.slice(0, 2).toUpperCase()}</span>
               )}
-              <button type="submit" className="btn btn-primary">
-                {editingGroup ? "Güncelle" : "Grup oluştur"}
+            </div>
+            <div className="catalog-card__body">
+              <strong>{p.name}</strong>
+              <small>{p.groupName || "Kategori yok"}</small>
+              <small>
+                {(p.branchIds || [])
+                  .map((id) => salesBranches.find((branch) => branch.id === id)?.name)
+                  .filter(Boolean)
+                  .join(", ") || "Şube seçilmedi"}
+              </small>
+              <b>{formatMoney(p.price1 || 0)}</b>
+            </div>
+            <div className="catalog-card__actions">
+              <button type="button" title="Düzenle" onClick={() => openEdit(p)}>
+                <i className="fa fa-pencil" aria-hidden />
+              </button>
+              <button type="button" title="Sil" className="is-danger" onClick={() => removeProduct(p)}>
+                <i className="fa fa-trash" aria-hidden />
               </button>
             </div>
-          </form>
-          <table className="erp-table">
-            <thead>
-              <tr>
-                <th>Grup</th>
-                <th>Ürün</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((g) => (
-                <tr key={g.id}>
-                  <td data-label="Grup">
-                    <strong>{g.name}</strong>
-                  </td>
-                  <td data-label="Ürün">{products.filter((p) => p.groupId === g.id).length}</td>
-                  <td data-label="">
-                    <button
-                      type="button"
-                      className="btn btn-default btn-sm"
-                      onClick={() => {
-                        setEditingGroup(g.id);
-                        setGroupName(g.name);
-                      }}
-                    >
-                      Düzenle
-                    </button>{" "}
-                    <button
-                      type="button"
-                      className="btn btn-danger btn-sm"
-                      onClick={async () => {
-                        try {
-                          await api.deleteAdminCatalogGroup(g.id);
-                          await load();
-                        } catch (err) {
-                          setError(err.message);
-                        }
-                      }}
-                    >
-                      Sil
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {groups.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="erp-table__empty">
-                    Henüz grup yok. Örn: Sular
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </section>
-      )}
-
-      {tab === "products" && (
-        <div className="erp-split">
-          <section className="erp-panel erp-panel--flush">
-            <div className="admin-table-wrap">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th>Ürün</th>
-                    <th>Grup</th>
-                    <th>Fiyat</th>
-                    <th>Durum</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((p) => (
-                    <tr key={p.id}>
-                      <td data-label="Ürün">
-                        <span className="crm-account">
-                          {p.hasImage ? (
-                            <img className="crm-avatar" src={getProductImageSrc(p)} alt="" />
-                          ) : (
-                            <span className="crm-avatar">{p.name.slice(0, 2).toUpperCase()}</span>
-                          )}
-                          <span>
-                            <strong>{p.name}</strong>
-                            <small>{p.barcode}</small>
-                          </span>
-                        </span>
-                      </td>
-                      <td data-label="Grup">{p.groupName || "—"}</td>
-                      <td data-label="Fiyat">{formatMoney(p.price1 || 0)}</td>
-                      <td data-label="Durum">
-                        <span className={`admin-badge ${p.active ? "ok" : "off"}`}>
-                          {p.active ? "Aktif" : "Pasif"}
-                        </span>
-                      </td>
-                      <td data-label="">
-                        <button type="button" className="btn btn-default btn-sm" onClick={() => startEdit(p)}>
-                          Aç
-                        </button>{" "}
-                        <button
-                          type="button"
-                          className="btn btn-warning btn-sm"
-                          onClick={async () => {
-                            await api.deleteAdminCatalogProduct(p.id);
-                            await load();
-                          }}
-                        >
-                          Pasif
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {filtered.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="erp-table__empty">
-                        Katalog boş. Sağdaki formdan ürün ekleyin.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <form className="erp-panel erp-form" onSubmit={saveProduct}>
-            <header className="erp-panel__head">
-              <h3>{editId ? "Ürünü düzenle" : "Yeni ürün"}</h3>
-            </header>
-            <label className="erp-field">
-              <span>Resim</span>
-              <ProductImageField
-                product={editing ? { ...editing, imageUrl: getProductImageSrc(editing) } : null}
-                value={imageValue}
-                onChange={setImageValue}
-              />
-            </label>
-            <label className="erp-field">
-              <span>Ürün adı *</span>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            </label>
-            <label className="erp-field">
-              <span>Grup *</span>
-              <select value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })} required>
-                <option value="">Seçin</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="erp-field">
-              <span>Satış fiyatı *</span>
-              <input
-                type="number"
-                step="0.01"
-                value={form.price1}
-                onChange={(e) => setForm({ ...form, price1: e.target.value })}
-              />
-            </label>
-            <label className="erp-field">
-              <span>Fiyat 2</span>
-              <input
-                type="number"
-                step="0.01"
-                value={form.price2}
-                onChange={(e) => setForm({ ...form, price2: e.target.value })}
-              />
-            </label>
-            <label className="erp-field">
-              <span>Alış</span>
-              <input
-                type="number"
-                step="0.01"
-                value={form.buyPrice}
-                onChange={(e) => setForm({ ...form, buyPrice: e.target.value })}
-              />
-            </label>
-            <label className="erp-field">
-              <span>KDV %</span>
-              <input type="number" value={form.vat} onChange={(e) => setForm({ ...form, vat: e.target.value })} />
-            </label>
-            <label className="erp-field">
-              <span>Birim</span>
-              <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
-                {PRODUCT_UNITS.map((unit) => (
-                  <option key={unit} value={unit}>
-                    {unit}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={form.onSalePage}
-                onChange={(e) => setForm({ ...form, onSalePage: e.target.checked })}
-              />
-              Satış ve QR menüde göster
-            </label>
-            <div className="form-actions">
-              {editId && (
-                <button
-                  type="button"
-                  className="btn btn-default"
-                  onClick={() => {
-                    setEditId(null);
-                    setForm({ ...emptyForm, groupId: groups[0]?.id || "" });
-                    setImageValue(undefined);
-                  }}
-                >
-                  Yeni
-                </button>
-              )}
-              <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving ? "Kaydediliyor..." : editId ? "Tüm şubelere uygula" : "Kataloga ekle"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+          </article>
+        ))}
+      </div>
+      {!filtered.length && <p className="catalog-empty">Henüz ürün yok. Yeni ürün oluştur düğmesine basın.</p>}
     </div>
   );
 }

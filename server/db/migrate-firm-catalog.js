@@ -43,6 +43,14 @@ export function migrateFirmCatalog(db) {
     );
     addColumnIfMissing(db, "groups", "firm_group_id", "VARCHAR(64)");
     addColumnIfMissing(db, "products", "firm_product_id", "VARCHAR(64)");
+    tryExec(
+      db,
+      `CREATE TABLE IF NOT EXISTS firm_product_branches (
+        firm_product_id VARCHAR(64) NOT NULL,
+        branch_id VARCHAR(64) NOT NULL,
+        PRIMARY KEY (firm_product_id, branch_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+    );
     tryExec(db, "CREATE INDEX idx_products_firm_product ON products (firm_product_id)");
     tryExec(db, "CREATE INDEX idx_groups_firm_group ON `groups` (firm_group_id)");
     return;
@@ -81,4 +89,12 @@ export function migrateFirmCatalog(db) {
   tryExec(db, "CREATE INDEX IF NOT EXISTS idx_firm_products_firm ON firm_products (firm_id)");
   tryExec(db, "CREATE INDEX IF NOT EXISTS idx_products_firm_product ON products (firm_product_id)");
   tryExec(db, "CREATE INDEX IF NOT EXISTS idx_groups_firm_group ON `groups` (firm_group_id)");
+  tryExec(
+    db,
+    `CREATE TABLE IF NOT EXISTS firm_product_branches (
+      firm_product_id TEXT NOT NULL,
+      branch_id TEXT NOT NULL,
+      PRIMARY KEY (firm_product_id, branch_id)
+    )`
+  );
 }

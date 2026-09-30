@@ -57,6 +57,7 @@ export function rowToFirmProduct(row, groupName = "") {
     active: !!row.active,
     hasImage: !!row.image_path,
     imageUrl: row.image_path ? `/api/admin/catalog/products/${row.id}/image` : null,
+    branchIds: row.branchIds || [],
   };
 }
 
@@ -67,14 +68,35 @@ export function listFirmGroups(db, firmId) {
     .map(rowToFirmGroup);
 }
 
+function salesBranches(db, firmId) {
+  return db
+    .prepare(
+      `SELECT * FROM branches
+       WHERE firm_id = ? AND (kind IS NULL OR kind != 'production')
+       ORDER BY name`
+    )
+    .all(firmId);
+}
+
+function productBranchIds(db, firmProductId) {
+  try {
+    return db
+      .prepare("SELECT branch_id FROM firm_product_branches WHERE firm_product_id = ?")
+      .all(firmProductId)
+      .map((row) => row.branch_id);
+  } catch {
+    return [];
+  }
+}
+
 export function listFirmProducts(db, firmId) {
   const groups = Object.fromEntries(
     db.prepare("SELECT id, name FROM firm_groups WHERE firm_id = ?").all(firmId).map((g) => [g.id, g.name])
   );
   return db
-    .prepare("SELECT * FROM firm_products WHERE firm_id = ? ORDER BY name")
+    .prepare("SELECT * FROM firm_products WHERE firm_id = ? AND active = 1 ORDER BY name")
     .all(firmId)
-    .map((row) => rowToFirmProduct(row, groups[row.group_id] || ""));
+    .map((row) => rowToFirmProduct({ ...row, branchIds: productBranchIds(db, row.id) }, groups[row.group_id] || ""));
 }
 
 export function ensureBranchGroup(db, branchId, firmGroup) {
@@ -174,29 +196,157 @@ export function syncFirmGroupToAllBranches(db, firmId, firmGroup) {
   }
 }
 
+function hideBranchCopy(db, branchId, firmProductId) {
+  const existing = db
+    .prepare("SELECT id FROM products WHERE branch_id = ? AND firm_product_id = ?")
+    .get(branchId, firmProductId);
+  if (!existing) return;
+  db.prepare("UPDATE products SET active = 0, on_sale_page = 0 WHERE id = ?").run(existing.id);
+}
+
 export function syncFirmProductToAllBranches(db, firmId, firmProductId) {
   const product = db.prepare("SELECT * FROM firm_products WHERE id = ? AND firm_id = ?").get(firmProductId, firmId);
   if (!product) return;
   const group = product.group_id
     ? db.prepare("SELECT * FROM firm_groups WHERE id = ? AND firm_id = ?").get(product.group_id, firmId)
     : null;
-  const branches = db.prepare("SELECT id FROM branches WHERE firm_id = ?").all(firmId);
+  const selected = new Set(productBranchIds(db, product.id));
+  const branches = salesBranches(db, firmId);
   for (const branch of branches) {
+    if (!selected.has(branch.id) || !product.active) {
+      hideBranchCopy(db, branch.id, product.id);
+      continue;
+    }
     const groupId = group ? ensureBranchGroup(db, branch.id, group) : null;
     upsertBranchProduct(db, firmId, branch.id, product, groupId);
   }
 }
 
+export function setFirmProductBranches(db, firmId, firmProductId, branchIds) {
+  const allowed = new Set(salesBranches(db, firmId).map((branch) => branch.id));
+  const selected = [...new Set((branchIds || []).filter((id) => allowed.has(id)))];
+  db.prepare("DELETE FROM firm_product_branches WHERE firm_product_id = ?").run(firmProductId);
+  const insert = db.prepare("INSERT INTO firm_product_branches (firm_product_id, branch_id) VALUES (?, ?)");
+  selected.forEach((branchId) => insert.run(firmProductId, branchId));
+  syncFirmProductToAllBranches(db, firmId, firmProductId);
+  return selected;
+}
+
 export function syncFirmCatalogToBranch(db, firmId, branchId) {
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ? AND firm_id = ?").get(branchId, firmId);
+  if (!branch || branch.kind === "production") return;
   const groups = db.prepare("SELECT * FROM firm_groups WHERE firm_id = ?").all(firmId);
   const groupMap = {};
   for (const group of groups) {
     groupMap[group.id] = ensureBranchGroup(db, branchId, group);
   }
-  const products = db.prepare("SELECT * FROM firm_products WHERE firm_id = ?").all(firmId);
+  const products = db.prepare("SELECT * FROM firm_products WHERE firm_id = ? AND active = 1").all(firmId);
+  const mark = db.prepare(
+    "INSERT INTO firm_product_branches (firm_product_id, branch_id) VALUES (?, ?)"
+  );
   for (const product of products) {
+    const already = db
+      .prepare("SELECT 1 as ok FROM firm_product_branches WHERE firm_product_id = ? AND branch_id = ?")
+      .get(product.id, branchId);
+    if (!already) {
+      try {
+        mark.run(product.id, branchId);
+      } catch {
+        /* duplicate */
+      }
+    }
     upsertBranchProduct(db, firmId, branchId, product, groupMap[product.group_id] || null);
   }
+}
+
+function ensureFirmGroupByName(db, firmId, name) {
+  const label = String(name || "").trim() || "Genel";
+  const existing = db
+    .prepare("SELECT * FROM firm_groups WHERE firm_id = ?")
+    .all(firmId)
+    .find((row) => String(row.name || "").trim().toLocaleLowerCase("tr") === label.toLocaleLowerCase("tr"));
+  if (existing) return existing;
+  const id = uid("fg");
+  db.prepare("INSERT INTO firm_groups (id, firm_id, name) VALUES (?, ?, ?)").run(id, firmId, label);
+  const group = { id, name: label };
+  syncFirmGroupToAllBranches(db, firmId, group);
+  return group;
+}
+
+function rememberVisibility(db, firmProductId, branchId) {
+  const exists = db
+    .prepare("SELECT 1 as ok FROM firm_product_branches WHERE firm_product_id = ? AND branch_id = ?")
+    .get(firmProductId, branchId);
+  if (exists) return;
+  db.prepare("INSERT INTO firm_product_branches (firm_product_id, branch_id) VALUES (?, ?)").run(firmProductId, branchId);
+}
+
+export function importExistingBranchProducts(db) {
+  let firms = [];
+  try {
+    firms = db.prepare("SELECT DISTINCT firm_id FROM branches").all();
+  } catch {
+    return;
+  }
+  firms.forEach((firm) => importFirmBranchProducts(db, firm.firm_id));
+}
+
+function importFirmBranchProducts(db, firmId) {
+  const branches = salesBranches(db, firmId);
+  if (!branches.length) return;
+  const ids = branches.map((branch) => branch.id);
+  const rows = db
+    .prepare(
+      `SELECT p.*, g.name as group_name FROM products p
+       LEFT JOIN \`groups\` g ON g.id = p.group_id
+       WHERE p.branch_id IN (${ids.map(() => "?").join(",")}) AND COALESCE(p.active, 1) = 1`
+    )
+    .all(...ids);
+
+  const catalog = db.prepare("SELECT * FROM firm_products WHERE firm_id = ?").all(firmId);
+  const byId = new Map(catalog.map((row) => [row.id, row]));
+  const byName = new Map(
+    catalog.map((row) => [String(row.name || "").trim().toLocaleLowerCase("tr"), row])
+  );
+
+  rows.forEach((row) => {
+    const name = String(row.name || "").trim();
+    if (!name) return;
+    const key = name.toLocaleLowerCase("tr");
+    let firmProduct = row.firm_product_id ? byId.get(row.firm_product_id) : null;
+    if (!firmProduct) firmProduct = byName.get(key);
+    if (!firmProduct) {
+      const group = ensureFirmGroupByName(db, firmId, row.group_name);
+      const id = uid("fp");
+      const barcode = generateFirmBarcode(db, firmId);
+      const stockCode = generateFirmStockCode(db, firmId);
+      db.prepare(
+        `INSERT INTO firm_products
+          (id, firm_id, group_id, barcode, stock_code, name, vat, buy_price, price1, price2, unit, on_sale_page, active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
+      ).run(
+        id,
+        firmId,
+        group.id,
+        barcode,
+        stockCode,
+        name,
+        Number(row.vat) || 0,
+        Number(row.buy_price) || 0,
+        Number(row.price1) || 0,
+        Number(row.price2) || 0,
+        row.unit || "Adet",
+        row.on_sale_page ? 1 : 0
+      );
+      firmProduct = db.prepare("SELECT * FROM firm_products WHERE id = ?").get(id);
+      byId.set(id, firmProduct);
+      byName.set(key, firmProduct);
+    }
+    if (row.firm_product_id !== firmProduct.id) {
+      db.prepare("UPDATE products SET firm_product_id = ? WHERE id = ?").run(firmProduct.id, row.id);
+    }
+    rememberVisibility(db, firmProduct.id, row.branch_id);
+  });
 }
 
 export function deactivateFirmProduct(db, firmId, firmProductId) {
