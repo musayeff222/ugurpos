@@ -38,10 +38,13 @@ export function saveCatalogImageFromFile(firmId, productId, filePath, mime) {
   validateImageBuffer(buffer, mime);
   const ext = extensionForMime(mime);
   const filename = `${productId}${ext}`;
-  const dir = getCatalogUploadDir(firmId);
-  removeFilesWithPrefix(dir, `${productId}.`);
   const dest = resolveAbsoluteUploadPath("catalog", firmId, filename);
-  fs.copyFileSync(filePath, dest);
+  const sameFile = path.resolve(filePath) === path.resolve(dest);
+  if (!sameFile) {
+    const dir = getCatalogUploadDir(firmId);
+    removeFilesWithPrefix(dir, `${productId}.`);
+    fs.writeFileSync(dest, buffer);
+  }
   return filename;
 }
 

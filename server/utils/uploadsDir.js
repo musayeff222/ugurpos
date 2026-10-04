@@ -21,8 +21,35 @@ function dirExists(dir) {
   }
 }
 
-/** Hostinger: domain kokunde uploads (public_html disinda) */
+function isEphemeralHostingerPath(dir) {
+  const parts = path.resolve(dir).split(path.sep).map((part) => part.toLowerCase());
+  return parts.includes("hbuilds");
+}
+
+/**
+ * Hostinger Git deploy her seferinde yeni bir
+ * domains/<site>/hbuilds/versions/<id>/ klasoru acar ve eskisini siler.
+ * Kalici dosyalar bu versiyon klasorunun disinda, domain kokunde durmali.
+ */
+function findHostingerDomainRoot() {
+  let dir = path.resolve(PROJECT_ROOT);
+  for (let i = 0; i < 8; i += 1) {
+    if (path.basename(dir).toLowerCase() === "hbuilds") {
+      const domainRoot = path.dirname(dir);
+      if (domainRoot && domainRoot !== dir) return domainRoot;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+/** Hostinger: domain kokunde uploads (public_html ve hbuilds disinda) */
 export function resolveHostingerDomainUploads() {
+  const stableDomain = findHostingerDomainRoot();
+  if (stableDomain) return path.join(stableDomain, "uploads");
+
   const domainRoot = path.dirname(PROJECT_ROOT);
   const appFolder = path.basename(PROJECT_ROOT).toLowerCase();
   const publicHtml = path.join(domainRoot, "public_html");
@@ -32,6 +59,7 @@ export function resolveHostingerDomainUploads() {
     (dirExists(publicHtml) && dirExists(path.join(domainRoot, "nodejs")));
 
   if (!isHostingerLayout) return null;
+  if (isEphemeralHostingerPath(domainRoot)) return null;
   return path.join(domainRoot, "uploads");
 }
 
@@ -81,7 +109,7 @@ function findPublicHtmlDir() {
 }
 
 function ensureUploadsStructure(root) {
-  for (const sub of ["products", "menu-logos", "menu-web", "seed"]) {
+  for (const sub of ["products", "catalog", "menu-logos", "menu-web", "seed"]) {
     fs.mkdirSync(path.join(root, sub), { recursive: true });
   }
 
@@ -131,9 +159,12 @@ export function resolveUploadsRoot() {
   fs.mkdirSync(uploadsRoot, { recursive: true });
   ensureUploadsStructure(uploadsRoot);
 
-  if (isInsideProject(uploadsRoot) && process.env.NODE_ENV === "production") {
+  if (
+    process.env.NODE_ENV === "production" &&
+    (isInsideProject(uploadsRoot) || isEphemeralHostingerPath(uploadsRoot))
+  ) {
     console.warn(
-      "[uploads] UYARI: Resimler nodejs klasorunun icinde — deploy sonrasi silinebilir."
+      "[uploads] UYARI: Resimler deploy klasorunun icinde — yeni surumde silinebilir."
     );
   } else if (!process.env.UPLOADS_DIR) {
     console.log(`[uploads] Kalici klasor: ${uploadsRoot}`);
@@ -186,12 +217,14 @@ export function getUploadsStats() {
     seedFiles: countFilesRecursive(path.join(root, "seed")),
     menuWebFiles: countFilesRecursive(path.join(root, "menu-web")),
     menuLogoFiles: countFilesRecursive(path.join(root, "menu-logos")),
+    catalogFiles: countFilesRecursive(path.join(root, "catalog")),
     branches,
   };
 }
 
 export function isPersistentUploadsRoot(root = resolveUploadsRoot()) {
-  return !isInsideProject(root);
+  const resolved = path.resolve(root);
+  return !isInsideProject(resolved) && !isEphemeralHostingerPath(resolved);
 }
 
 export function productImagePublicUrl(branchId, filename) {
