@@ -11,6 +11,7 @@ const emptyForm = {
   newGroup: "",
   price1: "",
   branchIds: [],
+  ingredients: [],
 };
 
 export default function AdminCatalog() {
@@ -28,18 +29,21 @@ export default function AdminCatalog() {
   const [groupName, setGroupName] = useState("");
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
+  const [productionIngredients, setProductionIngredients] = useState([]);
 
   const salesBranches = branches.filter((branch) => branch.kind !== "production");
 
   const load = async () => {
-    const [g, p, branchList] = await Promise.all([
+    const [g, p, branchList, ingredientNames] = await Promise.all([
       api.getAdminCatalogGroups(),
       api.getAdminCatalogProducts(),
       api.getAdminBranches(),
+      api.getAdminProductionIngredients(),
     ]);
     setGroups(g);
     setProducts(p.filter((item) => item.active !== false));
     setBranches(branchList || []);
+    setProductionIngredients(ingredientNames || []);
   };
 
   useEffect(() => {
@@ -114,6 +118,10 @@ export default function AdminCatalog() {
       newGroup: "",
       price1: product.price1 ?? "",
       branchIds: product.branchIds || [],
+      ingredients: (product.ingredients || []).map((item) => ({
+        name: item.name,
+        grams: item.grams ?? "",
+      })),
     });
     setImageValue(undefined);
     setShowNewGroup(false);
@@ -226,6 +234,9 @@ export default function AdminCatalog() {
         price2: editing?.price2 ?? price,
         onSalePage: editing ? editing.onSalePage !== false : true,
         branchIds: form.branchIds,
+        ingredients: form.ingredients
+          .filter((item) => item.name && Number(item.grams) > 0)
+          .map((item) => ({ name: item.name, grams: Number(item.grams) })),
       };
       const saved = editId
         ? await api.updateAdminCatalogProduct(editId, payload)
@@ -367,6 +378,73 @@ export default function AdminCatalog() {
             </div>
           )}
           <fieldset className="catalog-branches">
+            <legend>İstehsalat tərkibi</legend>
+            <p className="hint-text">Satışda bu qramlar şubəyə göndərilmiş stokdan çıxır.</p>
+            {form.ingredients.map((item, index) => (
+              <div key={`${item.name}-${index}`} className="catalog-ingredient">
+                <select
+                  value={item.name}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      ingredients: prev.ingredients.map((row, i) =>
+                        i === index ? { ...row, name: e.target.value } : row
+                      ),
+                    }))
+                  }
+                >
+                  <option value="">Hazırlanan məhsul</option>
+                  {productionIngredients.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Qram"
+                  value={item.grams}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      ingredients: prev.ingredients.map((row, i) =>
+                        i === index ? { ...row, grams: e.target.value } : row
+                      ),
+                    }))
+                  }
+                />
+                <button
+                  type="button"
+                  className="btn btn-default"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      ingredients: prev.ingredients.filter((_, i) => i !== index),
+                    }))
+                  }
+                >
+                  Sil
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="btn btn-default"
+              onClick={() =>
+                setForm((prev) => ({
+                  ...prev,
+                  ingredients: [...prev.ingredients, { name: productionIngredients[0] || "", grams: "" }],
+                }))
+              }
+              disabled={!productionIngredients.length}
+            >
+              Hazırlanan məhsul əlavə et
+            </button>
+            {!productionIngredients.length && <p>İstehsalatda hazırlanan məhsul yoxdur.</p>}
+          </fieldset>
+          <fieldset className="catalog-branches">
             <legend>Görüneceği şubeler</legend>
             {salesBranches.map((branch) => (
               <label key={branch.id}>
@@ -442,6 +520,11 @@ export default function AdminCatalog() {
                   </div>
                   <div className="catalog-card__body">
                     <strong>{p.name}</strong>
+                    {(p.ingredients || []).length > 0 && (
+                      <small>
+                        {(p.ingredients || []).map((item) => `${item.name} ${item.grams} q`).join(", ")}
+                      </small>
+                    )}
                     <small>
                       {(p.branchIds || [])
                         .map((id) => salesBranches.find((branch) => branch.id === id)?.name)

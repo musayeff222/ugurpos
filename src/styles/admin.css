@@ -2149,6 +2149,26 @@
   color: #706e6b;
 }
 
+.catalog-ingredient {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.catalog-ingredient select,
+.catalog-ingredient input {
+  min-width: 0;
+}
+
+.catalog-ingredient select {
+  flex: 1;
+}
+
+.catalog-ingredient input {
+  width: 90px;
+}
+
 .catalog-branches label {
   display: flex;
   gap: 8px;

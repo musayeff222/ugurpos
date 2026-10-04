@@ -31,6 +31,7 @@ import {
 } from "../utils/firmPaymentMethods.js";
 import { closeStaffShift } from "../utils/staffShifts.js";
 import { getFirmCurrency } from "../utils/qrMenu.js";
+import { adjustRecipeStock } from "../utils/ingredientStock.js";
 
 const router = Router();
 
@@ -477,7 +478,10 @@ router.post("/sales", (req, res) => {
 
     items.forEach((item) => {
       insItem.run(uid("line"), saleId, item.productId || null, item.name, item.qty, item.price, item.discount || 0, item.note || "");
-      if (item.productId && paymentType !== "refund") updStock.run(item.qty, item.qty, item.productId, req.branchId);
+      if (item.productId && paymentType !== "refund") {
+        updStock.run(item.qty, item.qty, item.productId, req.branchId);
+        adjustRecipeStock(db, req.branchId, item.productId, item.qty, "deduct");
+      }
     });
 
     if (customerId) {
@@ -564,8 +568,10 @@ router.delete("/sales/:id", (req, res) => {
       const qty = Number(item.qty) || 0;
       if (isRefund) {
         decStock.run(qty, qty, item.product_id, req.branchId);
+        adjustRecipeStock(db, req.branchId, item.product_id, qty, "deduct");
       } else {
         updStock.run(qty, item.product_id, req.branchId);
+        adjustRecipeStock(db, req.branchId, item.product_id, qty, "restore");
       }
     });
 
@@ -601,7 +607,10 @@ router.post("/refunds", (req, res) => {
   // Restore stock
   const updStock = db.prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND branch_id = ?");
   negativeItems.forEach((item) => {
-    if (item.productId) updStock.run(item.qty, item.productId, req.branchId);
+    if (item.productId) {
+      updStock.run(item.qty, item.productId, req.branchId);
+      adjustRecipeStock(db, req.branchId, item.productId, item.qty, "restore");
+    }
   });
 
   // Create refund sale with negative total

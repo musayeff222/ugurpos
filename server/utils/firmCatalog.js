@@ -58,7 +58,54 @@ export function rowToFirmProduct(row, groupName = "") {
     hasImage: !!row.image_path,
     imageUrl: row.image_path ? `/api/admin/catalog/products/${row.id}/image` : null,
     branchIds: row.branchIds || [],
+    ingredients: row.ingredients || [],
   };
+}
+
+export function listFirmProductIngredients(db, firmProductId) {
+  try {
+    return db
+      .prepare(
+        "SELECT ingredient_name, grams FROM firm_product_ingredients WHERE firm_product_id = ? ORDER BY ingredient_name"
+      )
+      .all(firmProductId)
+      .map((row) => ({ name: row.ingredient_name, grams: Number(row.grams) || 0 }));
+  } catch {
+    return [];
+  }
+}
+
+export function setFirmProductIngredients(db, firmProductId, items) {
+  db.prepare("DELETE FROM firm_product_ingredients WHERE firm_product_id = ?").run(firmProductId);
+  const insert = db.prepare(
+    "INSERT INTO firm_product_ingredients (firm_product_id, ingredient_name, grams) VALUES (?, ?, ?)"
+  );
+  const seen = new Set();
+  for (const item of items || []) {
+    const name = String(item?.name || "").trim();
+    const grams = Number(item?.grams);
+    const key = name.toLocaleLowerCase("tr-TR");
+    if (!name || !Number.isFinite(grams) || grams <= 0 || seen.has(key)) continue;
+    seen.add(key);
+    insert.run(firmProductId, name, grams);
+  }
+}
+
+export function listProductionIngredientNames(db, firmId) {
+  try {
+    return db
+      .prepare(
+        `SELECT DISTINCT pp.name AS name
+         FROM production_products pp
+         INNER JOIN branches b ON b.id = pp.branch_id
+         WHERE b.firm_id = ? AND b.kind = 'production' AND TRIM(pp.name) != ''
+         ORDER BY pp.name`
+      )
+      .all(firmId)
+      .map((row) => row.name);
+  } catch {
+    return [];
+  }
 }
 
 export function listFirmGroups(db, firmId) {
@@ -96,7 +143,16 @@ export function listFirmProducts(db, firmId) {
   return db
     .prepare("SELECT * FROM firm_products WHERE firm_id = ? AND active = 1 ORDER BY name")
     .all(firmId)
-    .map((row) => rowToFirmProduct({ ...row, branchIds: productBranchIds(db, row.id) }, groups[row.group_id] || ""));
+    .map((row) =>
+      rowToFirmProduct(
+        {
+          ...row,
+          branchIds: productBranchIds(db, row.id),
+          ingredients: listFirmProductIngredients(db, row.id),
+        },
+        groups[row.group_id] || ""
+      )
+    );
 }
 
 export function ensureBranchGroup(db, branchId, firmGroup) {

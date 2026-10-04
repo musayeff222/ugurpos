@@ -53,6 +53,15 @@ export function migrateFirmCatalog(db) {
     );
     tryExec(db, "CREATE INDEX idx_products_firm_product ON products (firm_product_id)");
     tryExec(db, "CREATE INDEX idx_groups_firm_group ON `groups` (firm_group_id)");
+    tryExec(
+      db,
+      `CREATE TABLE IF NOT EXISTS firm_product_ingredients (
+        firm_product_id VARCHAR(64) NOT NULL,
+        ingredient_name VARCHAR(255) NOT NULL,
+        grams DOUBLE NOT NULL,
+        PRIMARY KEY (firm_product_id, ingredient_name)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+    );
     return;
   }
 
@@ -95,6 +104,15 @@ export function migrateFirmCatalog(db) {
       firm_product_id TEXT NOT NULL,
       branch_id TEXT NOT NULL,
       PRIMARY KEY (firm_product_id, branch_id)
+    )`
+  );
+  tryExec(
+    db,
+    `CREATE TABLE IF NOT EXISTS firm_product_ingredients (
+      firm_product_id TEXT NOT NULL,
+      ingredient_name TEXT NOT NULL,
+      grams REAL NOT NULL,
+      PRIMARY KEY (firm_product_id, ingredient_name)
     )`
   );
 }

@@ -19,6 +19,9 @@ import {
   removeFirmGroup,
   applyCatalogImageAndSync,
   clearCatalogImageAndSync,
+  listFirmProductIngredients,
+  listProductionIngredientNames,
+  setFirmProductIngredients,
 } from "../utils/firmCatalog.js";
 import {
   saveCatalogImage,
@@ -1317,6 +1320,10 @@ router.delete("/catalog/groups/:id", (req, res) => {
   res.json({ ok: true });
 });
 
+router.get("/catalog/production-ingredients", (req, res) => {
+  res.json(listProductionIngredientNames(getDb(), req.user.firmId));
+});
+
 router.get("/catalog/products", (req, res) => {
   res.json(listFirmProducts(getDb(), req.user.firmId));
 });
@@ -1379,9 +1386,16 @@ router.post("/catalog/products", (req, res) => {
     .map((row) => row.id);
   const branchIds = Array.isArray(p.branchIds) ? p.branchIds : salesIds;
   setFirmProductBranches(db, req.user.firmId, id, branchIds);
+  if (Array.isArray(p.ingredients)) setFirmProductIngredients(db, id, p.ingredients);
   const row = db.prepare("SELECT * FROM firm_products WHERE id = ?").get(id);
-  const saved = rowToFirmProduct(row, group.name);
-  saved.branchIds = branchIds.filter((branchId) => salesIds.includes(branchId));
+  const saved = rowToFirmProduct(
+    {
+      ...row,
+      branchIds: branchIds.filter((branchId) => salesIds.includes(branchId)),
+      ingredients: listFirmProductIngredients(db, id),
+    },
+    group.name
+  );
   res.status(201).json(saved);
 });
 
@@ -1428,9 +1442,15 @@ router.patch("/catalog/products/:id", (req, res) => {
   if (Array.isArray(p.branchIds)) {
     setFirmProductBranches(db, req.user.firmId, existing.id, p.branchIds);
   }
+  if (Array.isArray(p.ingredients)) setFirmProductIngredients(db, existing.id, p.ingredients);
 
   const row = db.prepare("SELECT * FROM firm_products WHERE id = ?").get(existing.id);
-  res.json(rowToFirmProduct(row, group.name));
+  res.json(
+    rowToFirmProduct(
+      { ...row, ingredients: listFirmProductIngredients(db, existing.id) },
+      group.name
+    )
+  );
 });
 
 router.post("/catalog/products/:id/image-file", (req, res) => {

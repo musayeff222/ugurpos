@@ -145,6 +145,7 @@ export const api = {
   updateAdminCatalogGroup: (id, name) =>
     request(`/admin/catalog/groups/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
   deleteAdminCatalogGroup: (id) => request(`/admin/catalog/groups/${id}`, { method: "DELETE" }),
+  getAdminProductionIngredients: () => request("/admin/catalog/production-ingredients"),
   getAdminCatalogProducts: () => request("/admin/catalog/products"),
   createAdminCatalogProduct: (product) =>
     request("/admin/catalog/products", { method: "POST", body: JSON.stringify(product) }),
