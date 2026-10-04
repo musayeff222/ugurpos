@@ -2029,6 +2029,26 @@
   gap: 16px;
 }
 
+.catalog-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.catalog-group h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.catalog-group h3 span {
+  color: #706e6b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .catalog-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -2169,8 +2189,20 @@
 }
 
 .catalog-group-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 10px 0;
   border-bottom: 1px solid #ecebea;
+}
+
+.catalog-group-list button {
+  border: 0;
+  background: transparent;
+  color: #ba0517;
+  cursor: pointer;
+  padding: 4px 8px;
 }
 
 .catalog-form {

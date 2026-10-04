@@ -7,6 +7,7 @@ import { getBranchesForFirm } from "../middleware/branch.js";
 import { verifyBranchPassword, normalizeBranchEmail } from "../utils/branchAuth.js";
 import { logActivity } from "../utils/activityLog.js";
 import { openStaffShift } from "../utils/staffShifts.js";
+import { getFirmCurrency } from "../utils/qrMenu.js";
 
 const router = Router();
 
@@ -29,6 +30,7 @@ function buildAdminResponse(db, user, branchId) {
     branchEmail: branch?.email || "",
     role: user.role || "admin",
     loginType: "admin",
+    currency: getFirmCurrency(db, user.firm_id),
     branchKind: branch?.kind === "production" ? "production" : "sales",
     branches,
   };
@@ -46,6 +48,7 @@ function buildBranchResponse(db, branch) {
     email: branch.email,
     role: "branch",
     loginType: "branch",
+    currency: getFirmCurrency(db, branch.firm_id),
     branchKind: branch.kind === "production" ? "production" : "sales",
     branches: [rowToBranch(branch)],
   };
@@ -68,6 +71,7 @@ function buildStaffResponse(db, staff, branch) {
     canCashExpense: !!staff.can_cash_expense,
     role: "staff",
     loginType: "staff",
+    currency: getFirmCurrency(db, branch.firm_id),
     branches: [rowToBranch(branch)],
   };
 }

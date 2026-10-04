@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { api, setToken, getToken } from "../api/client";
+import { setDisplayCurrency } from "../utils/format";
 
 const AuthContext = createContext(null);
 const USER_KEY = "benimpos_user";
@@ -9,12 +10,15 @@ const BRANCH_BACKUP_KEY = "branch_session_backup";
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem(USER_KEY);
-    return saved ? JSON.parse(saved) : null;
+    const account = saved ? JSON.parse(saved) : null;
+    if (account?.currency) setDisplayCurrency(account.currency);
+    return account;
   });
   const [loading, setLoading] = useState(false);
 
   const persistUser = (account, token) => {
     if (token) setToken(token);
+    if (account?.currency) setDisplayCurrency(account.currency);
     localStorage.setItem(USER_KEY, JSON.stringify(account));
     setUser(account);
   };
@@ -163,6 +167,27 @@ export function AuthProvider({ children }) {
     logout();
     return "logout";
   };
+
+  useEffect(() => {
+    if (!user?.firmId || !getToken()) return undefined;
+    const request = user.role === "admin" ? api.getAdminCurrency() : api.getDisplayCurrency();
+    let cancelled = false;
+    request
+      .then((data) => {
+        if (cancelled || !data?.currency) return;
+        setDisplayCurrency(data.currency);
+        setUser((prev) => {
+          if (!prev || prev.currency === data.currency) return prev;
+          const next = { ...prev, currency: data.currency };
+          localStorage.setItem(USER_KEY, JSON.stringify(next));
+          return next;
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.firmId, user?.role]);
 
   const patchUser = (patch) => {
     setUser((prev) => {

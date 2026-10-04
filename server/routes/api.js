@@ -30,8 +30,14 @@ import {
   rowToFirmPaymentMethod,
 } from "../utils/firmPaymentMethods.js";
 import { closeStaffShift } from "../utils/staffShifts.js";
+import { getFirmCurrency } from "../utils/qrMenu.js";
 
 const router = Router();
+
+router.get("/currency", (req, res) => {
+  res.json({ currency: getFirmCurrency(getDb(), req.user.firmId) });
+});
+
 router.use(branchMiddleware);
 
 function canManageSales(req) {

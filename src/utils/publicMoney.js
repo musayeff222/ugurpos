@@ -1,6 +1,6 @@
 import { formatMoney } from "./format";
 
-/** Web siparis sayfasinda fiyatlar her zaman AZN (₼) olarak gosterilir. */
+/** Web sifariş səhifəsində qiymət Kurulum-dakı valyuta ilə göstərilir. */
 export function formatPublicMoney(value) {
-  return formatMoney(value, "az");
+  return formatMoney(value);
 }

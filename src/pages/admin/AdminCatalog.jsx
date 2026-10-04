@@ -56,6 +56,22 @@ export default function AdminCatalog() {
     );
   }, [products, query]);
 
+  const grouped = useMemo(() => {
+    const buckets = new Map();
+    for (const group of groups) {
+      buckets.set(group.id, { id: group.id, name: group.name, items: [] });
+    }
+    const uncategorized = { id: "", name: "Kategori yok", items: [] };
+    for (const product of filtered) {
+      const bucket = product.groupId ? buckets.get(product.groupId) : null;
+      if (bucket) bucket.items.push(product);
+      else uncategorized.items.push(product);
+    }
+    const sections = [...buckets.values()].filter((section) => section.items.length);
+    if (uncategorized.items.length) sections.push(uncategorized);
+    return sections;
+  }, [filtered, groups]);
+
   const editing = products.find((p) => p.id === editId);
 
   const persistImage = async (productId) => {
@@ -147,6 +163,25 @@ export default function AdminCatalog() {
     const created = await createGroup(groupName);
     if (!created) return;
     setGroupName("");
+  };
+
+  const removeGroup = async (group) => {
+    const count = products.filter((product) => product.groupId === group.id).length;
+    const note = count ? ` Bu kategorideki ${count} ürün kategorisiz kalacak.` : "";
+    if (!window.confirm(`"${group.name}" silinsin?${note}`)) return;
+    setError("");
+    try {
+      await api.deleteAdminCatalogGroup(group.id);
+      setGroups((prev) => prev.filter((item) => item.id !== group.id));
+      setProducts((prev) =>
+        prev.map((product) =>
+          product.groupId === group.id ? { ...product, groupId: "", groupName: "" } : product
+        )
+      );
+      setMessage("Kategori silindi.");
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const createGroupFromProduct = async () => {
@@ -253,7 +288,12 @@ export default function AdminCatalog() {
           </div>
           <ul className="catalog-group-list">
             {groups.map((group) => (
-              <li key={group.id}>{group.name}</li>
+              <li key={group.id}>
+                <span>{group.name}</span>
+                <button type="button" title="Sil" onClick={() => removeGroup(group)}>
+                  <i className="fa fa-trash" aria-hidden />
+                </button>
+              </li>
             ))}
             {!groups.length && <li>Henüz kategori yok.</li>}
           </ul>
@@ -384,36 +424,44 @@ export default function AdminCatalog() {
       {error && <div className="alert alert-danger">{error}</div>}
       {message && <div className="alert alert-info">{message}</div>}
 
-      <div className="catalog-grid">
-        {filtered.map((p) => (
-          <article key={p.id} className="catalog-card">
-            <div className="catalog-card__media">
-              {p.hasImage ? (
-                <img src={getProductImageSrc(p)} alt="" />
-              ) : (
-                <span>{p.name.slice(0, 2).toUpperCase()}</span>
-              )}
+      <div className="catalog-groups">
+        {grouped.map((section) => (
+          <section key={section.id || "none"} className="catalog-group">
+            <h3>
+              {section.name} <span>{section.items.length}</span>
+            </h3>
+            <div className="catalog-grid">
+              {section.items.map((p) => (
+                <article key={p.id} className="catalog-card">
+                  <div className="catalog-card__media">
+                    {p.hasImage ? (
+                      <img src={getProductImageSrc(p)} alt="" />
+                    ) : (
+                      <span>{p.name.slice(0, 2).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="catalog-card__body">
+                    <strong>{p.name}</strong>
+                    <small>
+                      {(p.branchIds || [])
+                        .map((id) => salesBranches.find((branch) => branch.id === id)?.name)
+                        .filter(Boolean)
+                        .join(", ") || "Şube seçilmedi"}
+                    </small>
+                    <b>{formatMoney(p.price1 || 0)}</b>
+                  </div>
+                  <div className="catalog-card__actions">
+                    <button type="button" title="Düzenle" onClick={() => openEdit(p)}>
+                      <i className="fa fa-pencil" aria-hidden />
+                    </button>
+                    <button type="button" title="Sil" className="is-danger" onClick={() => removeProduct(p)}>
+                      <i className="fa fa-trash" aria-hidden />
+                    </button>
+                  </div>
+                </article>
+              ))}
             </div>
-            <div className="catalog-card__body">
-              <strong>{p.name}</strong>
-              <small>{p.groupName || "Kategori yok"}</small>
-              <small>
-                {(p.branchIds || [])
-                  .map((id) => salesBranches.find((branch) => branch.id === id)?.name)
-                  .filter(Boolean)
-                  .join(", ") || "Şube seçilmedi"}
-              </small>
-              <b>{formatMoney(p.price1 || 0)}</b>
-            </div>
-            <div className="catalog-card__actions">
-              <button type="button" title="Düzenle" onClick={() => openEdit(p)}>
-                <i className="fa fa-pencil" aria-hidden />
-              </button>
-              <button type="button" title="Sil" className="is-danger" onClick={() => removeProduct(p)}>
-                <i className="fa fa-trash" aria-hidden />
-              </button>
-            </div>
-          </article>
+          </section>
         ))}
       </div>
       {!filtered.length && <p className="catalog-empty">Henüz ürün yok. Yeni ürün oluştur düğmesine basın.</p>}

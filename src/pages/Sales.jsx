@@ -8,7 +8,7 @@ import Modal from "../components/ui/Modal";
 import CashExpenseModal from "../components/CashExpenseModal";
 import StaffLoginForm from "../components/StaffLoginForm";
 import { navigation } from "../data/navigation";
-import { calcCartTotal, formatMoney, uid } from "../utils/format";
+import { calcCartTotal, formatMoney, getDisplayCurrency, uid } from "../utils/format";
 import { getPostLoginPath, loginPathForAccount } from "../utils/authRedirect";
 import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
@@ -1028,7 +1028,7 @@ export default function Sales() {
                   )}
                 </span>
                 <strong>{money(p.price1)}</strong>
-                {isGramUnit(p.unit) && <small className="dzy-product-card__unit">AZN/kq</small>}
+                {isGramUnit(p.unit) && <small className="dzy-product-card__unit">{getDisplayCurrency()}/kq</small>}
               </button>
               ))
             )}
@@ -1051,7 +1051,7 @@ export default function Sales() {
               onChange={(e) => setDiscount(e.target.value.replace(",", "."))}
             />
             <select value={discountType} onChange={(e) => setDiscountType(e.target.value)}>
-              <option value="AZN">AZN</option>
+              <option value="AZN">{getDisplayCurrency()}</option>
               <option value="Yüzde">Yüzde</option>
             </select>
           </div>
@@ -1277,7 +1277,7 @@ export default function Sales() {
           <p className="split-payment-form__total">
             Toplam: <strong>{money(total)}</strong>
           </p>
-          <label>Nakit (AZN)</label>
+          <label>Nakit ({getDisplayCurrency()})</label>
           <input
             type="number"
             step="0.01"
@@ -1287,7 +1287,7 @@ export default function Sales() {
             onChange={(e) => handleSplitCashChange(e.target.value)}
             autoFocus
           />
-          <label>Kart / POS (AZN)</label>
+          <label>Kart / POS ({getDisplayCurrency()})</label>
           <input
             type="number"
             step="0.01"

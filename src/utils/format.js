@@ -2,12 +2,23 @@ export function uid(prefix = "id") {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function formatMoney(value, lang = "tr") {
+let displayCurrency = "AZN";
+
+export function setDisplayCurrency(code) {
+  displayCurrency = code === "TL" ? "TL" : "AZN";
+}
+
+export function getDisplayCurrency() {
+  return displayCurrency;
+}
+
+export function formatMoney(value) {
   const num = Number(value) || 0;
-  if (lang === "az") {
-    return `${num.toLocaleString("az-AZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₼`;
-  }
-  return `₺ ${num.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatted = num.toLocaleString(displayCurrency === "TL" ? "tr-TR" : "az-AZ", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return displayCurrency === "TL" ? `₺ ${formatted}` : `${formatted} ₼`;
 }
 
 export function formatDate(date = new Date(), lang = "tr") {

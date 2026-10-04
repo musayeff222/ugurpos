@@ -167,6 +167,10 @@ export const api = {
     return data;
   },
 
+  getAdminCurrency: () => request("/admin/currency"),
+  updateAdminCurrency: (currency) =>
+    request("/admin/currency", { method: "PATCH", body: JSON.stringify({ currency }) }),
+  getDisplayCurrency: () => request("/currency"),
   getAdminQrMenu: () => request("/admin/qr-menu"),
   updateAdminQrMenu: (patch) =>
     request("/admin/qr-menu", { method: "PATCH", body: JSON.stringify(patch) }),

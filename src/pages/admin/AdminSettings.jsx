@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import { setDisplayCurrency } from "../../utils/format";
 
 export default function AdminSettings() {
   const { user, patchUser } = useAuth();
@@ -13,6 +14,34 @@ export default function AdminSettings() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [currency, setCurrency] = useState(user?.currency === "TL" ? "TL" : "AZN");
+  const [savingCurrency, setSavingCurrency] = useState(false);
+
+  useEffect(() => {
+    api
+      .getAdminCurrency()
+      .then((data) => {
+        if (data?.currency === "TL" || data?.currency === "AZN") setCurrency(data.currency);
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveCurrency = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    setError("");
+    setSavingCurrency(true);
+    try {
+      const result = await api.updateAdminCurrency(currency);
+      setDisplayCurrency(result.currency);
+      patchUser({ currency: result.currency });
+      setMessage(result.currency === "TL" ? "Fiyatlar TL olarak gösterilecek." : "Fiyatlar AZN olarak gösterilecek.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingCurrency(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,6 +93,27 @@ export default function AdminSettings() {
 
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
+
+      <div className="erp-panel admin-settings-card">
+        <header className="erp-panel__head">
+          <h3>Para birimi</h3>
+        </header>
+        <p className="hint-text">Fiyatlar kasa, rapor ve web siparişte bu birimle görünür.</p>
+        <form className="erp-form admin-settings-form" onSubmit={saveCurrency}>
+          <label className="erp-field">
+            <span>Gösterim</span>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              <option value="AZN">AZN (₼)</option>
+              <option value="TL">TL (₺)</option>
+            </select>
+          </label>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-success" disabled={savingCurrency}>
+              {savingCurrency ? "Kaydediliyor…" : "Para birimini kaydet"}
+            </button>
+          </div>
+        </form>
+      </div>
 
       <div className="erp-panel admin-settings-card">
         <header className="erp-panel__head">

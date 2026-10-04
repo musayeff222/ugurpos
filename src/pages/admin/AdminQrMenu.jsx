@@ -75,9 +75,10 @@ const STATUS_CLASS = {
   completed: "ok",
 };
 
-export default function AdminQrMenu() {
-  const { t, lang } = useLocale();
-  const [tab, setTab] = useState("settings");
+export default function AdminQrMenu({ mode = "orders" }) {
+  const { t } = useLocale();
+  const showWeb = mode === "web";
+  const tab = showWeb ? "settings" : "orders";
   const [firm, setFirm] = useState(null);
   const [branches, setBranches] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -338,28 +339,19 @@ export default function AdminQrMenu() {
     <div className="admin-page admin-qr-page erp-page">
       <div className="crm-listbar">
         <div>
-          <h2>{t("admin.qr.title")}</h2>
-          <span>{t("admin.qr.subtitle")}</span>
+          <h2>{showWeb ? "Web parametreleri" : t("admin.qr.title")}</h2>
+          <span>{showWeb ? "Online sipariş sayfası" : t("admin.qr.subtitle")}</span>
         </div>
       </div>
 
       {message && <div className="alert alert-info">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <ul className="admin-tabs erp-tabs">
-        <li>
-          <button type="button" className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>
-            {t("admin.qr.tabSettings")}
-          </button>
-        </li>
-        <li>
-          <button type="button" className={tab === "orders" ? "active" : ""} onClick={() => setTab("orders")}>
-            {t("admin.qr.tabOrders")} {pendingTotal > 0 && <span className="admin-qr-badge">{pendingTotal}</span>}
-          </button>
-        </li>
-      </ul>
+      {!showWeb && pendingTotal > 0 && (
+        <p className="hint-text">Bekleyen sipariş: {pendingTotal}</p>
+      )}
 
-      {tab === "settings" && (
+      {showWeb && tab === "settings" && (
         <div className="admin-qr-settings-layout">
           <aside className="admin-qr-settings-sidebar" aria-label={t("admin.qr.settingsNavLabel")}>
             {SETTINGS_NAV.map((item) => (
@@ -1125,7 +1117,7 @@ export default function AdminQrMenu() {
                         {STATUS_LABELS[order.status] || order.status}
                       </span>
                     </div>
-                    <strong>{formatMoney(order.total, lang)}</strong>
+                    <strong>{formatMoney(order.total)}</strong>
                   </div>
                   <p className="admin-qr-order-branch">
                     <i className="fa fa-map-marker" /> {getBranchLabel({ name: order.branchName })}

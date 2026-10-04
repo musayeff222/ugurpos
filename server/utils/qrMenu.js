@@ -83,6 +83,23 @@ export function getFirmByMenuSlug(db, slug) {
   return row;
 }
 
+export function normalizeCurrency(value) {
+  return value === "TL" ? "TL" : "AZN";
+}
+
+export function getFirmCurrency(db, firmId) {
+  if (!firmId) return "AZN";
+  const row = db.prepare("SELECT currency FROM firm_settings WHERE firm_id = ?").get(firmId);
+  return normalizeCurrency(row?.currency);
+}
+
+export function setFirmCurrency(db, firmId, firmName, value) {
+  ensureFirmSettings(db, firmId, firmName);
+  const currency = normalizeCurrency(value);
+  db.prepare("UPDATE firm_settings SET currency = ? WHERE firm_id = ?").run(currency, firmId);
+  return currency;
+}
+
 export function rowToFirmMenu(row, firmName = "") {
   if (!row) return null;
   const defaultLang = row.menu_default_lang === "tr" ? "tr" : "az";
@@ -106,6 +123,7 @@ export function rowToFirmMenu(row, firmName = "") {
     logoUrl: row.menu_logo_path ? menuLogoPublicUrlWithVersion(row.firm_id, row.menu_logo_path) : null,
     theme: normalizeMenuTheme(row.menu_theme),
     webConfig: parseMenuWebConfig(row.menu_web_config),
+    currency: normalizeCurrency(row.currency),
   };
 }
 

@@ -355,8 +355,22 @@ export function deactivateFirmProduct(db, firmId, firmProductId) {
 }
 
 export function removeFirmGroup(db, firmId, firmGroupId) {
-  const used = db.prepare("SELECT id FROM firm_products WHERE firm_id = ? AND group_id = ?").get(firmId, firmGroupId);
-  if (used) return { error: "Bu grupta ürün var. Önce ürünleri taşıyın veya silin." };
+  const existing = db
+    .prepare("SELECT id FROM firm_groups WHERE id = ? AND firm_id = ?")
+    .get(firmGroupId, firmId);
+  if (!existing) return { error: "Grup bulunamadı" };
+
+  const products = db
+    .prepare("SELECT id FROM firm_products WHERE firm_id = ? AND group_id = ?")
+    .all(firmId, firmGroupId);
+  db.prepare("UPDATE firm_products SET group_id = NULL WHERE firm_id = ? AND group_id = ?").run(
+    firmId,
+    firmGroupId
+  );
+  for (const product of products) {
+    syncFirmProductToAllBranches(db, firmId, product.id);
+  }
+
   db.prepare("DELETE FROM firm_groups WHERE id = ? AND firm_id = ?").run(firmGroupId, firmId);
   db.prepare("UPDATE `groups` SET firm_group_id = NULL WHERE firm_group_id = ?").run(firmGroupId);
   return { ok: true };

@@ -29,7 +29,10 @@ const adminNav = [
   },
   {
     title: "Kurulum",
-    items: [{ to: "/admin/settings", label: "Kurulum", icon: "fa-cog" }],
+    items: [
+      { to: "/admin/settings", label: "Kurulum", icon: "fa-cog" },
+      { to: "/admin/web", label: "Web parametreleri", icon: "fa-globe" },
+    ],
   },
 ];
 
@@ -113,7 +116,8 @@ export default function AdminLayout() {
     (item.to === "/admin/activity" && location.pathname.startsWith("/admin/activity")) ||
     (item.to === "/admin/cash-reports" && location.pathname.startsWith("/admin/cash-reports")) ||
     (item.to === "/admin/payment-methods" && location.pathname.startsWith("/admin/payment-methods")) ||
-    (item.to === "/admin/settings" && location.pathname.startsWith("/admin/settings"));
+    (item.to === "/admin/settings" && location.pathname.startsWith("/admin/settings")) ||
+    (item.to === "/admin/web" && location.pathname.startsWith("/admin/web"));
 
   const activeItem = flatNav.find((item) => isNavActive(item));
   const pageTitle =

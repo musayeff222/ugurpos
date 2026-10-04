@@ -100,7 +100,8 @@ export default function App() {
         <Route path="istehsalat" element={<AdminBranches kind="production" />} />
         <Route path="istehsalat/new" element={<AdminBranchCreate />} />
         <Route path="istehsalat/:id" element={<AdminBranchDetail />} />
-        <Route path="qr-menu" element={<AdminQrMenu />} />
+        <Route path="qr-menu" element={<AdminQrMenu mode="orders" />} />
+        <Route path="web" element={<AdminQrMenu mode="web" />} />
         <Route path="activity" element={<AdminActivity />} />
         <Route path="cash-reports" element={<AdminCashReports />} />
         <Route path="products" element={<AdminCatalog />} />

@@ -1,18 +1,24 @@
 import { resolveProductImageSrc } from "./cigkofteSiteImages";
+import { setDisplayCurrency } from "./format";
 import { getOrCreateDeviceId } from "./qrMenuStorage";
+
+function applyPublicCurrency(data) {
+  if (data?.firm?.currency) setDisplayCurrency(data.firm.currency);
+  return data;
+}
 
 export async function fetchPublicFirmMenu() {
   const res = await fetch("/api/public/menu");
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Menü yüklenemedi");
-  return data;
+  return applyPublicCurrency(data);
 }
 
 export async function fetchPublicBranchMenu(branchId) {
   const res = await fetch(`/api/public/menu/branches/${encodeURIComponent(branchId)}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Şube menüsü yüklenemedi");
-  return data;
+  return applyPublicCurrency(data);
 }
 
 export function getPublicProductImageSrc(branchId, product) {

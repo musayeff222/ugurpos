@@ -30,7 +30,7 @@ import {
 import { catalogImageUpload } from "../middleware/imageUpload.js";
 import { hashBranchPassword, getNextBranchNumber, isValidBranchEmail, normalizeBranchEmail, validateBranchNo } from "../utils/branchAuth.js";
 import { signAdminToken, signStaffToken } from "../middleware/auth.js";
-import { ensureFirmSettings, enrichMenuBranch, rowToFirmMenu } from "../utils/qrMenu.js";
+import { ensureFirmSettings, enrichMenuBranch, getFirmCurrency, rowToFirmMenu, setFirmCurrency } from "../utils/qrMenu.js";
 import { listQrOrders, updateQrOrderStatus } from "../utils/qrOrderService.js";
 import { saveMenuLogo, deleteMenuLogo } from "../utils/menuLogo.js";
 import { normalizeMenuTheme } from "../utils/menuTheme.js";
@@ -1018,6 +1018,15 @@ router.delete("/branches/:id", (req, res) => {
 
   tx();
   res.json({ ok: true, message: "Şube tamamen silindi." });
+});
+
+router.get("/currency", (req, res) => {
+  res.json({ currency: getFirmCurrency(getDb(), req.user.firmId) });
+});
+
+router.patch("/currency", (req, res) => {
+  const currency = setFirmCurrency(getDb(), req.user.firmId, req.user.firmName, req.body.currency);
+  res.json({ currency });
 });
 
 router.get("/qr-menu", (req, res) => {
