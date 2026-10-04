@@ -2136,6 +2136,43 @@
   margin: 6px 0;
 }
 
+.catalog-category {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.catalog-category .erp-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.catalog-category .btn {
+  white-space: nowrap;
+}
+
+.catalog-category-create {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.catalog-category-create input {
+  flex: 1;
+  min-width: 0;
+}
+
+.catalog-group-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.catalog-group-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid #ecebea;
+}
+
 .catalog-form {
   max-width: 520px;
   background: #fff;
@@ -2161,6 +2198,12 @@
   .catalog-card__actions {
     grid-column: 1 / -1;
     flex-direction: row;
+  }
+
+  .catalog-category,
+  .catalog-category-create {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

@@ -25,6 +25,9 @@ export default function AdminCatalog() {
   const [imageValue, setImageValue] = useState(undefined);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
+  const [groupName, setGroupName] = useState("");
+  const [showNewGroup, setShowNewGroup] = useState(false);
+  const [creatingGroup, setCreatingGroup] = useState(false);
 
   const salesBranches = branches.filter((branch) => branch.kind !== "production");
 
@@ -81,6 +84,7 @@ export default function AdminCatalog() {
       branchIds: salesBranches.map((branch) => branch.id),
     });
     setImageValue(undefined);
+    setShowNewGroup(false);
     setError("");
     setMessage("");
     setView("form");
@@ -96,9 +100,17 @@ export default function AdminCatalog() {
       branchIds: product.branchIds || [],
     });
     setImageValue(undefined);
+    setShowNewGroup(false);
     setError("");
     setMessage("");
     setView("form");
+  };
+
+  const openGroups = () => {
+    setGroupName("");
+    setError("");
+    setMessage("");
+    setView("groups");
   };
 
   const backToList = () => {
@@ -106,6 +118,42 @@ export default function AdminCatalog() {
     setEditId(null);
     setImageValue(undefined);
     setError("");
+  };
+
+  const createGroup = async (name) => {
+    const label = String(name || "").trim();
+    if (!label) {
+      setError("Kategori adı zorunludur.");
+      return null;
+    }
+    setCreatingGroup(true);
+    setError("");
+    try {
+      const created = await api.createAdminCatalogGroup(label);
+      const nextGroups = await api.getAdminCatalogGroups();
+      setGroups(nextGroups);
+      setMessage("Kategori oluşturuldu.");
+      return created;
+    } catch (err) {
+      setError(err.message);
+      return null;
+    } finally {
+      setCreatingGroup(false);
+    }
+  };
+
+  const saveGroup = async (e) => {
+    e.preventDefault();
+    const created = await createGroup(groupName);
+    if (!created) return;
+    setGroupName("");
+  };
+
+  const createGroupFromProduct = async () => {
+    const created = await createGroup(form.newGroup);
+    if (!created) return;
+    setForm((prev) => ({ ...prev, groupId: created.id, newGroup: "" }));
+    setShowNewGroup(false);
   };
 
   const resolveGroupId = async () => {
@@ -172,6 +220,48 @@ export default function AdminCatalog() {
     }
   };
 
+  if (view === "groups") {
+    return (
+      <div className="admin-page erp-page">
+        <div className="crm-listbar">
+          <div>
+            <button type="button" className="catalog-back" onClick={backToList}>
+              <i className="fa fa-arrow-left" aria-hidden /> Listeye dön
+            </button>
+            <h2>Kategori oluştur</h2>
+          </div>
+        </div>
+        {error && <div className="alert alert-danger">{error}</div>}
+        {message && <div className="alert alert-info">{message}</div>}
+        <form className="catalog-form" onSubmit={saveGroup}>
+          <label className="erp-field">
+            <span>Kategori adı *</span>
+            <input
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Örn. İçecek"
+              required
+            />
+          </label>
+          <div className="form-actions">
+            <button type="button" className="btn btn-default" onClick={backToList}>
+              Vazgeç
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={creatingGroup}>
+              {creatingGroup ? "Kaydediliyor..." : "Kategori oluştur"}
+            </button>
+          </div>
+          <ul className="catalog-group-list">
+            {groups.map((group) => (
+              <li key={group.id}>{group.name}</li>
+            ))}
+            {!groups.length && <li>Henüz kategori yok.</li>}
+          </ul>
+        </form>
+      </div>
+    );
+  }
+
   if (view === "form") {
     return (
       <div className="admin-page erp-page">
@@ -208,17 +298,34 @@ export default function AdminCatalog() {
               required
             />
           </label>
-          <label className="erp-field">
-            <span>Kategori *</span>
-            <select value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })}>
-              <option value="">Seçin</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="catalog-category">
+            <label className="erp-field">
+              <span>Kategori *</span>
+              <select value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })}>
+                <option value="">Seçin</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" className="btn btn-default" onClick={() => setShowNewGroup((open) => !open)}>
+              Kategori oluştur
+            </button>
+          </div>
+          {showNewGroup && (
+            <div className="catalog-category-create">
+              <input
+                value={form.newGroup}
+                onChange={(e) => setForm({ ...form, newGroup: e.target.value })}
+                placeholder="Yeni kategori adı"
+              />
+              <button type="button" className="btn btn-primary" disabled={creatingGroup} onClick={createGroupFromProduct}>
+                {creatingGroup ? "..." : "Oluştur"}
+              </button>
+            </div>
+          )}
           <fieldset className="catalog-branches">
             <legend>Görüneceği şubeler</legend>
             {salesBranches.map((branch) => (
@@ -240,14 +347,6 @@ export default function AdminCatalog() {
             ))}
             {!salesBranches.length && <p>Satış şubesi yok.</p>}
           </fieldset>
-          <label className="erp-field">
-            <span>Yeni kategori</span>
-            <input
-              value={form.newGroup}
-              onChange={(e) => setForm({ ...form, newGroup: e.target.value })}
-              placeholder="Listede yoksa yazın"
-            />
-          </label>
           <div className="form-actions">
             <button type="button" className="btn btn-default" onClick={backToList}>
               Vazgeç
@@ -273,6 +372,9 @@ export default function AdminCatalog() {
             <i className="fa fa-search" aria-hidden />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ürün veya kategori..." />
           </form>
+          <button type="button" className="btn btn-default" onClick={openGroups}>
+            Kategori oluştur
+          </button>
           <button type="button" className="btn btn-primary" onClick={openCreate}>
             Yeni ürün oluştur
           </button>
