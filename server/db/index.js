@@ -228,8 +228,9 @@ function ensureUgurposAdmin(database) {
     const hash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
     const existing = database.prepare("SELECT * FROM users WHERE email = ?").get(ADMIN_EMAIL);
     if (existing) {
-      database.prepare("UPDATE users SET password_hash = ?, role = ? WHERE email = ?").run(hash, "admin", ADMIN_EMAIL);
-      console.log(`[DB] Admin parol yenilendi: ${ADMIN_EMAIL}`);
+      if (existing.role !== "admin") {
+        database.prepare("UPDATE users SET role = ? WHERE email = ?").run("admin", ADMIN_EMAIL);
+      }
       return;
     }
 
