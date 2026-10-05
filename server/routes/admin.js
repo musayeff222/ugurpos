@@ -43,6 +43,7 @@ import { localDateISO, normalizeTime } from "../utils/businessHours.js";
 import { sql as SQL } from "../db/dialect.js";
 import { listFirmPaymentMethods, rowToFirmPaymentMethod } from "../utils/firmPaymentMethods.js";
 import { staffWorkHoursMonth, staffWorkHoursToday } from "../utils/staffShifts.js";
+import { ciroBonus } from "../utils/ciroBonus.js";
 import { normalizeBranchKind } from "../utils/branchKind.js";
 
 const router = Router();
@@ -189,11 +190,22 @@ function staffSalesTotals(db, branchId, staff) {
          AND staff_name IN (${placeholders})`
     )
     .get(branchId, month, ...names);
+  const dayRows = db
+    .prepare(
+      `SELECT ${SQL.date("created_at")} as day, COALESCE(SUM(total),0) as t FROM sales
+       WHERE branch_id = ? AND ${SQL.month("created_at")}=? AND payment_type != 'refund'
+         AND staff_name IN (${placeholders})
+       GROUP BY ${SQL.date("created_at")}`
+    )
+    .all(branchId, month, ...names);
+  const todayTotal = Number(todayRow?.t || 0);
   return {
-    todayTotal: Number(todayRow?.t || 0),
+    todayTotal,
     todayCount: Number(todayRow?.c || 0),
     monthTotal: Number(monthRow?.t || 0),
     monthCount: Number(monthRow?.c || 0),
+    todayCiroBonus: ciroBonus(todayTotal),
+    monthCiroBonus: dayRows.reduce((sum, row) => sum + ciroBonus(row.t), 0),
   };
 }
 
@@ -486,6 +498,8 @@ function rowToAdminStaff(row, branch, db = null) {
     todayCount: 0,
     monthTotal: 0,
     monthCount: 0,
+    todayCiroBonus: 0,
+    monthCiroBonus: 0,
   };
   const fullName = `${row.name || ""} ${row.surname || ""}`.trim();
   const names = [...new Set([fullName, row.name].filter(Boolean))];
@@ -515,6 +529,8 @@ function rowToAdminStaff(row, branch, db = null) {
     monthHours,
     todayCommission,
     monthCommission,
+    todayCiroBonus: sales.todayCiroBonus || 0,
+    monthCiroBonus: sales.monthCiroBonus || 0,
   };
 }
 

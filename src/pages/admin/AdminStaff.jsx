@@ -108,7 +108,6 @@ export default function AdminStaff() {
         login: form.login.trim(),
         role: form.role,
         salary: Number(form.salary) || 0,
-        commissionPercent: Number(form.commissionPercent) || 0,
         startedAt: form.startedAt || "",
       };
       if (form.password.trim()) payload.password = form.password.trim();
@@ -179,7 +178,7 @@ export default function AdminStaff() {
       <div className="crm-listbar">
         <div>
           <h2>Çalışanlar</h2>
-          <span>Bugünkü satış, iş saatı və aylıq prim</span>
+          <span>Günlük ciro primi: 220→2, 250→4, 300→6, 350→8 AZN</span>
         </div>
         <div className="crm-listbar__tools">
           <form className="crm-global-search crm-global-search--inline" onSubmit={(e) => e.preventDefault()}>
@@ -221,8 +220,8 @@ export default function AdminStaff() {
         </article>
         <article>
           <span>Bu ay ümumi prim</span>
-          <strong>{formatMoney(staff.reduce((sum, p) => sum + Number(p.monthCommission || 0), 0))}</strong>
-          <small>Satış × prim %</small>
+          <strong>{formatMoney(staff.reduce((sum, p) => sum + Number(p.monthCiroBonus || 0), 0))}</strong>
+          <small>Hər günün ciro pilləsi</small>
         </article>
       </div>
 
@@ -236,7 +235,7 @@ export default function AdminStaff() {
                   <th>Bugün satış</th>
                   <th>Bugün saat</th>
                   <th>Bu ay satış</th>
-                  <th>Prim %</th>
+                  <th>Bugün prim</th>
                   <th>Bu ay prim</th>
                   <th></th>
                 </tr>
@@ -266,10 +265,11 @@ export default function AdminStaff() {
                       <strong>{formatMoney(person.monthTotal || 0)}</strong>
                       <small>{person.monthCount || 0} satış</small>
                     </td>
-                    <td data-label="Prim %">%{Number(person.commissionPercent || 0)}</td>
+                    <td data-label="Bugün prim">
+                      <strong>{formatMoney(person.todayCiroBonus || 0)}</strong>
+                    </td>
                     <td data-label="Bu ay prim">
-                      <strong>{formatMoney(person.monthCommission || 0)}</strong>
-                      <small>Bugün: {formatMoney(person.todayCommission || 0)}</small>
+                      <strong>{formatMoney(person.monthCiroBonus || 0)}</strong>
                     </td>
                     <td data-label="">
                       <div className="staff-row-actions">
@@ -399,37 +399,38 @@ export default function AdminStaff() {
             />
             <small>Anlaşılan aylık ücret. Kassadan otomatik çıxmaz.</small>
           </label>
-          <label className="erp-field">
-            <span>Aylıq prim %</span>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              value={form.commissionPercent}
-              onChange={(e) => setForm({ ...form, commissionPercent: e.target.value })}
-              placeholder="Örn: 5"
-            />
-            <small>Satış məbləği × bu faiz = prim pulu.</small>
-          </label>
+          </div>
+          <div className="staff-form-preview">
+            <div>
+              <span>220–249</span>
+              <strong>2 AZN</strong>
+            </div>
+            <div>
+              <span>250–299</span>
+              <strong>4 AZN</strong>
+            </div>
+            <div>
+              <span>300–349</span>
+              <strong>6 AZN</strong>
+            </div>
+            <div>
+              <span>350+</span>
+              <strong>8 AZN</strong>
+            </div>
           </div>
           {editId && (
             <div className="staff-form-preview">
               <div>
-                <span>Bu ay satış</span>
-                <strong>
-                  {formatMoney(staff.find((p) => p.id === editId)?.monthTotal || 0)}
-                </strong>
+                <span>Bugün ciro</span>
+                <strong>{formatMoney(staff.find((p) => p.id === editId)?.todayTotal || 0)}</strong>
               </div>
               <div>
-                <span>Hesablanan prim</span>
-                <strong>
-                  {formatMoney(
-                    ((Number(staff.find((p) => p.id === editId)?.monthTotal) || 0) *
-                      (Number(form.commissionPercent) || 0)) /
-                      100
-                  )}
-                </strong>
+                <span>Bugün prim</span>
+                <strong>{formatMoney(staff.find((p) => p.id === editId)?.todayCiroBonus || 0)}</strong>
+              </div>
+              <div>
+                <span>Bu ay prim</span>
+                <strong>{formatMoney(staff.find((p) => p.id === editId)?.monthCiroBonus || 0)}</strong>
               </div>
             </div>
           )}
