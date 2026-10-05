@@ -44,6 +44,7 @@ import { sql as SQL } from "../db/dialect.js";
 import { listFirmPaymentMethods, rowToFirmPaymentMethod } from "../utils/firmPaymentMethods.js";
 import { staffWorkHoursMonth, staffWorkHoursToday } from "../utils/staffShifts.js";
 import { ciroBonus } from "../utils/ciroBonus.js";
+import { listBranchProductionGrams } from "../utils/ingredientStock.js";
 import { normalizeBranchKind } from "../utils/branchKind.js";
 
 const router = Router();
@@ -223,6 +224,7 @@ router.get("/branches/:id/workspace", (req, res) => {
   const date = parseWorkspaceDate(req.query.date);
   const dayExpr = SQL.date("created_at");
   const saleDayExpr = SQL.date("s.created_at");
+  const productionGrams = listBranchProductionGrams(db, branch.id);
 
   const products = db
     .prepare(
@@ -388,6 +390,7 @@ router.get("/branches/:id/workspace", (req, res) => {
   res.json({
     date,
     products,
+    productionGrams,
     sales,
     soldProducts,
     withdrawals,

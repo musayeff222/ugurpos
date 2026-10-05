@@ -2,6 +2,7 @@ import { Router } from "express";
 import { getDb, uid } from "../db/index.js";
 import { branchMiddleware } from "../middleware/branch.js";
 import { isProductionBranch } from "../utils/branchKind.js";
+import { addProductionGrams, branchIngredientStock, reconcileProductionGramStock } from "../utils/ingredientStock.js";
 
 const router = Router();
 router.use(branchMiddleware);
@@ -370,16 +371,9 @@ router.get("/sales-branches", (req, res) => {
   branches.forEach((branch) => {
     branchStocks[branch.id] = {};
     ready.forEach((product) => {
-      const match = db
-        .prepare(
-          `SELECT * FROM products
-           WHERE branch_id = ? AND LOWER(name) = LOWER(?)
-           LIMIT 1`
-        )
-        .get(branch.id, product.name);
       branchStocks[branch.id][product.id] = {
-        productId: match?.id || "",
-        stockGrams: Number(match?.stock || 0),
+        productId: "",
+        stockGrams: branchIngredientStock(db, branch.id, product.name),
       };
     });
   });
@@ -420,32 +414,10 @@ router.post("/transfer", (req, res) => {
         req.branchId
       );
 
-      let match = db
-        .prepare(
-          `SELECT * FROM products
-           WHERE branch_id = ? AND LOWER(name) = LOWER(?)
-           LIMIT 1`
-        )
-        .get(target.id, product.name);
-
-      if (!match) {
-        targetProductId = uid("p");
-        const stockCode = `PR${String(Date.now()).slice(-8)}`;
-        db.prepare(
-          `INSERT INTO products
-            (id, barcode, stock_code, name, group_id, stock, critical_stock, vat, buy_price, price1, price2, unit, on_sale_page, active, branch_id)
-           VALUES (?, ?, ?, ?, NULL, ?, 0, 0, 0, 0, 0, 'qram', 1, 1, ?)`
-        ).run(targetProductId, stockCode, stockCode, product.name, qtyGrams, target.id);
-        targetStockAfter = qtyGrams;
-      } else {
-        targetProductId = match.id;
-        targetStockAfter = Number(match.stock || 0) + qtyGrams;
-        db.prepare("UPDATE products SET stock = ?, unit = COALESCE(NULLIF(unit,''), 'qram') WHERE id = ? AND branch_id = ?").run(
-          targetStockAfter,
-          match.id,
-          target.id
-        );
-      }
+      reconcileProductionGramStock(db, target.id);
+      const added = addProductionGrams(db, target.id, product.name, qtyGrams);
+      targetProductId = added.id;
+      targetStockAfter = added.stock;
 
       db.prepare(
         `INSERT INTO production_transfers

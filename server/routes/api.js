@@ -31,7 +31,7 @@ import {
 } from "../utils/firmPaymentMethods.js";
 import { closeStaffShift } from "../utils/staffShifts.js";
 import { getFirmCurrency } from "../utils/qrMenu.js";
-import { adjustRecipeStock } from "../utils/ingredientStock.js";
+import { adjustRecipeStock, reconcileProductionGramStock } from "../utils/ingredientStock.js";
 
 const router = Router();
 
@@ -475,6 +475,7 @@ router.post("/sales", (req, res) => {
       INSERT INTO sale_items (id, sale_id, product_id, name, qty, price, discount, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const updStock = db.prepare("UPDATE products SET stock = CASE WHEN stock - ? < 0 THEN 0 ELSE stock - ? END WHERE id = ? AND branch_id = ?");
+    reconcileProductionGramStock(db, req.branchId);
 
     items.forEach((item) => {
       insItem.run(uid("line"), saleId, item.productId || null, item.name, item.qty, item.price, item.discount || 0, item.note || "");
@@ -562,6 +563,7 @@ router.delete("/sales/:id", (req, res) => {
     const decStock = db.prepare(
       "UPDATE products SET stock = CASE WHEN stock - ? < 0 THEN 0 ELSE stock - ? END WHERE id = ? AND branch_id = ?"
     );
+    reconcileProductionGramStock(db, req.branchId);
 
     items.forEach((item) => {
       if (!item.product_id) return;
@@ -605,6 +607,7 @@ router.post("/refunds", (req, res) => {
   const negativeItems = items.map((i) => ({ ...i, qty: Math.abs(i.qty) }));
 
   // Restore stock
+  reconcileProductionGramStock(db, req.branchId);
   const updStock = db.prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND branch_id = ?");
   negativeItems.forEach((item) => {
     if (item.productId) {

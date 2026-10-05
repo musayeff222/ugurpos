@@ -397,6 +397,32 @@ export default function AdminBranchDetail() {
 
           {currentTab === "stock" && (
             <section className="erp-panel erp-panel--flush">
+              {(workspace?.productionGrams || []).length > 0 && (
+                <div className="admin-table-wrap">
+                  <table className="erp-table">
+                    <thead>
+                      <tr>
+                        <th>İstehsalattan gelen</th>
+                        <th>Gönderilen</th>
+                        <th>Kalan</th>
+                        <th>Satışta çıkan</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {workspace.productionGrams.map((row) => (
+                        <tr key={row.name}>
+                          <td data-label="İstehsalattan gelen">
+                            <strong>{row.name}</strong>
+                          </td>
+                          <td data-label="Gönderilen">{formatGrams(row.sentGrams)}</td>
+                          <td data-label="Kalan">{formatGrams(row.remainingGrams)}</td>
+                          <td data-label="Satışta çıkan">{formatGrams(row.usedGrams)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div className="admin-table-wrap">
                 <table className="erp-table">
                   <thead>
