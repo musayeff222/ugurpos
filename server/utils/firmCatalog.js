@@ -1,4 +1,4 @@
-import { copyCatalogImageToBranch, deleteCatalogImage } from "./catalogImage.js";
+import { branchImageMatchesCatalog, copyCatalogImageToBranch, deleteCatalogImage } from "./catalogImage.js";
 
 function uid(prefix = "id") {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -208,11 +208,13 @@ function upsertBranchProduct(db, firmId, branchId, firmProduct, branchGroupId) {
       firmProduct.active ? 1 : 0,
       existing.id
     );
-    const filename = copyCatalogImageToBranch(firmId, firmProduct.image_path, branchId, existing.id);
-    if (filename) {
-      db.prepare("UPDATE products SET image_path = ? WHERE id = ?").run(filename, existing.id);
-    } else if (!firmProduct.image_path) {
-      db.prepare("UPDATE products SET image_path = NULL WHERE id = ?").run(existing.id);
+    if (!branchImageMatchesCatalog(firmId, firmProduct.image_path, branchId, existing.image_path)) {
+      const filename = copyCatalogImageToBranch(firmId, firmProduct.image_path, branchId, existing.id);
+      if (filename) {
+        db.prepare("UPDATE products SET image_path = ? WHERE id = ?").run(filename, existing.id);
+      } else if (!firmProduct.image_path) {
+        db.prepare("UPDATE products SET image_path = NULL WHERE id = ?").run(existing.id);
+      }
     }
     return existing.id;
   }
@@ -286,6 +288,41 @@ export function setFirmProductBranches(db, firmId, firmProductId, branchIds) {
   selected.forEach((branchId) => insert.run(firmProductId, branchId));
   syncFirmProductToAllBranches(db, firmId, firmProductId);
   return selected;
+}
+
+/** Satış şöbəsində yalnız admin kataloq məhsulları və onların şəkilləri qalır. */
+export function alignBranchWithAdminCatalog(db, branchId) {
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ?").get(branchId);
+  if (!branch?.firm_id || String(branch.kind || "") === "production") return;
+  const firmId = branch.firm_id;
+  const products = db.prepare("SELECT * FROM firm_products WHERE firm_id = ? AND active = 1").all(firmId);
+  const keepIds = new Set();
+  for (const product of products) {
+    rememberVisibility(db, product.id, branchId);
+    const group = product.group_id
+      ? db.prepare("SELECT * FROM firm_groups WHERE id = ? AND firm_id = ?").get(product.group_id, firmId)
+      : null;
+    const groupId = group ? ensureBranchGroup(db, branchId, group) : null;
+    keepIds.add(upsertBranchProduct(db, firmId, branchId, product, groupId));
+  }
+  const local = db
+    .prepare(
+      "SELECT id FROM products WHERE branch_id = ? AND (COALESCE(active, 1) = 1 OR COALESCE(on_sale_page, 0) = 1)"
+    )
+    .all(branchId);
+  const hide = db.prepare("UPDATE products SET active = 0, on_sale_page = 0 WHERE id = ? AND branch_id = ?");
+  for (const row of local) {
+    if (!keepIds.has(row.id)) hide.run(row.id, branchId);
+  }
+}
+
+export function alignAllSalesBranchesWithAdminCatalog(db) {
+  const branches = db
+    .prepare("SELECT id FROM branches WHERE kind IS NULL OR kind != 'production'")
+    .all();
+  for (const branch of branches) {
+    alignBranchWithAdminCatalog(db, branch.id);
+  }
 }
 
 export function syncFirmCatalogToBranch(db, firmId, branchId) {

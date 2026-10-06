@@ -7,12 +7,12 @@ import { initSchema } from "./schema.js";
 import { ensureDefaultBranch, rowToBranch } from "./migrate-branches.js";
 import { useMysql } from "./dialect.js";
 import { createMysqlDb, getMysqlConfigFromEnv } from "./mysql-driver.js";
-import { seedCigkofteProducts, seedCigkofteForAllBranches, repairCigkofteProductImages } from "../seed/cigkofte/seedProducts.js";
-import { publishCigkofteSeedImages } from "../utils/cigkofteImages.js";
+import { seedCigkofteProducts } from "../seed/cigkofte/seedProducts.js";
 import { migrateUploadsFromDataDir } from "../utils/migrateUploads.js";
 import { productImagePublicUrl } from "../utils/uploadsDir.js";
-import { seedImagePublicUrl } from "../utils/cigkofteImages.js";
 import { resolveProductImageFile } from "../utils/productImage.js";
+import { repairBranchCatalogImages } from "../utils/catalogImage.js";
+import { alignAllSalesBranchesWithAdminCatalog, alignBranchWithAdminCatalog } from "../utils/firmCatalog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -50,7 +50,7 @@ export function getDb() {
     seedIfEmpty(db);
     ensureUgurposAdmin(db);
     normalizeFirmBranding(db);
-    ensureCigkofteCatalog(db);
+    ensureAdminCatalogOnBranches(db);
     ensureDefaultExpenseTypes(db);
   }
   return db;
@@ -93,25 +93,11 @@ function normalizeFirmBranding(database) {
   }
 }
 
-function ensureCigkofteCatalog(database) {
+function ensureAdminCatalogOnBranches(database) {
   try {
-    const results = seedCigkofteForAllBranches(database, DATA_DIR, { uid });
-    const touched = results.filter((r) => r.added > 0);
-    if (touched.length > 0) {
-      console.log(
-        `[DB] Cigkofte urunleri eklendi: ${touched.map((r) => `${r.branchName} (${r.added})`).join(", ")}`
-      );
-    }
-    const repaired = repairCigkofteProductImages(database);
-    if (repaired > 0) {
-      console.log(`[DB] Cigkofte urun resimleri guncellendi: ${repaired} kayit`);
-    }
-    const published = publishCigkofteSeedImages();
-    if (published > 0) {
-      console.log(`[DB] Cigkofte seed resimleri yayinlandi: ${published} dosya`);
-    }
+    alignAllSalesBranchesWithAdminCatalog(database);
   } catch (err) {
-    console.warn("[DB] Cigkofte urun seed atlandi:", err.message);
+    console.warn("[DB] Admin kataloq şöbələrə yazılmadı:", err.message);
   }
 }
 
@@ -256,8 +242,7 @@ function ensureUgurposAdmin(database) {
 export function rowToProduct(row) {
   if (!row) return null;
   const uploadUrl = row.image_path ? productImagePublicUrl(row.branch_id, row.image_path) : null;
-  const seedUrl = seedImagePublicUrl(row.stock_code);
-  let imageUrl = uploadUrl || seedUrl;
+  let imageUrl = uploadUrl;
   if (uploadUrl && row.image_path) {
     const filePath = resolveProductImageFile(row.branch_id, row.image_path);
     if (filePath) {
@@ -283,7 +268,7 @@ export function rowToProduct(row) {
     unit: row.unit || "Adet",
     onSalePage: !!row.on_sale_page,
     active: !!row.active,
-    hasImage: !!(uploadUrl || seedUrl),
+    hasImage: !!uploadUrl,
     imageUrl,
     firmProductId: row.firm_product_id || null,
   };
@@ -391,6 +376,12 @@ export function getAllState(database, branchId) {
     };
   }
 
+  try {
+    alignBranchWithAdminCatalog(database, branchId);
+    repairBranchCatalogImages(database, branchId);
+  } catch {
+    /* şəkil təmiri satış siyahısını dayandırmasın */
+  }
   const products = attachProductIngredients(
     database,
     database

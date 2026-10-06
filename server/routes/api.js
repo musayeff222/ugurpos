@@ -32,6 +32,7 @@ import {
 import { closeStaffShift } from "../utils/staffShifts.js";
 import { getFirmCurrency } from "../utils/qrMenu.js";
 import { adjustRecipeStock, reconcileProductionGramStock } from "../utils/ingredientStock.js";
+import { repairBranchCatalogImages } from "../utils/catalogImage.js";
 
 const router = Router();
 
@@ -166,6 +167,11 @@ router.get("/products", (req, res) => {
 
 router.get("/products/:id/image", (req, res) => {
   const db = getDb();
+  try {
+    repairBranchCatalogImages(db, req.branchId);
+  } catch {
+    /* şəkil təmiri sorğunu dayandırmasın */
+  }
   const row = db
     .prepare("SELECT image_path FROM products WHERE id = ? AND branch_id = ?")
     .get(req.params.id, req.branchId);
@@ -297,15 +303,34 @@ router.patch("/products/:id", (req, res) => {
 router.delete("/products", (req, res) => {
   const ids = req.body.ids || [];
   const db = getDb();
-  const find = db.prepare("SELECT id, image_path FROM products WHERE id = ? AND branch_id = ?");
+  const find = db.prepare("SELECT id, firm_product_id, image_path FROM products WHERE id = ? AND branch_id = ?");
   const del = db.prepare("DELETE FROM products WHERE id = ? AND branch_id = ?");
+  const drop = (sql, ...params) => {
+    try {
+      db.prepare(sql).run(...params);
+    } catch {
+      /* bağlı cədvəl olmaya bilər */
+    }
+  };
   ids.forEach((id) => {
     const row = find.get(id, req.branchId);
     if (!row) return;
-    const linked = db.prepare("SELECT firm_product_id FROM products WHERE id = ?").get(id);
-    if (linked?.firm_product_id) return;
-    deleteProductImage(req.branchId, id);
-    del.run(id, req.branchId);
+    drop("DELETE FROM stock_counts WHERE product_id = ? AND branch_id = ?", row.id, req.branchId);
+    drop("DELETE FROM variants WHERE product_id = ? AND branch_id = ?", row.id, req.branchId);
+    drop("DELETE FROM sub_products WHERE parent_product_id = ? AND branch_id = ?", row.id, req.branchId);
+    if (row.firm_product_id) {
+      drop(
+        "DELETE FROM firm_product_branches WHERE firm_product_id = ? AND branch_id = ?",
+        row.firm_product_id,
+        req.branchId
+      );
+    }
+    try {
+      deleteProductImage(req.branchId, row.id);
+    } catch {
+      /* şəkil olmaya bilər */
+    }
+    del.run(row.id, req.branchId);
   });
   res.json({ ok: true });
 });

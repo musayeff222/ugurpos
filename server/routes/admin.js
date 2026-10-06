@@ -12,6 +12,7 @@ import {
   rowToFirmGroup,
   rowToFirmProduct,
   syncFirmCatalogToBranch,
+  alignBranchWithAdminCatalog,
   syncFirmGroupToAllBranches,
   syncFirmProductToAllBranches,
   setFirmProductBranches,
@@ -222,6 +223,11 @@ router.get("/branches/:id/workspace", (req, res) => {
   const branch = getBranchOr404(db, req.params.id, req.user.firmId);
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
 
+  try {
+    alignBranchWithAdminCatalog(db, branch.id);
+  } catch {
+    /* kataloq düzəlişi şöbə səhifəsini dayandırmasın */
+  }
   const date = parseWorkspaceDate(req.query.date);
   const dayExpr = SQL.date("created_at");
   const saleDayExpr = SQL.date("s.created_at");

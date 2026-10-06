@@ -110,8 +110,6 @@ export function seedImageForProduct(product) {
 
 export function resolveProductImageSrc(branchId, product) {
   if (product?.imageUrl) return product.imageUrl;
-  const seed = seedImageForProduct(product);
-  if (seed) return seed;
-  if (!product?.id || !branchId) return null;
+  if (!product?.hasImage || !product?.id || !branchId) return null;
   return `/api/public/menu/branches/${encodeURIComponent(branchId)}/products/${product.id}/image`;
 }

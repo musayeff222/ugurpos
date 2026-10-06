@@ -1,5 +1,4 @@
 import { Router } from "express";
-import path from "path";
 import { getDb, uid, rowToProduct } from "../db/index.js";
 import {
   getDefaultFirmSettings,
@@ -15,7 +14,8 @@ import {
   resolveProductImageFile,
   contentTypeForImagePath,
 } from "../utils/productImage.js";
-import { resolveSeedImageFile } from "../utils/cigkofteImages.js";
+import { repairBranchCatalogImages } from "../utils/catalogImage.js";
+import { alignBranchWithAdminCatalog } from "../utils/firmCatalog.js";
 import {
   resolveMenuLogoFile,
 } from "../utils/menuLogo.js";
@@ -31,6 +31,12 @@ function sendProductImage(req, res, firmRow) {
   const branch = getBranchForFirmMenu(db, firmRow.firm_id, req.params.branchId);
   if (!branch) return res.status(404).end();
 
+  try {
+    alignBranchWithAdminCatalog(db, branch.id);
+    repairBranchCatalogImages(db, branch.id);
+  } catch {
+    /* şəkil təmiri menyunu dayandırmasın */
+  }
   const product = db
     .prepare(
       "SELECT image_path, stock_code, barcode FROM products WHERE id = ? AND branch_id = ? AND active = 1 AND on_sale_page = 1"
@@ -38,17 +44,11 @@ function sendProductImage(req, res, firmRow) {
     .get(req.params.productId, branch.id);
   if (!product) return res.status(404).end();
 
-  let filePath = product.image_path
+  const filePath = product.image_path
     ? resolveProductImageFile(branch.id, product.image_path)
     : null;
-  let contentPath = product.image_path;
-
-  if (!filePath) {
-    filePath = resolveSeedImageFile(product.stock_code, product.barcode);
-    contentPath = filePath ? path.basename(filePath) : null;
-  }
-
   if (!filePath) return res.status(404).end();
+  const contentPath = product.image_path;
 
   res.setHeader("Content-Type", contentTypeForImagePath(contentPath || "x.jpg"));
   res.setHeader("Cache-Control", "public, max-age=86400");
@@ -107,6 +107,12 @@ function sendBranchMenu(db, res, firmRow, branchId) {
   const groups = db
     .prepare("SELECT id, name FROM `groups` WHERE branch_id = ? ORDER BY name")
     .all(branch.id);
+  try {
+    alignBranchWithAdminCatalog(db, branch.id);
+    repairBranchCatalogImages(db, branch.id);
+  } catch {
+    /* şəkil təmiri menyunu dayandırmasın */
+  }
   const products = db
     .prepare(
       "SELECT * FROM products WHERE branch_id = ? AND active = 1 AND on_sale_page = 1 ORDER BY name"
