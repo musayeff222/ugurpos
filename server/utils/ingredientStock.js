@@ -54,8 +54,40 @@ function sameName(rows, name) {
   return rows.filter((row) => normName(row.name) === key);
 }
 
-function findGramRow(rows, name) {
-  return sameName(rows, name).find((row) => isGramUnit(row.unit) && !row.firm_product_id) || null;
+function findStockRow(rows, name) {
+  const matches = sameName(rows, name);
+  if (!matches.length) return null;
+  return (
+    matches.find((row) => row.firm_product_id) ||
+    matches.find((row) => isGramUnit(row.unit) && !row.firm_product_id) ||
+    matches[0]
+  );
+}
+
+/** Eyni adlı təkrar sətirləri bir məhsulda birləşdirir ki, yeni ad görünməsin. */
+function mergeSameNameProducts(db, branchId, name) {
+  const rows = sameName(branchProducts(db, branchId), name);
+  if (rows.length <= 1) return rows[0] || null;
+  const keep = findStockRow(rows, name);
+  const stock = rows.reduce((sum, row) => sum + Number(row.stock || 0), 0);
+  db.prepare("UPDATE products SET stock = ?, active = 1 WHERE id = ? AND branch_id = ?").run(
+    stock,
+    keep.id,
+    branchId
+  );
+  const remove = db.prepare("DELETE FROM products WHERE id = ? AND branch_id = ?");
+  for (const row of rows) {
+    if (row.id === keep.id) continue;
+    try {
+      db.prepare("DELETE FROM stock_counts WHERE product_id = ? AND branch_id = ?").run(row.id, branchId);
+      db.prepare("DELETE FROM variants WHERE product_id = ? AND branch_id = ?").run(row.id, branchId);
+      db.prepare("DELETE FROM sub_products WHERE parent_product_id = ? AND branch_id = ?").run(row.id, branchId);
+    } catch {
+      /* bağlı sətir olmaya bilər */
+    }
+    remove.run(row.id, branchId);
+  }
+  return { ...keep, stock };
 }
 
 function insertGramProduct(db, branchId, name, stock) {
@@ -69,54 +101,31 @@ function insertGramProduct(db, branchId, name, stock) {
   return { id, stock };
 }
 
-/**
- * Köhnə göndərişlər qramı satış məhsulunun ədəd stokuna əlavə edibsə,
- * həmin hissəni ayrıca qram sətrinə köçürür. Satış məhsulu ədəd qalır.
- */
+/** Göndərilmiş məhsulun təkrar sətirlərini mövcud şöbə məhsulunun üstünə yığır. */
 export function reconcileProductionGramStock(db, branchId) {
   const groups = groupTransfers(transferRows(db, branchId));
   for (const group of groups) {
-    const sent = Number(group.sent || 0);
-    if (!(sent > 0)) continue;
-    const rows = branchProducts(db, branchId);
-    if (findGramRow(rows, group.name)) continue;
-    const catalog = sameName(rows, group.name).find((row) => row.firm_product_id || !isGramUnit(row.unit));
-    if (!catalog) continue;
-    const current = Number(catalog.stock || 0);
-    const moved = Math.min(Math.max(current, 0), sent);
-    insertGramProduct(db, branchId, group.name, moved);
-    const leftover = Math.max(0, current - moved);
-    if (catalog.firm_product_id && isGramUnit(catalog.unit)) {
-      db.prepare("UPDATE products SET stock = ?, unit = 'Adet' WHERE id = ? AND branch_id = ?").run(
-        leftover,
-        catalog.id,
-        branchId
-      );
-    } else {
-      db.prepare("UPDATE products SET stock = ? WHERE id = ? AND branch_id = ?").run(leftover, catalog.id, branchId);
-    }
+    if (!(Number(group.sent) > 0)) continue;
+    mergeSameNameProducts(db, branchId, group.name);
   }
 }
 
 export function addProductionGrams(db, branchId, name, qtyGrams) {
   const qty = Number(qtyGrams) || 0;
-  const rows = branchProducts(db, branchId);
-  const gram = findGramRow(rows, name);
-  if (!gram) {
-    return insertGramProduct(db, branchId, name, qty);
-  }
-  const stock = Number(gram.stock || 0) + qty;
-  db.prepare(
-    "UPDATE products SET stock = ?, unit = 'qram', active = 1 WHERE id = ? AND branch_id = ?"
-  ).run(stock, gram.id, branchId);
-  return { id: gram.id, stock };
+  mergeSameNameProducts(db, branchId, name);
+  const target = findStockRow(branchProducts(db, branchId), name);
+  if (!target) return insertGramProduct(db, branchId, name, qty);
+  const stock = Number(target.stock || 0) + qty;
+  db.prepare("UPDATE products SET stock = ?, active = 1 WHERE id = ? AND branch_id = ?").run(
+    stock,
+    target.id,
+    branchId
+  );
+  return { id: target.id, stock };
 }
 
 export function branchIngredientStock(db, branchId, name) {
-  const rows = branchProducts(db, branchId);
-  const gram = findGramRow(rows, name);
-  if (gram) return Number(gram.stock || 0);
-  const match = sameName(rows, name).find((row) => isGramUnit(row.unit)) || sameName(rows, name)[0];
+  const match = findStockRow(branchProducts(db, branchId), name);
   return Number(match?.stock || 0);
 }
 
@@ -126,7 +135,7 @@ export function listBranchProductionGrams(db, branchId) {
   const rows = branchProducts(db, branchId);
   return groups.map((group) => {
     const sent = Number(group.sent || 0);
-    const gram = findGramRow(rows, group.name) || sameName(rows, group.name).find((row) => isGramUnit(row.unit));
+    const gram = findStockRow(rows, group.name);
     const remaining = Number(gram?.stock || 0);
     return {
       name: group.name,
@@ -151,17 +160,7 @@ function resolveFirmProductId(db, branchId, sold) {
 }
 
 function findIngredientStock(db, branchId, name) {
-  const rows = branchProducts(db, branchId);
-  const gram = findGramRow(rows, name);
-  if (gram) return gram;
-  const matches = sameName(rows, name);
-  matches.sort((a, b) => {
-    const ag = isGramUnit(a.unit) ? 0 : 1;
-    const bg = isGramUnit(b.unit) ? 0 : 1;
-    if (ag !== bg) return ag - bg;
-    return (a.firm_product_id ? 1 : 0) - (b.firm_product_id ? 1 : 0);
-  });
-  return matches[0] || null;
+  return findStockRow(branchProducts(db, branchId), name);
 }
 
 /** Satılan kataloq məhsulunun tərkib qramını şubə stokundan çıxır və ya geri qaytarır. */

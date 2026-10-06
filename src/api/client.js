@@ -64,6 +64,8 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(patch),
     }),
+  deleteAdminBranchProduct: (branchId, productId) =>
+    request(`/admin/branches/${branchId}/products/${productId}`, { method: "DELETE" }),
   updateAdminBranchStaff: (branchId, staffId, patch) =>
     request(`/admin/branches/${branchId}/staff/${staffId}`, {
       method: "PATCH",

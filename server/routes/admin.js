@@ -45,6 +45,7 @@ import { listFirmPaymentMethods, rowToFirmPaymentMethod } from "../utils/firmPay
 import { staffWorkHoursMonth, staffWorkHoursToday } from "../utils/staffShifts.js";
 import { ciroBonus } from "../utils/ciroBonus.js";
 import { listBranchProductionGrams } from "../utils/ingredientStock.js";
+import { deleteProductImage } from "../utils/productImage.js";
 import { normalizeBranchKind } from "../utils/branchKind.js";
 
 const router = Router();
@@ -448,6 +449,41 @@ router.patch("/branches/:id/products/:productId", (req, res) => {
     stock: Number(updated.stock || 0),
     price1: Number(updated.price1 || 0),
   });
+});
+
+router.delete("/branches/:id/products/:productId", (req, res) => {
+  const db = getDb();
+  const branch = getBranchOr404(db, req.params.id, req.user.firmId);
+  if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+  const product = db
+    .prepare("SELECT * FROM products WHERE id = ? AND branch_id = ?")
+    .get(req.params.productId, branch.id);
+  if (!product) return res.status(404).json({ error: "Ürün bulunamadı" });
+
+  const drop = (sql, ...params) => {
+    try {
+      db.prepare(sql).run(...params);
+    } catch {
+      /* bağlı cədvəl olmaya bilər */
+    }
+  };
+  drop("DELETE FROM stock_counts WHERE product_id = ? AND branch_id = ?", product.id, branch.id);
+  drop("DELETE FROM variants WHERE product_id = ? AND branch_id = ?", product.id, branch.id);
+  drop("DELETE FROM sub_products WHERE parent_product_id = ? AND branch_id = ?", product.id, branch.id);
+  if (product.firm_product_id) {
+    drop(
+      "DELETE FROM firm_product_branches WHERE firm_product_id = ? AND branch_id = ?",
+      product.firm_product_id,
+      branch.id
+    );
+  }
+  try {
+    deleteProductImage(branch.id, product.id);
+  } catch {
+    /* şəkil olmaya bilər */
+  }
+  db.prepare("DELETE FROM products WHERE id = ? AND branch_id = ?").run(product.id, branch.id);
+  res.json({ ok: true });
 });
 
 router.patch("/branches/:id/staff/:staffId", (req, res) => {

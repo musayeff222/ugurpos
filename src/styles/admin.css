@@ -2337,6 +2337,12 @@
   padding: 24px !important;
 }
 
+.admin-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .erp-timeline {
   display: flex;
   flex-direction: column;

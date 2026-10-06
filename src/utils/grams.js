@@ -30,19 +30,31 @@ function normName(value) {
     .replace(/\s+/g, " ");
 }
 
-function warehouseRank(product) {
-  if (!isGramUnit(product?.unit)) return 9;
-  if (!product.firmProductId && product.onSalePage === false) return 0;
-  if (!product.firmProductId) return 1;
-  return 4;
+function stockRank(product, ingredientKeys) {
+  const gram = isGramUnit(product?.unit);
+  const warehouse = !product?.firmProductId;
+  const ingredient = ingredientKeys.has(normName(product?.name));
+  if (!gram && !warehouse && !ingredient) return 9;
+  if (gram && warehouse) return 0;
+  if (gram) return 1;
+  if (warehouse) return 2;
+  return 3;
 }
 
 /** Növbədə satılan və anbarda qalan istehsalat çəkisi. */
 export function shiftGramBalances(products, sales) {
+  const ingredientKeys = new Set();
+  for (const product of products || []) {
+    for (const ingredient of product.ingredients || []) {
+      const key = normName(ingredient.name);
+      if (key) ingredientKeys.add(key);
+    }
+  }
+
   const remaining = new Map();
   for (const product of products || []) {
-    const rank = warehouseRank(product);
-    if (rank > 1) continue;
+    const rank = stockRank(product, ingredientKeys);
+    if (rank > 3) continue;
     const key = normName(product.name);
     if (!key) continue;
     const prev = remaining.get(key);

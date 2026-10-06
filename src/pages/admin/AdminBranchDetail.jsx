@@ -226,6 +226,21 @@ export default function AdminBranchDetail() {
     }
   };
 
+  const deleteProduct = async (product) => {
+    if (!window.confirm(`"${product.name}" bu şubeden silinsin?`)) return;
+    setSavingId(product.id);
+    setError("");
+    try {
+      await api.deleteAdminBranchProduct(id, product.id);
+      await loadWorkspace();
+      setMessage(`${product.name} silindi.`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingId("");
+    }
+  };
+
   const saveProduct = async (product) => {
     const edit = stockEdits[product.id] || {};
     const patch = {};
@@ -484,14 +499,24 @@ export default function AdminBranchDetail() {
                             />
                           </td>
                           <td data-label="">
-                            <button
-                              type="button"
-                              className="btn btn-primary btn-sm"
-                              disabled={savingId === p.id}
-                              onClick={() => saveProduct(p)}
-                            >
-                              Kaydet
-                            </button>
+                            <div className="admin-row-actions">
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                disabled={savingId === p.id}
+                                onClick={() => saveProduct(p)}
+                              >
+                                Kaydet
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-danger btn-sm"
+                                disabled={savingId === p.id}
+                                onClick={() => deleteProduct(p)}
+                              >
+                                Sil
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
