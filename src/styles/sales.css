@@ -2385,18 +2385,21 @@
   display: none;
 }
 
+.cashier-shift-summary__grams,
 .cashier-shift-summary__expenses {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
+.cashier-shift-summary__grams > span,
 .cashier-shift-summary__expenses > span {
   font-size: 12px;
   color: #717786;
   font-weight: 700;
 }
 
+.cashier-shift-summary__grams ul,
 .cashier-shift-summary__expenses ul {
   list-style: none;
   margin: 0;
@@ -2406,6 +2409,7 @@
   gap: 6px;
 }
 
+.cashier-shift-summary__grams li,
 .cashier-shift-summary__expenses li {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -2418,8 +2422,18 @@
   font-size: 13px;
 }
 
+.cashier-shift-summary__grams li strong,
 .cashier-shift-summary__expenses li strong {
   color: #9e3d00;
+}
+
+.cashier-shift-summary__grams li strong {
+  color: #181c23;
+}
+
+.cashier-shift-summary__grams li span {
+  color: #3d4452;
+  font-weight: 700;
 }
 
 .cashier-shift-summary__expenses li time {

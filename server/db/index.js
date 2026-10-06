@@ -337,6 +337,34 @@ export function getSaleWithItems(database, saleId) {
   };
 }
 
+function attachProductIngredients(database, products) {
+  const ids = [...new Set(products.map((product) => product.firmProductId).filter(Boolean))];
+  if (!ids.length) return products.map((product) => ({ ...product, ingredients: [] }));
+  let rows = [];
+  try {
+    const placeholders = ids.map(() => "?").join(",");
+    rows = database
+      .prepare(
+        `SELECT firm_product_id, ingredient_name, grams
+         FROM firm_product_ingredients
+         WHERE firm_product_id IN (${placeholders})`
+      )
+      .all(...ids);
+  } catch {
+    return products.map((product) => ({ ...product, ingredients: [] }));
+  }
+  const byFirm = new Map();
+  for (const row of rows) {
+    const list = byFirm.get(row.firm_product_id) || [];
+    list.push({ name: row.ingredient_name, grams: Number(row.grams) || 0 });
+    byFirm.set(row.firm_product_id, list);
+  }
+  return products.map((product) => ({
+    ...product,
+    ingredients: product.firmProductId ? byFirm.get(product.firmProductId) || [] : [],
+  }));
+}
+
 export function getAllState(database, branchId) {
   if (!branchId) {
     return {
@@ -363,10 +391,13 @@ export function getAllState(database, branchId) {
     };
   }
 
-  const products = database
-    .prepare("SELECT * FROM products WHERE branch_id = ? ORDER BY name")
-    .all(branchId)
-    .map(rowToProduct);
+  const products = attachProductIngredients(
+    database,
+    database
+      .prepare("SELECT * FROM products WHERE branch_id = ? ORDER BY name")
+      .all(branchId)
+      .map(rowToProduct)
+  );
   const customers = database
     .prepare("SELECT * FROM customers WHERE branch_id = ? ORDER BY name")
     .all(branchId)

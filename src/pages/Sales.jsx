@@ -19,6 +19,7 @@ import {
   formatGrams,
   formatStockLabel,
   isGramUnit,
+  shiftGramBalances,
   unitPriceForCart,
 } from "../utils/grams";
 import "../styles/sales.css";
@@ -117,11 +118,18 @@ export default function Sales() {
     () =>
       state.sales.filter(
         (sale) =>
-          sale.paymentType !== "refund" &&
           sale.staffName === cashierName &&
           (!shiftStartedAt || sale.createdAt >= shiftStartedAt)
       ),
     [cashierName, shiftStartedAt, state.sales]
+  );
+  const paidShiftSales = useMemo(
+    () => shiftSales.filter((sale) => sale.paymentType !== "refund"),
+    [shiftSales]
+  );
+  const shiftGrams = useMemo(
+    () => shiftGramBalances(state.products, shiftSales),
+    [shiftSales, state.products]
   );
   const shiftSummary = useMemo(() => {
     const shiftWithdrawals = (state.cashWithdrawals || []).filter(
@@ -131,26 +139,21 @@ export default function Sales() {
     const withdrawalsTotal = shiftWithdrawals.reduce((sum, row) => sum + Number(row.amount || 0), 0);
     let cash = 0;
     let pos = 0;
-    let gramsSold = 0;
-    shiftSales.forEach((sale) => {
+    paidShiftSales.forEach((sale) => {
       const parts = getSalePaymentParts(sale);
       cash += parts.cash;
       pos += parts.pos;
-      (sale.items || []).forEach((item) => {
-        const product = state.products.find((p) => p.id === item.productId);
-        if (isGramUnit(product?.unit) || isGramUnit(item.unit)) {
-          gramsSold += Number(item.qty) || 0;
-        }
-      });
     });
-    const partialSales = shiftSales.filter((sale) => sale.paymentType === "partial");
-    const otherMethods = groupOtherPaymentTotals(shiftSales);
+    const partialSales = paidShiftSales.filter((sale) => sale.paymentType === "partial");
+    const otherMethods = groupOtherPaymentTotals(paidShiftSales);
     return {
-      count: shiftSales.length,
-      total: shiftSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
+      count: paidShiftSales.length,
+      total: paidShiftSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
       cash,
       pos,
-      gramsSold,
+      gramsSold: shiftGrams.soldGrams,
+      gramsLeft: shiftGrams.remainingGrams,
+      gramLines: shiftGrams.lines,
       partialTotal: partialSales.reduce((sum, sale) => sum + (sale.total || 0), 0),
       partialCount: partialSales.length,
       otherMethods,
@@ -158,7 +161,7 @@ export default function Sales() {
       cashRegister: cash - withdrawalsTotal,
       withdrawals: shiftWithdrawals,
     };
-  }, [shiftSales, state.cashWithdrawals, state.products, cashierName, shiftStartedAt]);
+  }, [paidShiftSales, shiftGrams, state.cashWithdrawals, cashierName, shiftStartedAt]);
   const change = Math.max(0, (Number(paid) || 0) - total);
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
   const money = (value) => formatMoney(value, "az");
@@ -1193,8 +1196,12 @@ export default function Sales() {
               <strong>{money(shiftSummary.total)}</strong>
             </div>
             <div>
-              <span>Satılan qram</span>
+              <span>Satılan çəki</span>
               <strong>{formatGrams(shiftSummary.gramsSold || 0)}</strong>
+            </div>
+            <div>
+              <span>Qalan çəki</span>
+              <strong>{formatGrams(shiftSummary.gramsLeft || 0)}</strong>
             </div>
             <div>
               <span>Nakit</span>
@@ -1227,6 +1234,20 @@ export default function Sales() {
               </strong>
             </div>
           </div>
+          {shiftSummary.gramLines.length > 0 && (
+            <div className="cashier-shift-summary__grams">
+              <span>Çəki</span>
+              <ul>
+                {shiftSummary.gramLines.map((line) => (
+                  <li key={line.name}>
+                    <strong>{line.name}</strong>
+                    <span>Satılan {formatGrams(line.soldGrams)}</span>
+                    <span>Qalan {formatGrams(line.remainingGrams)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {shiftSummary.withdrawals.length > 0 && (
             <div className="cashier-shift-summary__expenses">
               <span>Kassadan çıxarılanlar</span>
