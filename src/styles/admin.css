@@ -2343,6 +2343,32 @@
   gap: 6px;
 }
 
+.admin-branch-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.admin-branch-split__title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #181c23;
+}
+
+.admin-branch-split__block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 960px) {
+  .admin-branch-split {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
 .erp-timeline {
   display: flex;
   flex-direction: column;

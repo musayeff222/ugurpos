@@ -31,7 +31,11 @@ import {
 } from "../utils/firmPaymentMethods.js";
 import { closeStaffShift } from "../utils/staffShifts.js";
 import { getFirmCurrency } from "../utils/qrMenu.js";
-import { adjustRecipeStock, reconcileProductionGramStock } from "../utils/ingredientStock.js";
+import {
+  adjustRecipeStock,
+  clearBranchProductionIncoming,
+  reconcileProductionGramStock,
+} from "../utils/ingredientStock.js";
 import { repairBranchCatalogImages } from "../utils/catalogImage.js";
 
 const router = Router();
@@ -303,7 +307,7 @@ router.patch("/products/:id", (req, res) => {
 router.delete("/products", (req, res) => {
   const ids = req.body.ids || [];
   const db = getDb();
-  const find = db.prepare("SELECT id, firm_product_id, image_path FROM products WHERE id = ? AND branch_id = ?");
+  const find = db.prepare("SELECT id, name, firm_product_id, image_path FROM products WHERE id = ? AND branch_id = ?");
   const del = db.prepare("DELETE FROM products WHERE id = ? AND branch_id = ?");
   const drop = (sql, ...params) => {
     try {
@@ -325,6 +329,7 @@ router.delete("/products", (req, res) => {
         req.branchId
       );
     }
+    clearBranchProductionIncoming(db, req.branchId, row.name);
     try {
       deleteProductImage(req.branchId, row.id);
     } catch {

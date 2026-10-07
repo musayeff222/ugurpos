@@ -23,17 +23,38 @@ function branchProducts(db, branchId) {
 }
 
 function transferRows(db, branchId) {
+  const rows = [];
   try {
-    return db
+    for (const row of db
       .prepare(
         `SELECT product_name AS name, qty_grams AS sent
          FROM production_transfers
          WHERE to_branch_id = ?`
       )
-      .all(branchId);
+      .all(branchId)) {
+      rows.push({ name: row.name, sent: Number(row.sent || 0), unit: "qram" });
+    }
   } catch {
-    return [];
+    /* cədvəl olmaya bilər */
   }
+  try {
+    for (const row of db
+      .prepare(
+        `SELECT item_name AS name, qty AS sent, unit
+         FROM production_warehouse_transfers
+         WHERE to_branch_id = ?`
+      )
+      .all(branchId)) {
+      rows.push({
+        name: row.name,
+        sent: Number(row.sent || 0),
+        unit: row.unit || "Adet",
+      });
+    }
+  } catch {
+    /* cədvəl olmaya bilər */
+  }
+  return rows;
 }
 
 function groupTransfers(rows) {
@@ -42,11 +63,37 @@ function groupTransfers(rows) {
     const key = normName(row.name);
     if (!key) continue;
     const sent = Number(row.sent || 0);
+    const unit = row.unit || "qram";
     const prev = map.get(key);
-    if (!prev) map.set(key, { name: row.name, sent });
-    else prev.sent += sent;
+    if (!prev) map.set(key, { name: row.name, sent, unit });
+    else {
+      prev.sent += sent;
+      if (!isGramUnit(prev.unit) && isGramUnit(unit)) prev.unit = unit;
+    }
   }
   return [...map.values()];
+}
+
+/** Şöbədən məhsul silinəndə istehsalatdan gələn qeydi də silir. */
+export function clearBranchProductionIncoming(db, branchId, productName) {
+  const name = String(productName || "").trim();
+  if (!branchId || !name) return;
+  try {
+    db.prepare(
+      `DELETE FROM production_transfers
+       WHERE to_branch_id = ? AND LOWER(product_name) = LOWER(?)`
+    ).run(branchId, name);
+  } catch {
+    /* ignore */
+  }
+  try {
+    db.prepare(
+      `DELETE FROM production_warehouse_transfers
+       WHERE to_branch_id = ? AND LOWER(item_name) = LOWER(?)`
+    ).run(branchId, name);
+  } catch {
+    /* ignore */
+  }
 }
 
 function sameName(rows, name) {
@@ -165,17 +212,22 @@ export function listBranchProductionGrams(db, branchId) {
   reconcileProductionGramStock(db, branchId);
   const groups = groupTransfers(transferRows(db, branchId));
   const rows = branchProducts(db, branchId);
-  return groups.map((group) => {
-    const sent = Number(group.sent || 0);
-    const gram = findStockRow(rows, group.name);
-    const remaining = Number(gram?.stock || 0);
-    return {
-      name: group.name,
-      sentGrams: sent,
-      remainingGrams: remaining,
-      usedGrams: Math.max(0, sent - remaining),
-    };
-  });
+  const existing = new Set(rows.map((row) => normName(row.name)).filter(Boolean));
+  return groups
+    .filter((group) => existing.has(normName(group.name)))
+    .map((group) => {
+      const sent = Number(group.sent || 0);
+      const stock = findStockRow(rows, group.name);
+      const remaining = Number(stock?.stock || 0);
+      const unit = stock?.unit || group.unit || "qram";
+      return {
+        name: group.name,
+        unit,
+        sentGrams: sent,
+        remainingGrams: remaining,
+        usedGrams: Math.max(0, sent - remaining),
+      };
+    });
 }
 
 function resolveFirmProductId(db, branchId, sold) {

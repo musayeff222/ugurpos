@@ -45,7 +45,7 @@ import { sql as SQL } from "../db/dialect.js";
 import { listFirmPaymentMethods, rowToFirmPaymentMethod } from "../utils/firmPaymentMethods.js";
 import { staffWorkHoursMonth, staffWorkHoursToday } from "../utils/staffShifts.js";
 import { ciroBonus } from "../utils/ciroBonus.js";
-import { listBranchProductionGrams } from "../utils/ingredientStock.js";
+import { clearBranchProductionIncoming, listBranchProductionGrams } from "../utils/ingredientStock.js";
 import { deleteProductImage } from "../utils/productImage.js";
 import { normalizeBranchKind } from "../utils/branchKind.js";
 
@@ -483,6 +483,7 @@ router.delete("/branches/:id/products/:productId", (req, res) => {
       branch.id
     );
   }
+  clearBranchProductionIncoming(db, branch.id, product.name);
   try {
     deleteProductImage(branch.id, product.id);
   } catch {

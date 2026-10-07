@@ -24,7 +24,7 @@ function salePaymentLabel(sale) {
 
 const TABS = [
   { id: "stock", label: "Anbar" },
-  { id: "sold", label: "Satılmış ürünler" },
+  { id: "sold", label: "Satılmış / İstehsalat" },
   { id: "cash", label: "Kasa" },
   { id: "expenses", label: "Xərclər" },
   { id: "reports", label: "Hesabat" },
@@ -412,32 +412,6 @@ export default function AdminBranchDetail() {
 
           {currentTab === "stock" && (
             <section className="erp-panel erp-panel--flush">
-              {(workspace?.productionGrams || []).length > 0 && (
-                <div className="admin-table-wrap">
-                  <table className="erp-table">
-                    <thead>
-                      <tr>
-                        <th>İstehsalattan gelen</th>
-                        <th>Gönderilen</th>
-                        <th>Kalan</th>
-                        <th>Satışta çıkan</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {workspace.productionGrams.map((row) => (
-                        <tr key={row.name}>
-                          <td data-label="İstehsalattan gelen">
-                            <strong>{row.name}</strong>
-                          </td>
-                          <td data-label="Gönderilen">{formatGrams(row.sentGrams)}</td>
-                          <td data-label="Kalan">{formatGrams(row.remainingGrams)}</td>
-                          <td data-label="Satışta çıkan">{formatGrams(row.usedGrams)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
               <div className="admin-table-wrap">
                 <table className="erp-table">
                   <thead>
@@ -536,60 +510,100 @@ export default function AdminBranchDetail() {
 
           {currentTab === "sold" && (
             <section className="erp-panel erp-panel--flush">
-              <div className="crm-metrics crm-metrics--4">
-                <article>
-                  <span>Satılan məhsul</span>
-                  <strong>{soldProducts.length}</strong>
-                  <small>{workspaceDate}</small>
-                </article>
-                <article>
-                  <span>Ümumi miqdar</span>
-                  <strong>{report?.soldQty || 0}</strong>
-                  <small>qram / ədəd</small>
-                </article>
-                <article>
-                  <span>Satış məbləği</span>
-                  <strong>{formatMoney(report?.soldAmount || 0)}</strong>
-                  <small>günlük</small>
-                </article>
-              </div>
-              <div className="admin-table-wrap">
-                <table className="erp-table">
-                  <thead>
-                    <tr>
-                      <th>Ürün</th>
-                      <th>Miqdar</th>
-                      <th>Məbləğ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {soldProducts.map((row) => (
-                      <tr key={`${row.productId}-${row.name}`}>
-                        <td data-label="Ürün">
-                          <strong>
-                            {isGramUnit(row.unit) ? (
-                              <>
-                                <em>{formatGrams(row.qty)} </em>
-                                {row.name}
-                              </>
-                            ) : (
-                              row.name
-                            )}
-                          </strong>
-                        </td>
-                        <td data-label="Miqdar">{formatStockLabel(row.qty, row.unit)}</td>
-                        <td data-label="Məbləğ">{formatMoney(row.amount)}</td>
-                      </tr>
-                    ))}
-                    {!soldProducts.length && (
-                      <tr>
-                        <td colSpan={3} className="erp-table__empty">
-                          Seçilmiş gündə satılmış ürün yoxdur.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className="admin-branch-split">
+                <div className="admin-branch-split__block">
+                  <h3 className="admin-branch-split__title">İstehsalattan gelen</h3>
+                  <div className="admin-table-wrap">
+                    <table className="erp-table">
+                      <thead>
+                        <tr>
+                          <th>Ürün</th>
+                          <th>Gönderilen</th>
+                          <th>Kalan</th>
+                          <th>Satışta çıkan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(workspace?.productionGrams || []).map((row) => (
+                          <tr key={row.name}>
+                            <td data-label="Ürün">
+                              <strong>{row.name}</strong>
+                            </td>
+                            <td data-label="Gönderilen">{formatStockLabel(row.sentGrams, row.unit || "qram")}</td>
+                            <td data-label="Kalan">{formatStockLabel(row.remainingGrams, row.unit || "qram")}</td>
+                            <td data-label="Satışta çıkan">{formatStockLabel(row.usedGrams, row.unit || "qram")}</td>
+                          </tr>
+                        ))}
+                        {!(workspace?.productionGrams || []).length && (
+                          <tr>
+                            <td colSpan={4} className="erp-table__empty">
+                              Bu şubeye istehsalattan gelen ürün yok.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="admin-branch-split__block">
+                  <h3 className="admin-branch-split__title">Satılmış ürünler</h3>
+                  <div className="crm-metrics crm-metrics--4">
+                    <article>
+                      <span>Satılan məhsul</span>
+                      <strong>{soldProducts.length}</strong>
+                      <small>{workspaceDate}</small>
+                    </article>
+                    <article>
+                      <span>Ümumi miqdar</span>
+                      <strong>{report?.soldQty || 0}</strong>
+                      <small>qram / ədəd</small>
+                    </article>
+                    <article>
+                      <span>Satış məbləği</span>
+                      <strong>{formatMoney(report?.soldAmount || 0)}</strong>
+                      <small>günlük</small>
+                    </article>
+                  </div>
+                  <div className="admin-table-wrap">
+                    <table className="erp-table">
+                      <thead>
+                        <tr>
+                          <th>Ürün</th>
+                          <th>Miqdar</th>
+                          <th>Məbləğ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {soldProducts.map((row) => (
+                          <tr key={`${row.productId}-${row.name}`}>
+                            <td data-label="Ürün">
+                              <strong>
+                                {isGramUnit(row.unit) ? (
+                                  <>
+                                    <em>{formatGrams(row.qty)} </em>
+                                    {row.name}
+                                  </>
+                                ) : (
+                                  row.name
+                                )}
+                              </strong>
+                            </td>
+                            <td data-label="Miqdar">{formatStockLabel(row.qty, row.unit)}</td>
+                            <td data-label="Məbləğ">{formatMoney(row.amount)}</td>
+                          </tr>
+                        ))}
+                        {!soldProducts.length && (
+                          <tr>
+                            <td colSpan={3} className="erp-table__empty">
+                              Seçilmiş gündə satılmış ürün yoxdur.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </section>
           )}
