@@ -43,16 +43,25 @@ function stockRank(product, ingredientKeys) {
 
 /** Növbədə satılan və anbarda qalan istehsalat çəkisi. */
 export function shiftGramBalances(products, sales) {
+  const list = products || [];
+  const byId = new Map(list.map((product) => [product.id, product]));
+  const byName = new Map();
+  const recipesByName = new Map();
   const ingredientKeys = new Set();
-  for (const product of products || []) {
-    for (const ingredient of product.ingredients || []) {
-      const key = normName(ingredient.name);
-      if (key) ingredientKeys.add(key);
+
+  for (const product of list) {
+    const key = normName(product.name);
+    if (key && !byName.has(key)) byName.set(key, product);
+    const recipes = product.ingredients || [];
+    if (key && recipes.length) recipesByName.set(key, recipes);
+    for (const ingredient of recipes) {
+      const ingredientKey = normName(ingredient.name);
+      if (ingredientKey) ingredientKeys.add(ingredientKey);
     }
   }
 
   const remaining = new Map();
-  for (const product of products || []) {
+  for (const product of list) {
     const rank = stockRank(product, ingredientKeys);
     if (rank > 3) continue;
     const key = normName(product.name);
@@ -67,24 +76,41 @@ export function shiftGramBalances(products, sales) {
   const addSold = (name, grams) => {
     const key = normName(name);
     const amount = Number(grams) || 0;
-    if (!key || !amount) return;
+    if (!key || !(amount > 0 || amount < 0)) return;
     const prev = sold.get(key) || { name, grams: 0 };
     prev.grams += amount;
+    if (!prev.name && name) prev.name = name;
     sold.set(key, prev);
   };
 
   for (const sale of sales || []) {
     const sign = sale.paymentType === "refund" ? -1 : 1;
     for (const item of sale.items || []) {
-      const product = (products || []).find((row) => row.id === item.productId);
       const qty = Number(item.qty) || 0;
       if (!qty) continue;
+      const product =
+        (item.productId && byId.get(item.productId)) || byName.get(normName(item.name)) || null;
+      const recipes =
+        (product?.ingredients && product.ingredients.length
+          ? product.ingredients
+          : null) ||
+        recipesByName.get(normName(product?.name || item.name)) ||
+        [];
+
       if (isGramUnit(product?.unit) || isGramUnit(item.unit)) {
         addSold(product?.name || item.name, qty * sign);
         continue;
       }
-      for (const ingredient of product?.ingredients || []) {
-        addSold(ingredient.name, (Number(ingredient.grams) || 0) * qty * sign);
+      if (recipes.length) {
+        for (const ingredient of recipes) {
+          addSold(ingredient.name, (Number(ingredient.grams) || 0) * qty * sign);
+        }
+        continue;
+      }
+      // Tərkib yoxdursa, satılan ad anbar qram məhsulu ilə eynidirsə miqdarı qram say.
+      const stockName = normName(item.name);
+      if (remaining.has(stockName) || ingredientKeys.has(stockName)) {
+        addSold(item.name, qty * sign);
       }
     }
   }
@@ -100,11 +126,16 @@ export function shiftGramBalances(products, sales) {
         remainingGrams: Number(left?.stock) || 0,
       };
     })
-    .sort((a, b) => a.name.localeCompare(b.name, "tr"));
+    .filter((line) => line.soldGrams > 0 || line.remainingGrams > 0)
+    .sort((a, b) => {
+      if (b.soldGrams !== a.soldGrams) return b.soldGrams - a.soldGrams;
+      return a.name.localeCompare(b.name, "tr");
+    });
 
+  const soldGrams = [...sold.values()].reduce((sum, row) => sum + Math.max(0, Number(row.grams) || 0), 0);
   return {
     lines,
-    soldGrams: lines.reduce((sum, line) => sum + line.soldGrams, 0),
+    soldGrams,
     remainingGrams: lines.reduce((sum, line) => sum + line.remainingGrams, 0),
   };
 }

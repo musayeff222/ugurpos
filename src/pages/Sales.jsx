@@ -127,9 +127,14 @@ export default function Sales() {
     () => shiftSales.filter((sale) => sale.paymentType !== "refund"),
     [shiftSales]
   );
+  const shiftWindowSales = useMemo(
+    () =>
+      state.sales.filter((sale) => !shiftStartedAt || sale.createdAt >= shiftStartedAt),
+    [shiftStartedAt, state.sales]
+  );
   const shiftGrams = useMemo(
-    () => shiftGramBalances(state.products, shiftSales),
-    [shiftSales, state.products]
+    () => shiftGramBalances(state.products, shiftWindowSales),
+    [shiftWindowSales, state.products]
   );
   const shiftSummary = useMemo(() => {
     const shiftWithdrawals = (state.cashWithdrawals || []).filter(

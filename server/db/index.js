@@ -323,31 +323,66 @@ export function getSaleWithItems(database, saleId) {
 }
 
 function attachProductIngredients(database, products) {
-  const ids = [...new Set(products.map((product) => product.firmProductId).filter(Boolean))];
-  if (!ids.length) return products.map((product) => ({ ...product, ingredients: [] }));
-  let rows = [];
+  if (!products?.length) return products || [];
   try {
+    const branchId = database
+      .prepare("SELECT branch_id FROM products WHERE id = ?")
+      .get(products[0].id)?.branch_id;
+    const firmId = branchId
+      ? database.prepare("SELECT firm_id FROM branches WHERE id = ?").get(branchId)?.firm_id
+      : null;
+    const catalog = firmId
+      ? database
+          .prepare("SELECT id, name FROM firm_products WHERE firm_id = ? AND active = 1")
+          .all(firmId)
+      : [];
+    const ids = [
+      ...new Set([
+        ...products.map((product) => product.firmProductId).filter(Boolean),
+        ...catalog.map((row) => row.id),
+      ]),
+    ];
+    if (!ids.length) return products.map((product) => ({ ...product, ingredients: [] }));
+
     const placeholders = ids.map(() => "?").join(",");
-    rows = database
+    const rows = database
       .prepare(
         `SELECT firm_product_id, ingredient_name, grams
          FROM firm_product_ingredients
          WHERE firm_product_id IN (${placeholders})`
       )
       .all(...ids);
+    const byFirm = new Map();
+    for (const row of rows) {
+      const list = byFirm.get(row.firm_product_id) || [];
+      list.push({ name: row.ingredient_name, grams: Number(row.grams) || 0 });
+      byFirm.set(row.firm_product_id, list);
+    }
+    const byName = new Map(
+      catalog.map((row) => [
+        String(row.name || "")
+          .trim()
+          .toLocaleLowerCase("tr-TR"),
+        row.id,
+      ])
+    );
+    return products.map((product) => {
+      const linkedId =
+        product.firmProductId ||
+        byName.get(
+          String(product.name || "")
+            .trim()
+            .toLocaleLowerCase("tr-TR")
+        ) ||
+        null;
+      return {
+        ...product,
+        ingredients: linkedId ? byFirm.get(linkedId) || [] : [],
+      };
+    });
   } catch {
     return products.map((product) => ({ ...product, ingredients: [] }));
   }
-  const byFirm = new Map();
-  for (const row of rows) {
-    const list = byFirm.get(row.firm_product_id) || [];
-    list.push({ name: row.ingredient_name, grams: Number(row.grams) || 0 });
-    byFirm.set(row.firm_product_id, list);
-  }
-  return products.map((product) => ({
-    ...product,
-    ingredients: product.firmProductId ? byFirm.get(product.firmProductId) || [] : [],
-  }));
 }
 
 export function getAllState(database, branchId) {
