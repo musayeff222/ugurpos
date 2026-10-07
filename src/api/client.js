@@ -97,6 +97,15 @@ export const api = {
   getProductionSalesBranches: () => request("/production/sales-branches"),
   transferProductionProduct: (payload) =>
     request("/production/transfer", { method: "POST", body: JSON.stringify(payload) }),
+  getProductionWarehouse: () => request("/production/warehouse"),
+  createProductionWarehouseItem: (payload) =>
+    request("/production/warehouse", { method: "POST", body: JSON.stringify(payload) }),
+  addProductionWarehouseStock: (id, payload) =>
+    request(`/production/warehouse/${id}/stock`, { method: "POST", body: JSON.stringify(payload) }),
+  deleteProductionWarehouseItem: (id) => request(`/production/warehouse/${id}`, { method: "DELETE" }),
+  getProductionWarehouseBranches: () => request("/production/warehouse/branches"),
+  transferProductionWarehouseItem: (payload) =>
+    request("/production/warehouse/transfer", { method: "POST", body: JSON.stringify(payload) }),
   getProductionProductHistory: (id) => request(`/production/products/${id}/history`),
   getProductionBatches: () => request("/production/batches"),
   createProductionBatch: (payload) =>

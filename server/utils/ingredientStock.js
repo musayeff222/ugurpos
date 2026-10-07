@@ -124,6 +124,38 @@ export function addProductionGrams(db, branchId, name, qtyGrams) {
   return { id: target.id, stock };
 }
 
+function insertPieceProduct(db, branchId, name, stock, unit = "Adet") {
+  const id = uid("p");
+  const code = `WH${String(Date.now()).slice(-8)}`;
+  db.prepare(
+    `INSERT INTO products
+      (id, barcode, stock_code, name, group_id, stock, critical_stock, vat, buy_price, price1, price2, unit, on_sale_page, active, branch_id)
+     VALUES (?, ?, ?, ?, NULL, ?, 0, 0, 0, 0, 0, ?, 0, 1, ?)`
+  ).run(id, code, code, name, stock, unit || "Adet", branchId);
+  return { id, stock };
+}
+
+/** Anbardan göndərilən ədəd stoku şöbədə eyni adlı məhsulun üstünə yazır. */
+export function addBranchPieceStock(db, branchId, name, qty, unit = "Adet") {
+  const amount = Number(qty) || 0;
+  mergeSameNameProducts(db, branchId, name);
+  const rows = branchProducts(db, branchId);
+  const matches = sameName(rows, name);
+  const target =
+    matches.find((row) => row.firm_product_id) ||
+    matches.find((row) => !isGramUnit(row.unit)) ||
+    matches[0] ||
+    null;
+  if (!target) return insertPieceProduct(db, branchId, name, amount, unit);
+  const stock = Number(target.stock || 0) + amount;
+  db.prepare("UPDATE products SET stock = ?, active = 1 WHERE id = ? AND branch_id = ?").run(
+    stock,
+    target.id,
+    branchId
+  );
+  return { id: target.id, stock };
+}
+
 export function branchIngredientStock(db, branchId, name) {
   const match = findStockRow(branchProducts(db, branchId), name);
   return Number(match?.stock || 0);

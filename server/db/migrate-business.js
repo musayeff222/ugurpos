@@ -348,4 +348,62 @@ export function migrateBusiness(db) {
       CREATE INDEX IF NOT EXISTS idx_staff_shifts_started ON staff_shifts(started_at);
     `);
   }
+
+  if (db.dialect === "mysql") {
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS production_warehouse (
+          id VARCHAR(64) PRIMARY KEY,
+          branch_id VARCHAR(64) NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          unit VARCHAR(32) DEFAULT 'Adet',
+          stock DOUBLE DEFAULT 0,
+          created_at VARCHAR(40) NOT NULL,
+          INDEX idx_production_warehouse_branch (branch_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS production_warehouse_transfers (
+          id VARCHAR(64) PRIMARY KEY,
+          from_branch_id VARCHAR(64) NOT NULL,
+          to_branch_id VARCHAR(64) NOT NULL,
+          item_id VARCHAR(64),
+          item_name VARCHAR(255) NOT NULL,
+          qty DOUBLE NOT NULL,
+          unit VARCHAR(32) DEFAULT 'Adet',
+          created_by VARCHAR(255),
+          created_at VARCHAR(40) NOT NULL,
+          INDEX idx_pwh_transfers_from (from_branch_id),
+          INDEX idx_pwh_transfers_to (to_branch_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+    } catch {
+      /* already exists */
+    }
+  } else {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS production_warehouse (
+        id TEXT PRIMARY KEY,
+        branch_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        unit TEXT DEFAULT 'Adet',
+        stock REAL DEFAULT 0,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_production_warehouse_branch ON production_warehouse(branch_id);
+      CREATE TABLE IF NOT EXISTS production_warehouse_transfers (
+        id TEXT PRIMARY KEY,
+        from_branch_id TEXT NOT NULL,
+        to_branch_id TEXT NOT NULL,
+        item_id TEXT,
+        item_name TEXT NOT NULL,
+        qty REAL NOT NULL,
+        unit TEXT DEFAULT 'Adet',
+        created_by TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_pwh_transfers_from ON production_warehouse_transfers(from_branch_id);
+      CREATE INDEX IF NOT EXISTS idx_pwh_transfers_to ON production_warehouse_transfers(to_branch_id);
+    `);
+  }
 }

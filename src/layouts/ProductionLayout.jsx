@@ -7,6 +7,7 @@ import "../styles/admin.css";
 import "../styles/production.css";
 
 const nav = [
+  { to: "/istehsalat/anbar", label: "Anbar", icon: "fa-th-large" },
   { to: "/istehsalat/xammaddeler", label: "Xammaddələr", icon: "fa-cubes" },
   { to: "/istehsalat/istifade", label: "İstifadə", icon: "fa-industry" },
   { to: "/istehsalat/mehsullar", label: "Hazırlanan məhsullar", icon: "fa-archive" },

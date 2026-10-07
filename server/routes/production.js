@@ -2,7 +2,12 @@ import { Router } from "express";
 import { getDb, uid } from "../db/index.js";
 import { branchMiddleware } from "../middleware/branch.js";
 import { isProductionBranch } from "../utils/branchKind.js";
-import { addProductionGrams, branchIngredientStock, reconcileProductionGramStock } from "../utils/ingredientStock.js";
+import {
+  addBranchPieceStock,
+  addProductionGrams,
+  branchIngredientStock,
+  reconcileProductionGramStock,
+} from "../utils/ingredientStock.js";
 
 const router = Router();
 router.use(branchMiddleware);
@@ -42,6 +47,16 @@ function rowToProduct(row) {
     id: row.id,
     name: row.name,
     readyStock: Number(row.ready_stock || 0),
+    createdAt: row.created_at || "",
+  };
+}
+
+function rowToWarehouse(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    unit: row.unit || "Adet",
+    stock: Number(row.stock || 0),
     createdAt: row.created_at || "",
   };
 }
@@ -454,6 +469,179 @@ router.post("/transfer", (req, res) => {
     targetStockAfter,
     readyStock: ready - qtyGrams,
   });
+});
+
+router.get("/warehouse", (req, res) => {
+  const rows = getDb()
+    .prepare("SELECT * FROM production_warehouse WHERE branch_id = ? ORDER BY name")
+    .all(req.branchId)
+    .map(rowToWarehouse);
+  res.json(rows);
+});
+
+router.post("/warehouse", (req, res) => {
+  const db = getDb();
+  const name = String(req.body.name || "").trim();
+  const unit = String(req.body.unit || "Adet").trim() || "Adet";
+  const stock = Number(req.body.stock);
+  if (!name) return res.status(400).json({ error: "Məhsul adı yazın" });
+  if (!Number.isFinite(stock) || stock < 0) return res.status(400).json({ error: "Stok miqdarı düzgün deyil" });
+
+  const existing = db
+    .prepare(
+      `SELECT * FROM production_warehouse
+       WHERE branch_id = ? AND LOWER(name) = LOWER(?)
+       LIMIT 1`
+    )
+    .get(req.branchId, name);
+  if (existing) {
+    const next = Number(existing.stock || 0) + stock;
+    db.prepare("UPDATE production_warehouse SET stock = ?, unit = ? WHERE id = ? AND branch_id = ?").run(
+      next,
+      unit,
+      existing.id,
+      req.branchId
+    );
+    return res.json(rowToWarehouse(db.prepare("SELECT * FROM production_warehouse WHERE id = ?").get(existing.id)));
+  }
+
+  const id = uid("pwh");
+  db.prepare(
+    "INSERT INTO production_warehouse (id, branch_id, name, unit, stock, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+  ).run(id, req.branchId, name, unit, stock, new Date().toISOString());
+  res.status(201).json(rowToWarehouse(db.prepare("SELECT * FROM production_warehouse WHERE id = ?").get(id)));
+});
+
+router.get("/warehouse/branches", (req, res) => {
+  const db = getDb();
+  const source = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.branchId);
+  const branches = db
+    .prepare(
+      `SELECT id, name, code FROM branches
+       WHERE firm_id = ? AND active = 1 AND (kind IS NULL OR kind != 'production')
+       ORDER BY name`
+    )
+    .all(source?.firm_id)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      branchNo: row.code ? String(parseInt(row.code, 10) || row.code) : "",
+    }));
+  const items = db
+    .prepare("SELECT * FROM production_warehouse WHERE branch_id = ? AND stock > 0 ORDER BY name")
+    .all(req.branchId)
+    .map(rowToWarehouse);
+  res.json({ branches, items });
+});
+
+router.post("/warehouse/transfer", (req, res) => {
+  const db = getDb();
+  const itemId = String(req.body.itemId || req.body.productId || "").trim();
+  const targetBranchId = String(req.body.targetBranchId || "").trim();
+  const qty = Number(req.body.qty ?? req.body.qtyGrams);
+  if (!itemId || !targetBranchId) return res.status(400).json({ error: "Məhsul və şube seçin" });
+  if (!Number.isFinite(qty) || qty <= 0) return res.status(400).json({ error: "Miqdar düzgün deyil" });
+
+  const source = db.prepare("SELECT * FROM branches WHERE id = ?").get(req.branchId);
+  const target = db.prepare("SELECT * FROM branches WHERE id = ? AND firm_id = ?").get(targetBranchId, source?.firm_id);
+  if (!source || !target) return res.status(404).json({ error: "Şube tapılmadı" });
+  if (String(target.kind || "") === "production") {
+    return res.status(400).json({ error: "İstehsalat şubesinə göndərilə bilməz" });
+  }
+
+  const item = db
+    .prepare("SELECT * FROM production_warehouse WHERE id = ? AND branch_id = ?")
+    .get(itemId, req.branchId);
+  if (!item) return res.status(404).json({ error: "Anbar məhsulu tapılmadı" });
+  const stock = Number(item.stock || 0);
+  if (qty > stock) return res.status(400).json({ error: `Yetərli stok yoxdur (${stock} ${item.unit || "Adet"})` });
+
+  const createdAt = new Date().toISOString();
+  const transferId = uid("pwt");
+  let targetStockAfter = 0;
+  let targetProductId = "";
+
+  try {
+    const tx = db.transaction(() => {
+      db.prepare("UPDATE production_warehouse SET stock = ? WHERE id = ? AND branch_id = ?").run(
+        stock - qty,
+        item.id,
+        req.branchId
+      );
+      const added = addBranchPieceStock(db, target.id, item.name, qty, item.unit || "Adet");
+      targetProductId = added.id;
+      targetStockAfter = added.stock;
+      db.prepare(
+        `INSERT INTO production_warehouse_transfers
+          (id, from_branch_id, to_branch_id, item_id, item_name, qty, unit, created_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        transferId,
+        req.branchId,
+        target.id,
+        item.id,
+        item.name,
+        qty,
+        item.unit || "Adet",
+        actorName(req),
+        createdAt
+      );
+      db.prepare(
+        `INSERT INTO branch_notifications (id, branch_id, type, title, detail, created_at, read_at)
+         VALUES (?, ?, ?, ?, ?, ?, NULL)`
+      ).run(
+        uid("bn"),
+        target.id,
+        "stock_in",
+        `${item.name} stoka əlavə olundu`,
+        `${qty} ${item.unit || "Adet"} ${item.name} istehsalat anbarından əlavə edildi. Yeni stok: ${targetStockAfter}.`,
+        createdAt
+      );
+    });
+    tx();
+  } catch (err) {
+    return res.status(400).json({ error: err.message || "Göndərmə alınmadı" });
+  }
+
+  res.status(201).json({
+    id: transferId,
+    itemId: item.id,
+    itemName: item.name,
+    qty,
+    unit: item.unit || "Adet",
+    targetBranchId: target.id,
+    targetBranchName: target.name,
+    targetProductId,
+    targetStockAfter,
+    warehouseStock: stock - qty,
+  });
+});
+
+router.post("/warehouse/:id/stock", (req, res) => {
+  const db = getDb();
+  const existing = db
+    .prepare("SELECT * FROM production_warehouse WHERE id = ? AND branch_id = ?")
+    .get(req.params.id, req.branchId);
+  if (!existing) return res.status(404).json({ error: "Anbar məhsulu tapılmadı" });
+  const qty = Number(req.body.qty ?? req.body.stock);
+  if (!Number.isFinite(qty) || qty <= 0) return res.status(400).json({ error: "Stok miqdarı düzgün deyil" });
+  const next = Number(existing.stock || 0) + qty;
+  db.prepare("UPDATE production_warehouse SET stock = ? WHERE id = ? AND branch_id = ?").run(
+    next,
+    existing.id,
+    req.branchId
+  );
+  res.json(rowToWarehouse(db.prepare("SELECT * FROM production_warehouse WHERE id = ?").get(existing.id)));
+});
+
+router.delete("/warehouse/:id", (req, res) => {
+  const db = getDb();
+  const existing = db
+    .prepare("SELECT * FROM production_warehouse WHERE id = ? AND branch_id = ?")
+    .get(req.params.id, req.branchId);
+  if (!existing) return res.status(404).json({ error: "Anbar məhsulu tapılmadı" });
+  db.prepare("DELETE FROM production_warehouse WHERE id = ? AND branch_id = ?").run(existing.id, req.branchId);
+  res.json({ ok: true });
 });
 
 export default router;
