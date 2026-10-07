@@ -103,6 +103,9 @@ export function shiftGramBalances(products, sales) {
       }
       if (recipes.length) {
         for (const ingredient of recipes) {
+          const stockProduct = byName.get(normName(ingredient.name));
+          // Ədəd tərkib (məs. ayran) qram xülasəsinə düşməsin
+          if (stockProduct && !isGramUnit(stockProduct.unit)) continue;
           addSold(ingredient.name, (Number(ingredient.grams) || 0) * qty * sign);
         }
         continue;

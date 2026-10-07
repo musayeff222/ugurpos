@@ -108,6 +108,25 @@ export function listProductionIngredientNames(db, firmId) {
   }
 }
 
+/** Tərkib seçimi: istehsalat + admin kataloq məhsulları. */
+export function listRecipeIngredientOptions(db, firmId) {
+  const production = listProductionIngredientNames(db, firmId);
+  let catalog = [];
+  try {
+    catalog = db
+      .prepare(
+        `SELECT name FROM firm_products
+         WHERE firm_id = ? AND active = 1 AND TRIM(name) != ''
+         ORDER BY name`
+      )
+      .all(firmId)
+      .map((row) => row.name);
+  } catch {
+    catalog = [];
+  }
+  return { production, catalog };
+}
+
 export function listFirmGroups(db, firmId) {
   return db
     .prepare("SELECT * FROM firm_groups WHERE firm_id = ? ORDER BY name")

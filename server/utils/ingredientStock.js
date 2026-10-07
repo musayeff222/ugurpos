@@ -244,7 +244,16 @@ function resolveFirmProductId(db, branchId, sold) {
 }
 
 function findIngredientStock(db, branchId, name) {
-  return findStockRow(branchProducts(db, branchId), name);
+  const matches = sameName(branchProducts(db, branchId), name);
+  if (!matches.length) return null;
+  // Admin kataloq (ədəd) əvvəl, sonra istehsalat qram stoku
+  return (
+    matches.find((row) => row.firm_product_id && !isGramUnit(row.unit)) ||
+    matches.find((row) => row.firm_product_id) ||
+    matches.find((row) => isGramUnit(row.unit) && !row.firm_product_id) ||
+    matches.find((row) => isGramUnit(row.unit)) ||
+    matches[0]
+  );
 }
 
 /** Satılan kataloq məhsulunun tərkib qramını şubə stokundan çıxır və ya geri qaytarır. */

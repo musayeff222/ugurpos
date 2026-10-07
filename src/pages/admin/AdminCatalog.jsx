@@ -29,12 +29,35 @@ export default function AdminCatalog() {
   const [groupName, setGroupName] = useState("");
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
-  const [productionIngredients, setProductionIngredients] = useState([]);
+  const [ingredientOptions, setIngredientOptions] = useState({ production: [], catalog: [] });
 
   const salesBranches = branches.filter((branch) => branch.kind !== "production");
 
+  const recipeIngredientChoices = useMemo(() => {
+    const seen = new Set();
+    const choices = [];
+    const push = (name, group) => {
+      const label = String(name || "").trim();
+      if (!label) return;
+      const key = label.toLocaleLowerCase("tr-TR");
+      if (seen.has(key)) return;
+      if (editId && products.some((p) => p.id === editId && p.name.toLocaleLowerCase("tr-TR") === key)) {
+        return;
+      }
+      seen.add(key);
+      choices.push({ name: label, group });
+    };
+    for (const name of ingredientOptions.production || []) push(name, "İstehsalat");
+    for (const name of ingredientOptions.catalog || []) push(name, "Admin məhsulları");
+    for (const product of products) {
+      if (product.id === editId) continue;
+      push(product.name, "Admin məhsulları");
+    }
+    return choices;
+  }, [ingredientOptions, products, editId]);
+
   const load = async () => {
-    const [g, p, branchList, ingredientNames] = await Promise.all([
+    const [g, p, branchList, ingredients] = await Promise.all([
       api.getAdminCatalogGroups(),
       api.getAdminCatalogProducts(),
       api.getAdminBranches(),
@@ -43,7 +66,7 @@ export default function AdminCatalog() {
     setGroups(g);
     setProducts(p.filter((item) => item.active !== false));
     setBranches(branchList || []);
-    setProductionIngredients(ingredientNames || []);
+    setIngredientOptions(ingredients || { production: [], catalog: [] });
   };
 
   useEffect(() => {
@@ -379,7 +402,9 @@ export default function AdminCatalog() {
           )}
           <fieldset className="catalog-branches">
             <legend>İstehsalat tərkibi</legend>
-            <p className="hint-text">Satışda bu qramlar şubəyə göndərilmiş stokdan çıxır.</p>
+            <p className="hint-text">
+              Satışda seçilən məhsullar stokdan çıxır. Məsələn dürüm üçün çiy köftə (qram) və ayran (ədəd).
+            </p>
             {form.ingredients.map((item, index) => (
               <div key={`${item.name}-${index}`} className="catalog-ingredient">
                 <select
@@ -393,18 +418,35 @@ export default function AdminCatalog() {
                     }))
                   }
                 >
-                  <option value="">Hazırlanan məhsul</option>
-                  {productionIngredients.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
+                  <option value="">Məhsul seçin</option>
+                  <optgroup label="İstehsalat">
+                    {recipeIngredientChoices
+                      .filter((choice) => choice.group === "İstehsalat")
+                      .map((choice) => (
+                        <option key={`p-${choice.name}`} value={choice.name}>
+                          {choice.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="Admin məhsulları">
+                    {recipeIngredientChoices
+                      .filter((choice) => choice.group === "Admin məhsulları")
+                      .map((choice) => (
+                        <option key={`c-${choice.name}`} value={choice.name}>
+                          {choice.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                  {item.name &&
+                    !recipeIngredientChoices.some((choice) => choice.name === item.name) && (
+                      <option value={item.name}>{item.name}</option>
+                    )}
                 </select>
                 <input
                   type="number"
                   min="0"
                   step="1"
-                  placeholder="Qram"
+                  placeholder="Miqdar"
                   value={item.grams}
                   onChange={(e) =>
                     setForm((prev) => ({
@@ -435,14 +477,17 @@ export default function AdminCatalog() {
               onClick={() =>
                 setForm((prev) => ({
                   ...prev,
-                  ingredients: [...prev.ingredients, { name: productionIngredients[0] || "", grams: "" }],
+                  ingredients: [
+                    ...prev.ingredients,
+                    { name: recipeIngredientChoices[0]?.name || "", grams: "" },
+                  ],
                 }))
               }
-              disabled={!productionIngredients.length}
+              disabled={!recipeIngredientChoices.length}
             >
-              Hazırlanan məhsul əlavə et
+              Tərkib əlavə et
             </button>
-            {!productionIngredients.length && <p>İstehsalatda hazırlanan məhsul yoxdur.</p>}
+            {!recipeIngredientChoices.length && <p>Seçiləcək məhsul yoxdur.</p>}
           </fieldset>
           <fieldset className="catalog-branches">
             <legend>Görüneceği şubeler</legend>
@@ -522,7 +567,7 @@ export default function AdminCatalog() {
                     <strong>{p.name}</strong>
                     {(p.ingredients || []).length > 0 && (
                       <small>
-                        {(p.ingredients || []).map((item) => `${item.name} ${item.grams} q`).join(", ")}
+                        {(p.ingredients || []).map((item) => `${item.name} × ${item.grams}`).join(", ")}
                       </small>
                     )}
                     <small>

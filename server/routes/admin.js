@@ -21,7 +21,7 @@ import {
   applyCatalogImageAndSync,
   clearCatalogImageAndSync,
   listFirmProductIngredients,
-  listProductionIngredientNames,
+  listRecipeIngredientOptions,
   setFirmProductIngredients,
 } from "../utils/firmCatalog.js";
 import {
@@ -1383,7 +1383,7 @@ router.delete("/catalog/groups/:id", (req, res) => {
 });
 
 router.get("/catalog/production-ingredients", (req, res) => {
-  res.json(listProductionIngredientNames(getDb(), req.user.firmId));
+  res.json(listRecipeIngredientOptions(getDb(), req.user.firmId));
 });
 
 router.get("/catalog/products", (req, res) => {
