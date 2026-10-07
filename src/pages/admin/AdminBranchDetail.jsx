@@ -313,6 +313,12 @@ export default function AdminBranchDetail() {
   const label = branch ? getBranchLabel(branch) : "Hesap";
   const report = workspace?.report;
   const soldProducts = workspace?.soldProducts || [];
+  const soldGramQty = soldProducts
+    .filter((row) => isGramUnit(row.unit))
+    .reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
+  const soldPieceQty = soldProducts
+    .filter((row) => !isGramUnit(row.unit))
+    .reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
   const isProduction = branch?.kind === "production";
   const visibleTabs = isProduction ? [{ id: "settings", label: "Ayarlar" }] : TABS;
   const currentTab = isProduction ? "settings" : tab;
@@ -555,9 +561,14 @@ export default function AdminBranchDetail() {
                       <small>{workspaceDate}</small>
                     </article>
                     <article>
-                      <span>Ümumi miqdar</span>
-                      <strong>{report?.soldQty || 0}</strong>
-                      <small>qram / ədəd</small>
+                      <span>Ümumi ədəd</span>
+                      <strong>{soldPieceQty}</strong>
+                      <small>ədəd</small>
+                    </article>
+                    <article>
+                      <span>Ümumi qram</span>
+                      <strong>{formatGrams(soldGramQty)}</strong>
+                      <small>qram</small>
                     </article>
                     <article>
                       <span>Satış məbləği</span>
