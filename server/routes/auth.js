@@ -220,6 +220,55 @@ router.post("/staff-login", (req, res) => {
   });
 });
 
+function isDesktopClient(req) {
+  return req.get("x-ugurpos-desktop") === "1";
+}
+
+router.get("/offline-staff", authMiddleware, (req, res) => {
+  if (!isDesktopClient(req)) return res.status(404).json({ error: "Not found" });
+  const branchId = req.user?.branchId;
+  if (!branchId) return res.status(403).json({ error: "Şube seçimi gerekli" });
+
+  const db = getDb();
+  const branch = db.prepare("SELECT * FROM branches WHERE id = ? AND active = 1").get(branchId);
+  if (!branch || (req.user.firmId && branch.firm_id !== req.user.firmId)) {
+    return res.status(404).json({ error: "Filial tapılmadı" });
+  }
+
+  const firmName = getFirmName(db, branch.firm_id);
+  const rows = db
+    .prepare(
+      `SELECT id, name, surname, login, role, can_cash_expense, password_hash
+       FROM staff
+       WHERE branch_id = ? AND active = 1 AND password_hash IS NOT NULL AND password_hash != ''
+       ORDER BY name, surname`
+    )
+    .all(branch.id);
+
+  res.json({
+    syncToken: signBranchToken(branch, firmName),
+    branch: {
+      id: branch.id,
+      firmId: branch.firm_id,
+      firmName,
+      name: branch.name,
+      branchNo: branch.code ? String(parseInt(branch.code, 10) || branch.code) : "",
+      email: branch.email || "",
+      currency: getFirmCurrency(db, branch.firm_id),
+      kind: branch.kind === "production" ? "production" : "sales",
+    },
+    staff: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      surname: row.surname || "",
+      login: row.login || "",
+      role: row.role || "Kasiyer",
+      canCashExpense: !!row.can_cash_expense,
+      passwordHash: row.password_hash,
+    })),
+  });
+});
+
 router.get("/me", authMiddleware, (req, res) => {
   const db = getDb();
 

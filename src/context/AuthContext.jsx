@@ -1,5 +1,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { api, setToken, getToken } from "../api/client";
+import { api, setToken, getToken, OFFLINE_SESSION_TOKEN } from "../api/client";
+import { isNetworkError } from "../offline/network";
+import {
+  enqueueShiftClose,
+  enqueueShiftOpen,
+  isDesktopApp,
+  saveStaffRoster,
+  verifyOfflineStaff,
+} from "../offline/staffRoster";
 import { setDisplayCurrency } from "../utils/format";
 
 const AuthContext = createContext(null);
@@ -60,14 +68,37 @@ export function AuthProvider({ children }) {
         sessionStorage.removeItem(BRANCH_BACKUP_KEY);
       }
 
-      const { token, user: account } = await api.staffLogin({ login, password });
-      sessionStorage.removeItem(ADMIN_BACKUP_KEY);
-      const accountWithShift = {
-        ...account,
-        shiftStartedAt: account.shiftStartedAt || new Date().toISOString(),
-      };
-      persistUser(accountWithShift, token);
-      return accountWithShift;
+      try {
+        const { token, user: account } = await api.staffLogin({ login, password });
+        sessionStorage.removeItem(ADMIN_BACKUP_KEY);
+        const accountWithShift = {
+          ...account,
+          shiftStartedAt: account.shiftStartedAt || new Date().toISOString(),
+          offlineSession: false,
+        };
+        persistUser(accountWithShift, token);
+        if (isDesktopApp()) {
+          try {
+            saveStaffRoster(await api.getOfflineStaff());
+          } catch {
+            /* siyahı yenilənməsə cari giriş qalsın */
+          }
+        }
+        return accountWithShift;
+      } catch (err) {
+        if (!isDesktopApp() || !isNetworkError(err)) throw err;
+        const account = verifyOfflineStaff(login, password);
+        if (!account) throw new Error("Invalid credentials");
+        sessionStorage.removeItem(ADMIN_BACKUP_KEY);
+        const accountWithShift = {
+          ...account,
+          shiftStartedAt: new Date().toISOString(),
+          offlineSession: true,
+        };
+        persistUser(accountWithShift, OFFLINE_SESSION_TOKEN);
+        enqueueShiftOpen(account.staffId, accountWithShift.shiftStartedAt);
+        return accountWithShift;
+      }
     } finally {
       setLoading(false);
     }
@@ -151,10 +182,12 @@ export function AuthProvider({ children }) {
       }
     })();
     if (current?.loginType === "staff" && !current?.impersonating && !alreadyClosed) {
+      const endedAt = new Date().toISOString();
       try {
-        await api.endStaffShift();
-      } catch {
-        /* offline / already closed — still log out */
+        if (current.offlineSession) await api.closeStaffShift({ staffId: current.staffId, endedAt });
+        else await api.endStaffShift();
+      } catch (err) {
+        if (isNetworkError(err) || current.offlineSession) enqueueShiftClose(current.staffId, endedAt);
       }
     }
     try {
@@ -169,7 +202,23 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    if (!user?.firmId || !getToken()) return undefined;
+    if (!isDesktopApp() || !user?.branchId) return undefined;
+    const token = getToken();
+    if (!token || token === OFFLINE_SESSION_TOKEN) return undefined;
+    let cancelled = false;
+    api
+      .getOfflineStaff()
+      .then((pack) => {
+        if (!cancelled) saveStaffRoster(pack);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.branchId, user?.staffId]);
+
+  useEffect(() => {
+    if (!user?.firmId || !getToken() || getToken() === OFFLINE_SESSION_TOKEN) return undefined;
     const request = user.role === "admin" ? api.getAdminCurrency() : api.getDisplayCurrency();
     let cancelled = false;
     request

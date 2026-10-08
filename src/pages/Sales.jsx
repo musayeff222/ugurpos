@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
 import { useStore } from "../store/StoreContext";
 import { api } from "../api/client";
+import { isNetworkError } from "../offline/network";
+import { enqueueShiftClose } from "../offline/staffRoster";
 import Modal from "../components/ui/Modal";
 import CashExpenseModal from "../components/CashExpenseModal";
 import StaffLoginForm from "../components/StaffLoginForm";
@@ -711,10 +713,12 @@ export default function Sales() {
     setShiftLocked(true);
     setShiftEndStep("summary");
     if (isStaffUser && !user?.impersonating) {
+      const endedAt = new Date().toISOString();
       try {
-        await api.endStaffShift();
-      } catch {
-        /* offline — still lock UI */
+        if (user?.offlineSession) await api.closeStaffShift({ staffId: user.staffId, endedAt });
+        else await api.endStaffShift();
+      } catch (err) {
+        if (isNetworkError(err) || user?.offlineSession) enqueueShiftClose(user.staffId, endedAt);
       }
     }
   };

@@ -1,5 +1,8 @@
+import { getBranchSyncToken, isDesktopApp } from "../offline/staffRoster";
+
 const TOKEN_KEY = "benimpos_token";
 const USER_KEY = "benimpos_user";
+export const OFFLINE_SESSION_TOKEN = "offline-session";
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -10,9 +13,16 @@ export function setToken(token) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
+function requestToken() {
+  const session = getToken();
+  if (session && session !== OFFLINE_SESSION_TOKEN) return session;
+  return getBranchSyncToken();
+}
+
 async function request(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...options.headers };
-  const token = getToken();
+  if (isDesktopApp()) headers["X-Ugurpos-Desktop"] = "1";
+  const token = requestToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let res;
@@ -43,6 +53,14 @@ export const api = {
 
   staffLogin: (payload) =>
     request("/auth/staff-login", { method: "POST", body: JSON.stringify(payload) }),
+
+  getOfflineStaff: () => request("/auth/offline-staff"),
+
+  openStaffShift: (payload) =>
+    request("/staff/shifts/open", { method: "POST", body: JSON.stringify(payload) }),
+
+  closeStaffShift: (payload) =>
+    request("/staff/shifts/close", { method: "POST", body: JSON.stringify(payload) }),
 
   getStaffForLogin: (branchEmail) =>
     request(`/auth/staff-for-login?branchEmail=${encodeURIComponent(branchEmail)}`),

@@ -19,6 +19,10 @@ export async function flushSyncQueue() {
           await api.createCashWithdrawal(item.payload);
         } else if (item.type === "expense") {
           await api.createExpense(item.payload);
+        } else if (item.type === "staff-shift-open") {
+          await api.openStaffShift(item.payload);
+        } else if (item.type === "staff-shift-close") {
+          await api.closeStaffShift(item.payload);
         } else {
           removeQueueItem(item.id);
           continue;

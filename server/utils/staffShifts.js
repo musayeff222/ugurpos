@@ -2,7 +2,14 @@ import { uid } from "../db/index.js";
 import { sql as SQL } from "../db/dialect.js";
 import { localDateISO } from "./businessHours.js";
 
-export function openStaffShift(db, { staffId, branchId, staffName }) {
+function parseShiftTime(value) {
+  if (typeof value !== "string" || !value.trim()) return new Date().toISOString();
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return new Date().toISOString();
+  return new Date(time).toISOString();
+}
+
+export function openStaffShift(db, { staffId, branchId, staffName, startedAt }) {
   if (!staffId || !branchId) return null;
   try {
     const open = db
@@ -10,26 +17,26 @@ export function openStaffShift(db, { staffId, branchId, staffName }) {
       .get(staffId);
     if (open) return open;
     const id = uid("sh");
-    const startedAt = new Date().toISOString();
+    const start = parseShiftTime(startedAt);
     db.prepare(
       `INSERT INTO staff_shifts (id, staff_id, branch_id, staff_name, started_at, ended_at)
        VALUES (?, ?, ?, ?, ?, NULL)`
-    ).run(id, staffId, branchId, staffName || "", startedAt);
+    ).run(id, staffId, branchId, staffName || "", start);
     return db.prepare("SELECT * FROM staff_shifts WHERE id = ?").get(id);
   } catch {
     return null;
   }
 }
 
-export function closeStaffShift(db, staffId) {
+export function closeStaffShift(db, staffId, endedAt) {
   if (!staffId) return null;
   try {
     const open = db
       .prepare("SELECT * FROM staff_shifts WHERE staff_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1")
       .get(staffId);
     if (!open) return null;
-    const endedAt = new Date().toISOString();
-    db.prepare("UPDATE staff_shifts SET ended_at = ? WHERE id = ?").run(endedAt, open.id);
+    const end = parseShiftTime(endedAt);
+    db.prepare("UPDATE staff_shifts SET ended_at = ? WHERE id = ?").run(end, open.id);
     return db.prepare("SELECT * FROM staff_shifts WHERE id = ?").get(open.id);
   } catch {
     return null;

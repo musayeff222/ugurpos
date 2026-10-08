@@ -18,7 +18,7 @@ function applyState(branchId, data) {
 }
 
 export function StoreProvider({ children }) {
-  const { isAuthenticated, activeBranchId, activeStaffName } = useAuth();
+  const { isAuthenticated, activeBranchId, activeStaffName, activeStaffId } = useAuth();
   const { lastSyncAt } = useOffline();
   const [state, setState] = useState(createDefaultState);
   const [loading, setLoading] = useState(false);
@@ -221,7 +221,13 @@ export function StoreProvider({ children }) {
       addCashWithdrawal: async (payload) => {
         const clientId = payload.clientId || newClientId("cw");
         const createdAt = payload.createdAt || new Date().toISOString();
-        const body = { ...payload, clientId, createdAt };
+        const body = {
+          ...payload,
+          clientId,
+          createdAt,
+          staffId: payload.staffId || activeStaffId || null,
+          staffName: payload.staffName || activeStaffName || "",
+        };
         try {
           const created = await api.createCashWithdrawal(body);
           await refresh();
@@ -327,7 +333,7 @@ export function StoreProvider({ children }) {
         return refresh();
       },
     }),
-    [state, loading, error, activeBranchId, activeStaffName]
+    [state, loading, error, activeBranchId, activeStaffId, activeStaffName]
   );
 
   return <StoreContext.Provider value={apiActions}>{children}</StoreContext.Provider>;

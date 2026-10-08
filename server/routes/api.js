@@ -29,7 +29,7 @@ import {
   listFirmPaymentMethodsForBranch,
   rowToFirmPaymentMethod,
 } from "../utils/firmPaymentMethods.js";
-import { closeStaffShift } from "../utils/staffShifts.js";
+import { closeStaffShift, openStaffShift } from "../utils/staffShifts.js";
 import { getFirmCurrency } from "../utils/qrMenu.js";
 import {
   adjustRecipeStock,
@@ -722,10 +722,20 @@ router.post("/cash-withdrawals", (req, res) => {
   const id = uid("cw");
   const now =
     typeof req.body.createdAt === "string" && req.body.createdAt ? req.body.createdAt : new Date().toISOString();
-  const staffName =
+  let staffId = req.user?.staffId || null;
+  let staffName =
     req.user?.loginType === "staff"
       ? req.user.staffName || "Personal"
       : req.user?.branchName || "Şube";
+  if (req.user?.loginType !== "staff" && req.body.staffId) {
+    const staff = db
+      .prepare("SELECT id, name, surname FROM staff WHERE id = ? AND branch_id = ?")
+      .get(String(req.body.staffId), req.branchId);
+    if (staff) {
+      staffId = staff.id;
+      staffName = `${staff.name || ""} ${staff.surname || ""}`.trim() || staff.name;
+    }
+  }
 
   db.prepare(
     `INSERT INTO cash_withdrawals (id, branch_id, staff_id, staff_name, amount, reason, note, created_at, client_id)
@@ -733,7 +743,7 @@ router.post("/cash-withdrawals", (req, res) => {
   ).run(
     id,
     req.branchId,
-    req.user?.staffId || null,
+    staffId,
     staffName,
     amount,
     reason,
@@ -796,6 +806,33 @@ router.patch("/cash-withdrawals/:id", (req, res) => {
   });
 
   res.json(rowToCashWithdrawal(db.prepare("SELECT * FROM cash_withdrawals WHERE id = ?").get(req.params.id)));
+});
+
+function staffOnBranch(db, staffId, branchId) {
+  if (!staffId || !branchId) return null;
+  return db.prepare("SELECT * FROM staff WHERE id = ? AND branch_id = ?").get(String(staffId), branchId);
+}
+
+router.post("/staff/shifts/open", (req, res) => {
+  const db = getDb();
+  const staff = staffOnBranch(db, req.body.staffId, req.branchId);
+  if (!staff) return res.status(404).json({ error: "Personel tapılmadı" });
+  const staffName = `${staff.name || ""} ${staff.surname || ""}`.trim() || staff.name;
+  const shift = openStaffShift(db, {
+    staffId: staff.id,
+    branchId: req.branchId,
+    staffName,
+    startedAt: req.body.startedAt,
+  });
+  res.json({ ok: true, shift: shift || null });
+});
+
+router.post("/staff/shifts/close", (req, res) => {
+  const db = getDb();
+  const staff = staffOnBranch(db, req.body.staffId, req.branchId);
+  if (!staff) return res.status(404).json({ error: "Personel tapılmadı" });
+  const closed = closeStaffShift(db, staff.id, req.body.endedAt);
+  res.json({ ok: true, shift: closed || null });
 });
 
 router.post("/staff/end-shift", (req, res) => {
