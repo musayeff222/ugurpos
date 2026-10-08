@@ -62,6 +62,7 @@ import PublicMenuLanding from "./pages/public/PublicMenuLanding";
 import PublicBranchMenu from "./pages/public/PublicBranchMenu";
 import PublicBranchCart from "./pages/public/PublicBranchCart";
 import PublicOrderStatus from "./pages/public/PublicOrderStatus";
+import TawkChat from "./components/public/TawkChat";
 
 function LegacyMenuRedirect() {
   return <Navigate to="/m" replace />;
@@ -79,6 +80,8 @@ function HomeRedirect() {
 
 export default function App() {
   return (
+    <>
+    <TawkChat />
     <Routes>
       <Route path="/login" element={<Navigate to="/m" replace />} />
       <Route path="/login/admin" element={<AdminLogin />} />
@@ -171,5 +174,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
+    </>
   );
 }
