@@ -34,7 +34,14 @@ function runOrderStripAction(action, goOrder) {
 function OrderStripImage({ item, goOrder }) {
   if (!item?.imageUrl) return null;
   const content = (
-    <img src={item.imageUrl} className="order-strip__img" alt={item.alt || ""} loading="lazy" />
+    <img
+      src={item.imageUrl}
+      className="order-strip__img"
+      alt={item.alt || ""}
+      width={570}
+      height={250}
+      loading="lazy"
+    />
   );
   if (item.action === "branches") {
     return (
@@ -153,7 +160,9 @@ export default function PublicMenuLanding() {
   if (loading) {
     return (
       <PublicQrShell firm={firm}>
-        <div className="container py-5 text-center">{t("qr.loadingMenu")}</div>
+        <div className="container py-5 text-center" style={{ minHeight: "100vh" }}>
+          {t("qr.loadingMenu")}
+        </div>
       </PublicQrShell>
     );
   }

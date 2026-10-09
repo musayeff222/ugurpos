@@ -59,7 +59,7 @@ export default function OsesSiteHeader({ firm }) {
         <div className="container">
           <nav className="navbar navbar-expand-lg">
             <Link className="navbar-brand" to="/m">
-              <img src={logoUrl} alt={title} key={logoUrl} />
+              <img src={logoUrl} alt={title} key={logoUrl} width={220} height={66} />
             </Link>
             <button
               className="navbar-toggler"

@@ -45,6 +45,8 @@ export default function OsesPromoSlider({ slides, onSlideClick }) {
             <img
               src={slide.src}
               alt={slide.alt}
+              width={1140}
+              height={550}
               role={onSlideClick ? "button" : undefined}
               onClick={onSlideClick ? () => onSlideClick(slide, i) : undefined}
               style={onSlideClick ? { cursor: "pointer" } : undefined}

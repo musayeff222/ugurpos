@@ -87,7 +87,11 @@ export default function WhatsappFloatButton({ firm }) {
   const label = t("qr.whatsappFloatLabel");
 
   return (
-    <div className={`wa-float${visible ? "" : " wa-float--hidden"}`} aria-hidden={!visible}>
+    <div
+      className={`wa-float${visible ? "" : " wa-float--hidden"}`}
+      style={{ position: "fixed", right: 20, bottom: 20, zIndex: 1200 }}
+      aria-hidden={!visible}
+    >
       <a
         href={whatsappUrl}
         className="wa-float__btn"
