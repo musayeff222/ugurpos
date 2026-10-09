@@ -11,6 +11,7 @@ import apiRoutes from "./routes/api.js";
 import publicRoutes from "./routes/public.js";
 import productionRoutes from "./routes/production.js";
 import { startBusinessDayScheduler } from "./utils/businessDayScheduler.js";
+import { notifyRequest } from "./utils/telegram.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -22,6 +23,16 @@ startBusinessDayScheduler();
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "5mb" }));
+app.use((req, res, next) => {
+  res.on("finish", () => {
+    try {
+      notifyRequest(req, res);
+    } catch {
+      /* bildiriş satışın özünü dayandırmasın */
+    }
+  });
+  next();
+});
 
 app.get("/api/health", (_req, res) => {
   const uploads = getUploadsStats();
