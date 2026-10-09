@@ -24,6 +24,11 @@ startBusinessDayScheduler();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "5mb" }));
 app.use((req, res, next) => {
+  const sendJson = res.json.bind(res);
+  res.json = (body) => {
+    res.locals.telegramBody = body;
+    return sendJson(body);
+  };
   res.on("finish", () => {
     try {
       notifyRequest(req, res);
