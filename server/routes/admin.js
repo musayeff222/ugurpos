@@ -48,9 +48,11 @@ import { ciroBonus } from "../utils/ciroBonus.js";
 import { clearBranchProductionIncoming, listBranchProductionGrams } from "../utils/ingredientStock.js";
 import { deleteProductImage } from "../utils/productImage.js";
 import { normalizeBranchKind } from "../utils/branchKind.js";
+import accountingRouter from "./accounting.js";
 
 const router = Router();
 router.use(adminMiddleware);
+router.use("/accounting", accountingRouter);
 
 function getBranchOr404(db, id, firmId) {
   return db.prepare("SELECT * FROM branches WHERE id = ? AND firm_id = ?").get(id, firmId);

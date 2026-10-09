@@ -168,6 +168,14 @@ export const api = {
     request(`/admin/payment-methods/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteAdminPaymentMethod: (id) => request(`/admin/payment-methods/${id}`, { method: "DELETE" }),
 
+  getAccounting: () => request("/admin/accounting"),
+  createWholesaler: (payload) => request("/admin/accounting/wholesalers", { method: "POST", body: JSON.stringify(payload) }),
+  createAccountKassa: (payload) => request("/admin/accounting/kassas", { method: "POST", body: JSON.stringify(payload) }),
+  createAccountPurchase: (payload) =>
+    request("/admin/accounting/purchases", { method: "POST", body: JSON.stringify(payload) }),
+  payAccountDebt: (payload) => request("/admin/accounting/debts/pay", { method: "POST", body: JSON.stringify(payload) }),
+  pullBranchCash: (payload) => request("/admin/accounting/pull", { method: "POST", body: JSON.stringify(payload) }),
+
   getAdminCatalogGroups: () => request("/admin/catalog/groups"),
   createAdminCatalogGroup: (name) =>
     request("/admin/catalog/groups", { method: "POST", body: JSON.stringify({ name }) }),

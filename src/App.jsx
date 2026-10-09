@@ -51,6 +51,7 @@ import AdminCashReports from "./pages/admin/AdminCashReports";
 import AdminCatalog from "./pages/admin/AdminCatalog";
 import AdminStaff from "./pages/admin/AdminStaff";
 import AdminPaymentMethods from "./pages/admin/AdminPaymentMethods";
+import AdminMuhasib from "./pages/admin/AdminMuhasib";
 import ProductionLayout from "./layouts/ProductionLayout";
 import ProductionRawMaterials from "./pages/production/ProductionRawMaterials";
 import ProductionWarehouse from "./pages/production/ProductionWarehouse";
@@ -111,6 +112,7 @@ export default function App() {
         <Route path="products" element={<AdminCatalog />} />
         <Route path="staff" element={<AdminStaff />} />
         <Route path="payment-methods" element={<AdminPaymentMethods />} />
+        <Route path="muhasib" element={<AdminMuhasib />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />
