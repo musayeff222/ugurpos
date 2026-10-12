@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { formatMoney } from "../../utils/format";
+import AdminWholesalers from "./AdminWholesalers";
 
 const TABS = [
   { id: "alis", label: "Yeni alış" },
@@ -43,7 +44,6 @@ export default function AdminMuhasib() {
   const [lines, setLines] = useState([]);
   const [paymentType, setPaymentType] = useState("nagd");
   const [kassaId, setKassaId] = useState("");
-  const [sellerForm, setSellerForm] = useState(emptySeller);
   const [kassaForm, setKassaForm] = useState({ name: "", kind: "nakit" });
   const [payForm, setPayForm] = useState({ wholesalerId: "", kassaId: "", amount: "" });
   const [pullForm, setPullForm] = useState({ branchId: "", kassaId: "", amount: "" });
@@ -149,21 +149,16 @@ export default function AdminMuhasib() {
     }
   };
 
-  const addSeller = async (event, fromPurchase) => {
+  const addSeller = async (event) => {
     event.preventDefault();
-    const form = fromPurchase ? newSeller : sellerForm;
     setError("");
     setMessage("");
     setSaving(true);
     try {
-      const created = await api.createWholesaler({ name: form.name, phone: form.phone });
-      if (fromPurchase) {
-        setNewSeller(emptySeller);
-        setShowNewSeller(false);
-        setWholesalerId(created.id);
-      } else {
-        setSellerForm(emptySeller);
-      }
+      const created = await api.createWholesaler({ name: newSeller.name, phone: newSeller.phone });
+      setNewSeller(emptySeller);
+      setShowNewSeller(false);
+      setWholesalerId(created.id);
       await load();
       setMessage("Toptancı eklendi.");
     } catch (err) {
@@ -234,12 +229,14 @@ export default function AdminMuhasib() {
 
   return (
     <div className="admin-page erp-page">
-      <div className="crm-listbar">
-        <div>
-          <h2>Mühasib</h2>
-          <span>Toptancı alışları, kasalar ve borçlar</span>
+      {tab !== "topdanci" && (
+        <div className="crm-listbar">
+          <div>
+            <h2>Mühasib</h2>
+            <span>Toptancı alışları, kasalar ve borçlar</span>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="muhasib-tabs">
         {TABS.map((item) => (
@@ -309,7 +306,7 @@ export default function AdminMuhasib() {
                 </label>
                 <div className="erp-field">
                   <span>&nbsp;</span>
-                  <button type="button" className="btn btn-primary" disabled={saving} onClick={(e) => addSeller(e, true)}>
+                  <button type="button" className="btn btn-primary" disabled={saving} onClick={addSeller}>
                     Kaydet
                   </button>
                 </div>
@@ -473,51 +470,15 @@ export default function AdminMuhasib() {
       )}
 
       {tab === "topdanci" && (
-        <section className="erp-panel">
-          <header className="erp-panel__head">
-            <h3>Toptancılar</h3>
-          </header>
-          <form className="erp-form" onSubmit={(e) => addSeller(e, false)}>
-            <label className="erp-field">
-              <span>Ad</span>
-              <input
-                value={sellerForm.name}
-                onChange={(e) => setSellerForm({ ...sellerForm, name: e.target.value })}
-                required
-              />
-            </label>
-            <label className="erp-field">
-              <span>Telefon</span>
-              <input value={sellerForm.phone} onChange={(e) => setSellerForm({ ...sellerForm, phone: e.target.value })} />
-            </label>
-            <div className="erp-field">
-              <span>&nbsp;</span>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
-                Toptancı oluştur
-              </button>
-            </div>
-          </form>
-          <div className="erp-table-wrap">
-            <table className="erp-table">
-              <thead>
-                <tr>
-                  <th>Ad</th>
-                  <th>Telefon</th>
-                  <th>Borç</th>
-                </tr>
-              </thead>
-              <tbody>
-                {wholesalers.map((person) => (
-                  <tr key={person.id}>
-                    <td>{person.name}</td>
-                    <td>{person.phone || "—"}</td>
-                    <td>{formatMoney(person.debt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <AdminWholesalers
+          wholesalers={wholesalers}
+          kassas={kassas}
+          onChanged={load}
+          onStartPurchase={(id) => {
+            setWholesalerId(id);
+            openTab("alis");
+          }}
+        />
       )}
 
       {tab === "kasa" && (

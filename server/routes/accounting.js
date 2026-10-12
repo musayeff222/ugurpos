@@ -5,8 +5,10 @@ import {
   createPurchase,
   createWholesaler,
   getAccountingOverview,
+  getWholesalerDetail,
   payDebt,
   pullBranchCash,
+  updateWholesaler,
 } from "../utils/accounting.js";
 
 const router = Router();
@@ -26,6 +28,22 @@ router.get("/", (req, res) => {
 router.post("/wholesalers", (req, res) => {
   try {
     res.status(201).json(createWholesaler(getDb(), req.user.firmId, req.body || {}));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.get("/wholesalers/:id", (req, res) => {
+  try {
+    res.json(getWholesalerDetail(getDb(), req.user.firmId, req.params.id));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.patch("/wholesalers/:id", (req, res) => {
+  try {
+    res.json(updateWholesaler(getDb(), req.user.firmId, req.params.id, req.body || {}));
   } catch (err) {
     sendError(res, err);
   }

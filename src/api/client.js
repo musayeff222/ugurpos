@@ -170,6 +170,9 @@ export const api = {
 
   getAccounting: () => request("/admin/accounting"),
   createWholesaler: (payload) => request("/admin/accounting/wholesalers", { method: "POST", body: JSON.stringify(payload) }),
+  getWholesaler: (id) => request(`/admin/accounting/wholesalers/${id}`),
+  updateWholesaler: (id, payload) =>
+    request(`/admin/accounting/wholesalers/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   createAccountKassa: (payload) => request("/admin/accounting/kassas", { method: "POST", body: JSON.stringify(payload) }),
   createAccountPurchase: (payload) =>
     request("/admin/accounting/purchases", { method: "POST", body: JSON.stringify(payload) }),

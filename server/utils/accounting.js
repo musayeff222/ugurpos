@@ -47,24 +47,36 @@ function kassaBalances(db, firmId) {
 
 function wholesalerDebts(db, firmId) {
   const people = db
-    .prepare("SELECT id, name, phone, note FROM account_wholesalers WHERE firm_id = ? ORDER BY name")
+    .prepare(
+      `SELECT w.id, w.name, w.phone, w.note, w.created_at AS createdAt,
+              (SELECT COALESCE(SUM(total), 0) FROM account_purchases p
+                WHERE p.firm_id = w.firm_id AND p.wholesaler_id = w.id AND p.payment_type = 'borc') AS debtBought,
+              (SELECT COALESCE(SUM(amount), 0) FROM account_movements m
+                WHERE m.firm_id = w.firm_id AND m.kind = 'debt' AND m.ref_id = w.id) AS debtPaid,
+              (SELECT COUNT(*) FROM account_purchases p WHERE p.firm_id = w.firm_id AND p.wholesaler_id = w.id) AS purchaseCount,
+              (SELECT COALESCE(SUM(total), 0) FROM account_purchases p WHERE p.firm_id = w.firm_id AND p.wholesaler_id = w.id) AS purchaseTotal,
+              (SELECT MAX(created_at) FROM account_purchases p WHERE p.firm_id = w.firm_id AND p.wholesaler_id = w.id) AS lastPurchaseAt
+       FROM account_wholesalers w
+       WHERE w.firm_id = ?
+       ORDER BY w.name`
+    )
     .all(firmId);
   return people.map((person) => {
-    const bought = num(
-      db
-        .prepare(
-          "SELECT COALESCE(SUM(total), 0) AS t FROM account_purchases WHERE firm_id = ? AND wholesaler_id = ? AND payment_type = 'borc'"
-        )
-        .get(firmId, person.id)?.t
-    );
-    const paid = num(
-      db
-        .prepare(
-          "SELECT COALESCE(SUM(amount), 0) AS t FROM account_movements WHERE firm_id = ? AND kind = 'debt' AND ref_id = ?"
-        )
-        .get(firmId, person.id)?.t
-    );
-    return { ...person, debt: roundMoney(Math.max(0, bought - paid)) };
+    const bought = num(person.debtBought);
+    const paid = num(person.debtPaid);
+    return {
+      id: person.id,
+      name: person.name,
+      phone: person.phone || "",
+      note: person.note || "",
+      createdAt: person.createdAt || "",
+      debt: roundMoney(Math.max(0, bought - paid)),
+      debtBought: roundMoney(bought),
+      debtPaid: roundMoney(paid),
+      purchaseCount: Number(person.purchaseCount) || 0,
+      purchaseTotal: roundMoney(person.purchaseTotal),
+      lastPurchaseAt: person.lastPurchaseAt || "",
+    };
   });
 }
 
@@ -147,15 +159,81 @@ export function getAccountingOverview(db, firmId) {
 export function createWholesaler(db, firmId, body) {
   const name = String(body.name || "").trim();
   const phone = String(body.phone || "").trim();
-  if (!name) throw new Error("Topdancı adı zorunludur");
+  const note = String(body.note || "").trim();
+  if (!name) throw new Error("Toptancı adı zorunludur");
   const id = uid("td");
-  db.prepare("INSERT INTO account_wholesalers (id, firm_id, name, phone) VALUES (?, ?, ?, ?)").run(
+  db.prepare("INSERT INTO account_wholesalers (id, firm_id, name, phone, note) VALUES (?, ?, ?, ?, ?)").run(
     id,
     firmId,
     name,
-    phone
+    phone,
+    note
   );
-  return { id, name, phone, debt: 0 };
+  return { id, name, phone, note, debt: 0, purchaseCount: 0, purchaseTotal: 0 };
+}
+
+export function updateWholesaler(db, firmId, id, body) {
+  const existing = db.prepare("SELECT id FROM account_wholesalers WHERE id = ? AND firm_id = ?").get(id, firmId);
+  if (!existing) throw new Error("Toptancı bulunamadı");
+  const name = String(body.name || "").trim();
+  const phone = String(body.phone || "").trim();
+  const note = String(body.note || "").trim();
+  if (!name) throw new Error("Toptancı adı zorunludur");
+  db.prepare("UPDATE account_wholesalers SET name = ?, phone = ?, note = ? WHERE id = ?").run(name, phone, note, id);
+  return { id, name, phone, note };
+}
+
+function purchaseRows(db, firmId, wholesalerId) {
+  const rows = db
+    .prepare(
+      `SELECT p.id, p.wholesaler_id AS wholesalerId, w.name AS wholesalerName, w.phone AS wholesalerPhone,
+              p.payment_type AS paymentType, p.kassa_id AS kassaId, k.name AS kassaName,
+              p.total, p.note, p.created_at AS createdAt
+       FROM account_purchases p
+       LEFT JOIN account_wholesalers w ON w.id = p.wholesaler_id
+       LEFT JOIN account_kassas k ON k.id = p.kassa_id
+       WHERE p.firm_id = ? AND p.wholesaler_id = ?
+       ORDER BY p.created_at DESC
+       LIMIT 80`
+    )
+    .all(firmId, wholesalerId);
+  return rows.map((row) => ({
+    ...row,
+    total: num(row.total),
+    lines: db
+      .prepare(
+        "SELECT firm_product_id AS productId, name, qty, buy_price AS buyPrice FROM account_purchase_lines WHERE purchase_id = ?"
+      )
+      .all(row.id)
+      .map((line) => ({ ...line, qty: num(line.qty), buyPrice: num(line.buyPrice) })),
+  }));
+}
+
+export function getWholesalerDetail(db, firmId, id) {
+  const person = wholesalerDebts(db, firmId).find((row) => row.id === id);
+  if (!person) throw new Error("Toptancı bulunamadı");
+  const payments = db
+    .prepare(
+      `SELECT m.id, m.amount, m.note, m.created_at AS createdAt, k.name AS kassaName
+       FROM account_movements m
+       LEFT JOIN account_kassas k ON k.id = m.kassa_id
+       WHERE m.firm_id = ? AND m.kind = 'debt' AND m.ref_id = ?
+       ORDER BY m.created_at DESC
+       LIMIT 80`
+    )
+    .all(firmId, id)
+    .map((row) => ({ ...row, amount: num(row.amount) }));
+  const prices = db
+    .prepare(
+      `SELECT b.firm_product_id AS productId, p.name, b.buy_price AS buyPrice
+       FROM account_buy_prices b
+       LEFT JOIN firm_products p ON p.id = b.firm_product_id
+       WHERE b.firm_id = ? AND b.wholesaler_id = ?
+       ORDER BY p.name`
+    )
+    .all(firmId, id)
+    .map((row) => ({ ...row, buyPrice: num(row.buyPrice), name: row.name || "Ürün" }));
+  return { ...person, purchases: purchaseRows(db, firmId, id), payments, prices };
 }
 
 export function createKassa(db, firmId, body) {

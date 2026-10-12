@@ -3488,6 +3488,195 @@
   width: 110px;
 }
 
+.crm-supplier-filters {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.crm-supplier-filters button {
+  border: 1px solid #dddbda;
+  background: #fff;
+  color: #181818;
+  border-radius: 16px;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.crm-supplier-filters button.active {
+  background: #0176d3;
+  border-color: #0176d3;
+  color: #fff;
+}
+
+.crm-workspace {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.crm-rail {
+  background: #fff;
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  max-height: 72vh;
+  overflow: auto;
+}
+
+.crm-rail__item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid #f3f2f2;
+  background: #fff;
+  cursor: pointer;
+}
+
+.crm-rail__item.active {
+  background: #f3f9ff;
+  box-shadow: inset 3px 0 0 #0176d3;
+}
+
+.crm-rail__body,
+.crm-rail__side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.crm-rail__body strong,
+.crm-rail__side b {
+  color: #181818;
+  font-size: 13px;
+}
+
+.crm-rail__body small,
+.crm-rail__side small,
+.crm-rail__empty,
+.crm-stage__note {
+  color: #706e6b;
+  font-size: 11px;
+}
+
+.crm-rail__side {
+  text-align: right;
+}
+
+.crm-rail__empty,
+.crm-stage__note {
+  margin: 0;
+  padding: 16px;
+}
+
+.crm-stage__empty {
+  background: #fff;
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px;
+}
+
+.crm-stage__empty h3,
+.crm-stage__empty p {
+  margin: 0;
+}
+
+.crm-stage__empty p {
+  color: #706e6b;
+  max-width: 420px;
+}
+
+.crm-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 16px;
+}
+
+.crm-timeline li {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.crm-timeline__dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 14px;
+  border-radius: 50%;
+  background: #0176d3;
+  box-shadow: 0 14px 0 0 #dddbda;
+}
+
+.crm-timeline li:last-child .crm-timeline__dot {
+  box-shadow: none;
+}
+
+.crm-timeline__card {
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  background: #fff;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.crm-timeline__card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.crm-timeline__card p {
+  margin: 6px 0 4px;
+}
+
+.crm-timeline__card small {
+  color: #706e6b;
+}
+
+.crm-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 4px 2px 8px;
+}
+
+.crm-info-grid span {
+  display: block;
+  color: #706e6b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.crm-info-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: #181818;
+}
+
+@media (max-width: 900px) {
+  .crm-workspace,
+  .crm-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-rail {
+    max-height: 280px;
+  }
+}
+
 .muhasib-kassas article {
   background: #fff;
   border: 1px solid #d7dce8;
