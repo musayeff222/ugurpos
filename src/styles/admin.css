@@ -3716,6 +3716,64 @@ button.admin-branch-card {
   }
 }
 
+.day-branch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.day-card {
+  background: #fff;
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.day-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.day-card h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #181818;
+}
+
+.day-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.day-card dt {
+  color: #706e6b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.day-card dd {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #181818;
+}
+
+.day-card .btn {
+  width: 100%;
+}
+
+.day-card--closed {
+  opacity: 0.72;
+}
+
 .muhasib-kassas article {
   background: #fff;
   border: 1px solid #d7dce8;

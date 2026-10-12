@@ -86,6 +86,27 @@ export function migrateAccounting(db) {
   );
   tryExec(
     db,
+    `CREATE TABLE IF NOT EXISTS account_firm_days (
+      firm_id ${id} PRIMARY KEY,
+      business_date ${text} NOT NULL,
+      opened_at ${text} NOT NULL
+    )`
+  );
+  tryExec(
+    db,
+    `CREATE TABLE IF NOT EXISTS account_day_closes (
+      id ${id} PRIMARY KEY,
+      firm_id ${id} NOT NULL,
+      branch_id ${id} NOT NULL,
+      business_date ${text} NOT NULL,
+      amount ${money} NOT NULL DEFAULT 0,
+      kassa_id ${id},
+      closed_at ${text} NOT NULL
+    )`
+  );
+  tryExec(db, "CREATE UNIQUE INDEX idx_account_day_branch ON account_day_closes (branch_id, business_date)");
+  tryExec(
+    db,
     `CREATE TABLE IF NOT EXISTS account_branch_pulls (
       id ${id} PRIMARY KEY,
       firm_id ${id} NOT NULL,

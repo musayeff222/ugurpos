@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { formatMoney } from "../../utils/format";
+import AdminDay from "./AdminDay";
 import AdminWholesalers from "./AdminWholesalers";
 
 const TABS = [
+  { id: "bugun", label: "Bugün" },
   { id: "alis", label: "Yeni alış" },
   { id: "topdanci", label: "Toptancılar" },
   { id: "kasa", label: "Kasalar" },
@@ -31,8 +33,9 @@ function paymentLabel(type) {
 
 export default function AdminMuhasib() {
   const [params, setParams] = useSearchParams();
-  const tab = TABS.some((item) => item.id === params.get("bolum")) ? params.get("bolum") : "alis";
-  const openTab = (id) => setParams(id === "alis" ? {} : { bolum: id }, { replace: true });
+  const requested = params.get("bolum");
+  const tab = TABS.some((item) => item.id === requested) ? requested : "bugun";
+  const openTab = (id) => setParams(id === "bugun" ? {} : { bolum: id }, { replace: true });
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -229,7 +232,7 @@ export default function AdminMuhasib() {
 
   return (
     <div className="admin-page erp-page">
-      {tab !== "topdanci" && (
+      {tab !== "topdanci" && tab !== "bugun" && (
         <div className="crm-listbar">
           <div>
             <h2>Mühasib</h2>
@@ -255,8 +258,10 @@ export default function AdminMuhasib() {
         ))}
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-      {message && <div className="alert alert-info">{message}</div>}
+      {tab !== "topdanci" && error && <div className="alert alert-danger">{error}</div>}
+      {tab !== "bugun" && tab !== "topdanci" && message && <div className="alert alert-info">{message}</div>}
+
+      {tab === "bugun" && <AdminDay day={data?.day} onChanged={load} />}
 
       {tab === "alis" && (
         <form className="erp-panel" onSubmit={savePurchase}>

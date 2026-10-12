@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getDb } from "../db/index.js";
 import {
+  closeBranchDay,
   createKassa,
   createPurchase,
   createWholesaler,
@@ -68,6 +69,14 @@ router.post("/purchases", (req, res) => {
 router.post("/debts/pay", (req, res) => {
   try {
     res.json(payDebt(getDb(), req.user.firmId, req.body || {}));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.post("/days/close", (req, res) => {
+  try {
+    res.json(closeBranchDay(getDb(), req.user.firmId, String(req.body?.branchId || "")));
   } catch (err) {
     sendError(res, err);
   }

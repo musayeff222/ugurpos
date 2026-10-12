@@ -22,7 +22,8 @@ const adminNav = [
   {
     title: "Mühasib",
     items: [
-      { to: "/admin/muhasib", label: "Yeni alış", icon: "fa-shopping-basket", end: true },
+      { to: "/admin/muhasib", label: "Bugün", icon: "fa-calendar", end: true },
+      { to: "/admin/muhasib?bolum=alis", label: "Yeni alış", icon: "fa-shopping-basket" },
       { to: "/admin/muhasib?bolum=topdanci", label: "Toptancılar", icon: "fa-truck" },
       { to: "/admin/muhasib?bolum=kasa", label: "Kasalar", icon: "fa-money" },
       { to: "/admin/muhasib?bolum=borc", label: "Borçlar", icon: "fa-book" },
@@ -118,8 +119,8 @@ export default function AdminLayout() {
   const isNavActive = (item) =>
     (item.to.startsWith("/admin/muhasib") &&
       location.pathname.startsWith("/admin/muhasib") &&
-      (new URLSearchParams(item.to.split("?")[1] || "").get("bolum") || "alis") ===
-        (new URLSearchParams(location.search).get("bolum") || "alis")) ||
+      (new URLSearchParams(item.to.split("?")[1] || "").get("bolum") || "bugun") ===
+        (new URLSearchParams(location.search).get("bolum") || "bugun")) ||
     (!item.to.startsWith("/admin/muhasib") && location.pathname === item.to) ||
     (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches")) ||
     (item.to === "/admin/istehsalat" && location.pathname.startsWith("/admin/istehsalat")) ||
