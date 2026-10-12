@@ -172,9 +172,23 @@ export default function AdminWholesalers({ wholesalers, kassas, onChanged, onSta
 
   const person = detail && detail.id === selectedId ? detail : wholesalers.find((row) => row.id === selectedId);
 
+  const openPerson = (id) => {
+    setSelectedId(id);
+    setRecordTab("activity");
+    setError("");
+    setMessage("");
+  };
+
+  const closePerson = () => {
+    setSelectedId("");
+    setDetail(null);
+    setError("");
+    setMessage("");
+  };
+
   return (
     <div className="crm-suppliers">
-      <div className="crm-listbar">
+      {!person && <div className="crm-listbar">
         <div>
           <h2>Toptancılar</h2>
           <span>
@@ -190,12 +204,12 @@ export default function AdminWholesalers({ wholesalers, kassas, onChanged, onSta
             Toptancı oluştur
           </button>
         </div>
-      </div>
+      </div>}
 
       {error && !formOpen && !payOpen && <div className="alert alert-danger">{error}</div>}
       {message && <div className="alert alert-info">{message}</div>}
 
-      <div className="crm-metrics crm-metrics--4">
+      {!person && <div className="crm-metrics crm-metrics--4">
         <article>
           <span>Hesap</span>
           <strong>{wholesalers.length}</strong>
@@ -216,62 +230,108 @@ export default function AdminWholesalers({ wholesalers, kassas, onChanged, onSta
           <strong>{wholesalers.length - debtors}</strong>
           <small>kapalı hesap</small>
         </article>
-      </div>
+      </div>}
 
-      <div className="crm-supplier-filters">
-        {FILTERS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={filter === item.id ? "active" : ""}
-            onClick={() => setFilter(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="crm-workspace">
-        <aside className="crm-rail">
-          {rows.map((row) => (
-            <button
-              key={row.id}
-              type="button"
-              className={selectedId === row.id ? "crm-rail__item active" : "crm-rail__item"}
-              onClick={() => {
-                setSelectedId(row.id);
-                setRecordTab("activity");
-                setError("");
-                setMessage("");
-              }}
-            >
-              <span className="crm-avatar">{initials(row.name)}</span>
-              <span className="crm-rail__body">
-                <strong>{row.name}</strong>
-                <small>{row.phone || "Telefon yok"}</small>
-              </span>
-              <span className="crm-rail__side">
-                <b>{Number(row.debt) > 0 ? formatMoney(row.debt) : "—"}</b>
-                <small>{Number(row.debt) > 0 ? "borç" : "temiz"}</small>
-              </span>
-            </button>
-          ))}
-          {!rows.length && <p className="crm-rail__empty">Bu filtrede toptancı yok.</p>}
-        </aside>
-
-        <section className="crm-stage">
-          {!person && (
-            <div className="crm-stage__empty">
-              <h3>Hesap seçin</h3>
-              <p>Soldan bir toptancı açın ya da yeni hesap oluşturun. Alışlar, borç ve kayıtlı fiyatlar burada durur.</p>
-              <button type="button" className="btn btn-primary" onClick={openCreate}>
-                Toptancı oluştur
+      {!person && (
+        <section className="erp-panel erp-panel--flush">
+          <div className="erp-filters">
+            {FILTERS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={filter === item.id ? "btn btn-primary btn-sm" : "btn btn-default btn-sm"}
+                onClick={() => setFilter(item.id)}
+              >
+                {item.label}
               </button>
-            </div>
-          )}
+            ))}
+          </div>
+          <div className="admin-table-wrap admin-table-wrap--desktop-only">
+            <table className="erp-table">
+              <thead>
+                <tr>
+                  <th>Toptancı</th>
+                  <th>Telefon</th>
+                  <th>Açık borç</th>
+                  <th>Toplam alış</th>
+                  <th>Son alış</th>
+                  <th>Durum</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id} className="crm-row-link" onClick={() => openPerson(row.id)}>
+                    <td>
+                      <span className="crm-account">
+                        <span className="crm-avatar">{initials(row.name)}</span>
+                        <span>
+                          <strong>{row.name}</strong>
+                          <small>{row.note || "Not yok"}</small>
+                        </span>
+                      </span>
+                    </td>
+                    <td>{row.phone || "—"}</td>
+                    <td>
+                      <strong>{formatMoney(row.debt || 0)}</strong>
+                    </td>
+                    <td>
+                      <strong>{formatMoney(row.purchaseTotal || 0)}</strong>
+                      <small>{row.purchaseCount || 0} fiş</small>
+                    </td>
+                    <td>{row.lastPurchaseAt ? when(row.lastPurchaseAt) : "—"}</td>
+                    <td>
+                      <span className={`admin-badge ${Number(row.debt) > 0 ? "pending" : "ok"}`}>
+                        {Number(row.debt) > 0 ? "Borçlu" : "Kapalı"}
+                      </span>
+                    </td>
+                    <td>
+                      <button type="button" className="btn btn-default btn-sm" onClick={() => openPerson(row.id)}>
+                        Aç
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!rows.length && (
+                  <tr>
+                    <td colSpan={7} className="erp-table__empty">
+                      {wholesalers.length ? "Bu filtrede toptancı yok." : "Henüz toptancı yok. Toptancı oluştur düğmesine basın."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="admin-branch-grid admin-mobile-list">
+            {rows.map((row) => (
+              <button key={row.id} type="button" className="admin-branch-card admin-branch-card--link" onClick={() => openPerson(row.id)}>
+                <div className="admin-branch-card__head">
+                  <div>
+                    <h3>{row.name}</h3>
+                    <span className="admin-branch-email">{row.phone || "Telefon yok"}</span>
+                  </div>
+                  <span className={`admin-badge ${Number(row.debt) > 0 ? "pending" : "ok"}`}>
+                    {Number(row.debt) > 0 ? "Borçlu" : "Kapalı"}
+                  </span>
+                </div>
+                <div className="admin-branch-card__stats admin-branch-card__stats--2">
+                  <div>
+                    <span>Borç</span>
+                    <strong>{formatMoney(row.debt || 0)}</strong>
+                  </div>
+                  <div>
+                    <span>Alış</span>
+                    <strong>{formatMoney(row.purchaseTotal || 0)}</strong>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
-          {person && (
-            <>
+      {person && (
+        <>
               <section className="crm-record">
                 <div className="crm-record__top">
                   <div className="crm-record__id">
@@ -289,6 +349,9 @@ export default function AdminWholesalers({ wholesalers, kassas, onChanged, onSta
                     </span>
                   </div>
                   <div className="crm-record__actions">
+                    <button type="button" className="btn btn-default btn-sm" onClick={closePerson}>
+                      Liste
+                    </button>
                     <button type="button" className="btn btn-default btn-sm" onClick={openEdit}>
                       Düzenle
                     </button>
@@ -461,10 +524,8 @@ export default function AdminWholesalers({ wholesalers, kassas, onChanged, onSta
                   </div>
                 </section>
               )}
-            </>
-          )}
-        </section>
-      </div>
+        </>
+      )}
 
       <Modal open={formOpen} size="lg" title={editId ? "Toptancıyı düzenle" : "Yeni toptancı"} onClose={() => setFormOpen(false)}>
         <form className="erp-form" onSubmit={savePerson}>

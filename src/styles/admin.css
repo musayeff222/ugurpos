@@ -3458,6 +3458,45 @@
   margin-bottom: 16px;
 }
 
+.erp-page .muhasib-tabs {
+  gap: 0;
+  margin: 0 0 14px;
+  background: #fff;
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  overflow: auto;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.erp-page .muhasib-tabs .btn {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #181818;
+  box-shadow: none;
+  min-height: 42px;
+  border-bottom: 3px solid transparent;
+}
+
+.erp-page .muhasib-tabs .btn-primary {
+  background: transparent;
+  border-color: transparent;
+  color: #0176d3;
+  border-bottom-color: #0176d3;
+}
+
+button.admin-branch-card {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.crm-row-link {
+  cursor: pointer;
+}
+
 .muhasib-products {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
