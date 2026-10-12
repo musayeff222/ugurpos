@@ -1,3 +1,5 @@
+import { addColumnIfMissing } from "./columns.js";
+
 function tryExec(db, sql) {
   try {
     db.exec(sql);
@@ -113,8 +115,10 @@ export function migrateAccounting(db) {
       branch_id ${id} NOT NULL,
       kassa_id ${id} NOT NULL,
       amount ${money} NOT NULL DEFAULT 0,
+      kind ${text} NOT NULL DEFAULT 'nakit',
       note ${longText},
       created_at ${stamp}
     )`
   );
+  addColumnIfMissing(db, "account_branch_pulls", "kind", mysql ? "VARCHAR(32) DEFAULT 'nakit'" : "TEXT DEFAULT 'nakit'");
 }

@@ -9,10 +9,11 @@ export default function AdminDay({ day, onChanged }) {
   const branches = day?.branches || [];
 
   const closeDay = async (branch) => {
-    const amount = formatMoney(branch.available || 0);
+    const cash = Number(branch.available) || 0;
+    const card = Number(branch.cardAvailable) || 0;
     const text =
-      Number(branch.available) > 0
-        ? `${branch.name} kasasındaki ${amount} nakit kasaya alınsın ve gün kapansın mı?`
+      cash > 0 || card > 0
+        ? `${branch.name}: ${formatMoney(cash)} nakit kasaya, ${formatMoney(card)} banka kasasına alınsın ve gün kapansın mı?`
         : `${branch.name} kasası boş. Gün kapansın mı?`;
     if (!window.confirm(text)) return;
     setError("");
@@ -64,12 +65,20 @@ export default function AdminDay({ day, onChanged }) {
                 <dd>{formatMoney(branch.cashSales || 0)}</dd>
               </div>
               <div>
-                <dt>Gider</dt>
-                <dd>{formatMoney(branch.expenses || 0)}</dd>
+                <dt>Kart satış</dt>
+                <dd>{formatMoney(branch.cardSales || 0)}</dd>
               </div>
               <div>
-                <dt>Kasada</dt>
+                <dt>Nakitte</dt>
                 <dd>{formatMoney(branch.available || 0)}</dd>
+              </div>
+              <div>
+                <dt>Kartta</dt>
+                <dd>{formatMoney(branch.cardAvailable || 0)}</dd>
+              </div>
+              <div>
+                <dt>Gider</dt>
+                <dd>{formatMoney(branch.expenses || 0)}</dd>
               </div>
             </dl>
             <button

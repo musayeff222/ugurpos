@@ -155,21 +155,27 @@ function ensureFirmDay(db, firmId) {
   return { businessDate, openedAt };
 }
 
-function periodCash(db, branchId, openedAt) {
+function periodParts(db, branchId, openedAt) {
   const start = new Date(openedAt).getTime();
   const sales = db
     .prepare(
       "SELECT created_at, payment_type, total, cash_amount, pos_amount FROM sales WHERE branch_id = ? AND payment_type != 'refund'"
     )
     .all(branchId);
-  return roundMoney(
-    sales
-      .filter((sale) => {
-        const time = new Date(sale.created_at).getTime();
-        return Number.isFinite(time) && time >= start;
-      })
-      .reduce((sum, sale) => sum + getSalePaymentParts(sale).cash, 0)
-  );
+  return sales
+    .filter((sale) => {
+      const time = new Date(sale.created_at).getTime();
+      return Number.isFinite(time) && time >= start;
+    })
+    .reduce(
+      (sum, sale) => {
+        const parts = getSalePaymentParts(sale);
+        sum.cash += parts.cash;
+        sum.pos += parts.pos;
+        return sum;
+      },
+      { cash: 0, pos: 0 }
+    );
 }
 
 function periodExpenses(db, branchId, businessDate) {
@@ -192,14 +198,18 @@ function branchCloseRow(db, branchId, businessDate) {
 function dayBranches(db, firmId, businessDate, openedAt) {
   return salesBranches(db, firmId).map((branch) => {
     const available = branchAvailable(db, branch.id);
+    const cardAvailable = branchCardAvailable(db, branch.id);
     const close = branchCloseRow(db, branch.id, businessDate);
-    const closed = Boolean(close) && available <= 0.009;
+    const parts = periodParts(db, branch.id, openedAt);
+    const closed = Boolean(close) && available <= 0.009 && cardAvailable <= 0.009;
     return {
       id: branch.id,
       name: branch.name,
-      cashSales: periodCash(db, branch.id, openedAt),
+      cashSales: roundMoney(parts.cash),
+      cardSales: roundMoney(parts.pos),
       expenses: periodExpenses(db, branch.id, businessDate),
       available,
+      cardAvailable,
       closed,
       closedAt: close?.closedAt || "",
     };
@@ -240,33 +250,41 @@ export function closeBranchDay(db, firmId, branchId) {
   const branch = salesBranches(db, firmId).find((row) => row.id === branchId);
   if (!branch) throw new Error("Satış şubesi bulunamadı");
   const available = branchAvailable(db, branch.id);
+  const cardAvailable = branchCardAvailable(db, branch.id);
   const existing = branchCloseRow(db, branch.id, day.businessDate);
-  if (existing && available <= 0.009) throw new Error("Bu şube bu gün kapandı");
+  if (existing && available <= 0.009 && cardAvailable <= 0.009) throw new Error("Bu şube bu gün kapandı");
   const nakit = db
     .prepare("SELECT id, name FROM account_kassas WHERE firm_id = ? AND kind = 'nakit' ORDER BY created_at LIMIT 1")
     .get(firmId);
+  const banka = db
+    .prepare("SELECT id, name FROM account_kassas WHERE firm_id = ? AND kind = 'banka' ORDER BY created_at LIMIT 1")
+    .get(firmId);
   if (available > 0.009 && !nakit) throw new Error("Nakit kasa yok");
+  if (cardAvailable > 0.009 && !banka) throw new Error("Banka kasa yok");
+  const collected = roundMoney(available + cardAvailable);
   const write = db.transaction(() => {
-    if (available > 0.009) {
+    const pull = (kassaId, amount, kind, label) => {
       const pullId = uid("pull");
       db.prepare(
-        "INSERT INTO account_branch_pulls (id, firm_id, branch_id, kassa_id, amount, note) VALUES (?, ?, ?, ?, ?, ?)"
-      ).run(pullId, firmId, branch.id, nakit.id, available, `${day.businessDate} gün sonu`);
+        "INSERT INTO account_branch_pulls (id, firm_id, branch_id, kassa_id, amount, kind, note) VALUES (?, ?, ?, ?, ?, ?, ?)"
+      ).run(pullId, firmId, branch.id, kassaId, amount, kind, `${day.businessDate} gün sonu ${label}`);
       db.prepare(
         "INSERT INTO account_movements (id, firm_id, kassa_id, direction, amount, kind, ref_id, note) VALUES (?, ?, ?, 'in', ?, 'branch', ?, ?)"
-      ).run(uid("mov"), firmId, nakit.id, available, pullId, `${branch.name} gün sonu`);
-    }
+      ).run(uid("mov"), firmId, kassaId, amount, pullId, `${branch.name} ${label}`);
+    };
+    if (available > 0.009) pull(nakit.id, available, "nakit", "nakit");
+    if (cardAvailable > 0.009) pull(banka.id, cardAvailable, "kart", "kart");
     const closedAt = new Date().toISOString();
     if (existing) {
       db.prepare("UPDATE account_day_closes SET amount = ?, closed_at = ? WHERE id = ?").run(
-        roundMoney(num(existing.amount) + available),
+        roundMoney(num(existing.amount) + collected),
         closedAt,
         existing.id
       );
     } else {
       db.prepare(
         "INSERT INTO account_day_closes (id, firm_id, branch_id, business_date, amount, kassa_id, closed_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      ).run(uid("day"), firmId, branch.id, day.businessDate, available, nakit?.id || null, closedAt);
+      ).run(uid("day"), firmId, branch.id, day.businessDate, collected, nakit?.id || banka?.id || null, closedAt);
     }
     maybeAdvanceFirmDay(db, firmId, day.businessDate);
   });
@@ -288,9 +306,28 @@ function branchAvailable(db, branchId) {
     db.prepare("SELECT COALESCE(SUM(amount), 0) AS t FROM cash_withdrawals WHERE branch_id = ?").get(branchId)?.t
   );
   const pulled = num(
-    db.prepare("SELECT COALESCE(SUM(amount), 0) AS t FROM account_branch_pulls WHERE branch_id = ?").get(branchId)?.t
+    db
+      .prepare(
+        "SELECT COALESCE(SUM(amount), 0) AS t FROM account_branch_pulls WHERE branch_id = ? AND (kind IS NULL OR kind = '' OR kind = 'nakit')"
+      )
+      .get(branchId)?.t
   );
   return roundMoney(Math.max(0, cash - expenses - withdrawn - pulled));
+}
+
+function branchCardAvailable(db, branchId) {
+  const sales = db
+    .prepare(
+      "SELECT payment_type, total, cash_amount, pos_amount FROM sales WHERE branch_id = ? AND payment_type != 'refund'"
+    )
+    .all(branchId);
+  const card = sales.reduce((sum, sale) => sum + getSalePaymentParts(sale).pos, 0);
+  const pulled = num(
+    db
+      .prepare("SELECT COALESCE(SUM(amount), 0) AS t FROM account_branch_pulls WHERE branch_id = ? AND kind = 'kart'")
+      .get(branchId)?.t
+  );
+  return roundMoney(Math.max(0, card - pulled));
 }
 
 export function getAccountingOverview(db, firmId) {
@@ -528,7 +565,7 @@ export function pullBranchCash(db, firmId, body) {
   const pullId = uid("pull");
   const write = db.transaction(() => {
     db.prepare(
-      "INSERT INTO account_branch_pulls (id, firm_id, branch_id, kassa_id, amount, note) VALUES (?, ?, ?, ?, ?, ?)"
+      "INSERT INTO account_branch_pulls (id, firm_id, branch_id, kassa_id, amount, kind, note) VALUES (?, ?, ?, ?, ?, 'nakit', ?)"
     ).run(pullId, firmId, branch.id, kassa.id, amount, String(body.note || "").trim());
     db.prepare(
       "INSERT INTO account_movements (id, firm_id, kassa_id, direction, amount, kind, ref_id, note) VALUES (?, ?, ?, 'in', ?, 'branch', ?, ?)"
