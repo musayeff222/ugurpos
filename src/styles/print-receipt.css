@@ -134,6 +134,15 @@ body.printing-a4 .receipt-print-root {
   z-index: 99999;
 }
 
+@page purchase-a4 {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
+body.printing-a4 .receipt-print-root {
+  page: purchase-a4;
+}
+
 @media print {
   @page {
     size: 80mm auto;

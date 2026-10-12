@@ -100,7 +100,7 @@ function recentPurchases(db, firmId) {
        LEFT JOIN account_kassas k ON k.id = p.kassa_id
        WHERE p.firm_id = ?
        ORDER BY p.created_at DESC
-       LIMIT 40`
+       LIMIT 200`
     )
     .all(firmId);
   return rows.map((row) => ({

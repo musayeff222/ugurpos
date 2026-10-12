@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
-import { formatMoney } from "../../utils/format";
+import Modal from "../../components/ui/Modal";
+import { useAuth } from "../../context/AuthContext";
+import { formatDateTime, formatMoney } from "../../utils/format";
+import { printPurchaseInvoice } from "../../utils/printPurchase";
 import AdminDay from "./AdminDay";
 import AdminWholesalers from "./AdminWholesalers";
 
@@ -31,7 +34,15 @@ function paymentLabel(type) {
   return PAYMENTS.find((item) => item.id === type)?.label || type;
 }
 
+function when(value) {
+  if (!value) return "—";
+  const date = new Date(String(value).replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return formatDateTime(date);
+}
+
 export default function AdminMuhasib() {
+  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const requested = params.get("bolum");
   const tab = TABS.some((item) => item.id === requested) ? requested : "bugun";
@@ -50,6 +61,8 @@ export default function AdminMuhasib() {
   const [kassaForm, setKassaForm] = useState({ name: "", kind: "nakit" });
   const [payForm, setPayForm] = useState({ wholesalerId: "", kassaId: "", amount: "" });
   const [pullForm, setPullForm] = useState({ branchId: "", kassaId: "", amount: "" });
+  const [invoice, setInvoice] = useState(null);
+  const [historyQuery, setHistoryQuery] = useState("");
 
   const load = async () => {
     const next = await api.getAccounting();
@@ -72,6 +85,17 @@ export default function AdminMuhasib() {
   useEffect(() => {
     load().catch((err) => setError(err.message));
   }, []);
+
+  const purchaseRows = useMemo(() => {
+    const term = historyQuery.trim().toLowerCase();
+    const list = data?.purchases || [];
+    if (!term) return list;
+    return list.filter((row) =>
+      `${row.wholesalerName || ""} ${row.wholesalerPhone || ""} ${paymentLabel(row.paymentType)} ${row.lines.map((line) => line.name).join(" ")}`
+        .toLowerCase()
+        .includes(term)
+    );
+  }, [data, historyQuery]);
 
   const products = data?.products || [];
   const prices = data?.prices || [];
@@ -143,7 +167,9 @@ export default function AdminMuhasib() {
         })),
       });
       setLines([]);
-      await load();
+      const next = await load();
+      const saved = (next?.purchases || []).find((row) => row.id === result.id);
+      if (saved) setInvoice(saved);
       setMessage(`Alış kaydedildi. Toplam ${formatMoney(result.total)}. Alış fiyatı bir sonraki sefer için saklandı.`);
     } catch (err) {
       setError(err.message);
@@ -438,24 +464,34 @@ export default function AdminMuhasib() {
         </form>
       )}
 
-      {tab === "alis" && (data?.purchases || []).length > 0 && (
-        <section className="erp-panel">
-          <header className="erp-panel__head">
-            <h3>Son alışlar</h3>
+      {tab === "alis" && (
+        <section className="erp-panel erp-panel--flush">
+          <header className="erp-panel__head" style={{ padding: "14px 16px 0" }}>
+            <h3>Alış geçmişi</h3>
+            <form className="crm-global-search crm-global-search--inline" onSubmit={(e) => e.preventDefault()}>
+              <i className="fa fa-search" aria-hidden />
+              <input
+                value={historyQuery}
+                onChange={(e) => setHistoryQuery(e.target.value)}
+                placeholder="Toptancı, ürün..."
+              />
+            </form>
           </header>
-          <div className="erp-table-wrap">
+          <div className="admin-table-wrap">
             <table className="erp-table">
               <thead>
                 <tr>
+                  <th>Zaman</th>
                   <th>Toptancı</th>
                   <th>Ödeme</th>
                   <th>Tutar</th>
-                  <th>Ürünler</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {data.purchases.map((row) => (
+                {purchaseRows.map((row) => (
                   <tr key={row.id}>
+                    <td>{when(row.createdAt)}</td>
                     <td>
                       {row.wholesalerName || "—"}
                       {row.wholesalerPhone ? ` · ${row.wholesalerPhone}` : ""}
@@ -465,14 +501,79 @@ export default function AdminMuhasib() {
                       {row.kassaName ? ` · ${row.kassaName}` : ""}
                     </td>
                     <td>{formatMoney(row.total)}</td>
-                    <td>{row.lines.map((line) => `${line.qty} x ${line.name}`).join(", ")}</td>
+                    <td>
+                      <div className="staff-row-actions">
+                        <button type="button" className="btn btn-default btn-sm" onClick={() => setInvoice(row)}>
+                          Fatura
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => printPurchaseInvoice(row, user?.firmName)}
+                        >
+                          A4 yazdır
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
+                {!purchaseRows.length && (
+                  <tr>
+                    <td colSpan={5} className="erp-table__empty">
+                      Alış kaydı yok.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </section>
       )}
+
+      <Modal open={Boolean(invoice)} size="lg" title="Alış faturası" onClose={() => setInvoice(null)}>
+        {invoice && (
+          <div>
+            <p className="hint-text">
+              {when(invoice.createdAt)} · {invoice.wholesalerName || "—"}
+              {invoice.wholesalerPhone ? ` · ${invoice.wholesalerPhone}` : ""} · {paymentLabel(invoice.paymentType)}
+              {invoice.kassaName ? ` · ${invoice.kassaName}` : ""}
+            </p>
+            <div className="admin-table-wrap">
+              <table className="erp-table">
+                <thead>
+                  <tr>
+                    <th>Ürün</th>
+                    <th>Adet</th>
+                    <th>Alış fiyatı</th>
+                    <th>Tutar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoice.lines.map((line, index) => (
+                    <tr key={`${line.productId || line.name}-${index}`}>
+                      <td>{line.name}</td>
+                      <td>{line.qty}</td>
+                      <td>{formatMoney(line.buyPrice)}</td>
+                      <td>{formatMoney(Number(line.qty || 0) * Number(line.buyPrice || 0))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p>
+              <strong>Toplam {formatMoney(invoice.total)}</strong>
+            </p>
+            <div className="form-actions">
+              <button type="button" className="btn" onClick={() => setInvoice(null)}>
+                Kapat
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => printPurchaseInvoice(invoice, user?.firmName)}>
+                A4 yazdır
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {tab === "topdanci" && (
         <AdminWholesalers
