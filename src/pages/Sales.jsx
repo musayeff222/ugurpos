@@ -15,7 +15,7 @@ import { getPostLoginPath, loginPathForAccount } from "../utils/authRedirect";
 import { getProductImageSrc } from "../utils/productImage";
 import { printSaleReceipt, sendReceiptWhatsApp } from "../utils/printReceipt";
 import { playPosItemAddedSound, playPosPaymentSound } from "../utils/posSounds";
-import { getSalePaymentParts, groupOtherPaymentTotals } from "../utils/salePayments";
+import { getSalePaymentParts, groupOtherPaymentTotals, paymentLabel } from "../utils/salePayments";
 import {
   cartLineLabel,
   formatGrams,
@@ -28,6 +28,12 @@ import "../styles/sales.css";
 
 const TAB_COUNT = 5;
 const SHIFT_LOCK_KEY = "ugurpos_shift_locked";
+const LAST_SALE_EDIT_MS = 2 * 60 * 1000;
+
+function saleTime(value) {
+  const time = new Date(String(value || "").replace(" ", "T")).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
 
 function emptyCarts() {
   return Array.from({ length: TAB_COUNT }, () => []);
@@ -45,7 +51,7 @@ export default function Sales() {
   const { user, logout, endStaffShift, loginStaff, loading: authLoading, isStaffUser, activeStaffRole, activeStaffName, canCashExpense } = useAuth();
   const { t } = useLocale();
   const navigate = useNavigate();
-  const { state, completeSale, addCashWithdrawal } = useStore();
+  const { state, completeSale, addCashWithdrawal, updateSalePayment } = useStore();
   const [activeTab, setActiveTab] = useState(0);
   const [carts, setCarts] = useState(emptyCarts);
   const [barcode, setBarcode] = useState("");
@@ -88,6 +94,7 @@ export default function Sales() {
   const [splitError, setSplitError] = useState("");
   const [message, setMessage] = useState("");
   const [lastSale, setLastSale] = useState(null);
+  const [paymentSaving, setPaymentSaving] = useState(false);
   const [now, setNow] = useState(new Date());
   const barcodeRef = useRef(null);
   const printWrapRef = useRef(null);
@@ -169,6 +176,20 @@ export default function Sales() {
       withdrawals: shiftWithdrawals,
     };
   }, [paidShiftSales, shiftGrams, state.cashWithdrawals, cashierName, shiftStartedAt]);
+  const recentSale = useMemo(() => {
+    const pool = [...paidShiftSales];
+    if (lastSale && lastSale.paymentType !== "refund" && !pool.some((sale) => sale.id === lastSale.id)) {
+      pool.push(lastSale);
+    }
+    const latest = pool.sort((a, b) => saleTime(b.createdAt) - saleTime(a.createdAt))[0];
+    if (!latest) return null;
+    const age = now.getTime() - saleTime(latest.createdAt);
+    if (age < 0 || age > LAST_SALE_EDIT_MS) return null;
+    return latest;
+  }, [paidShiftSales, lastSale, now]);
+  const recentSaleLeft = recentSale
+    ? Math.max(0, LAST_SALE_EDIT_MS - (now.getTime() - saleTime(recentSale.createdAt)))
+    : 0;
   const change = Math.max(0, (Number(paid) || 0) - total);
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
   const money = (value) => formatMoney(value, "az");
@@ -699,6 +720,21 @@ export default function Sales() {
     navigate(next, { replace: true });
   };
 
+  const changeLastPayment = async (paymentType) => {
+    if (!recentSale || paymentSaving || recentSale.paymentType === paymentType) return;
+    setPaymentSaving(true);
+    setMessage("");
+    try {
+      const updated = await updateSalePayment(recentSale.id, paymentType);
+      setLastSale(updated);
+      setMessage(paymentType === "cash" ? "Son satış nəğdə keçdi." : "Son satış karta keçdi.");
+    } catch (err) {
+      setMessage(err.message || "Ödəniş dəyişmədi.");
+    } finally {
+      setPaymentSaving(false);
+    }
+  };
+
   const handleShiftEndRequest = () => {
     setTerminalMenuOpen(false);
     setShiftEndStep("confirm");
@@ -893,6 +929,38 @@ export default function Sales() {
                 <i className="fa fa-minus-circle" />
                 Kassadan xərc
               </button>
+            )}
+            {isCashier && recentSale && (
+              <div className="dzy-last-sale">
+                <div className="dzy-last-sale__meta">
+                  <strong>Son satış</strong>
+                  <span>
+                    {money(recentSale.total)} · {paymentLabel(recentSale.paymentType, recentSale)}
+                  </span>
+                  <small>
+                    {Math.floor(Math.ceil(recentSaleLeft / 1000) / 60)}:
+                    {String(Math.ceil(recentSaleLeft / 1000) % 60).padStart(2, "0")}
+                  </small>
+                </div>
+                <div className="dzy-last-sale__pay">
+                  <button
+                    type="button"
+                    className={recentSale.paymentType === "cash" ? "is-on" : ""}
+                    disabled={paymentSaving}
+                    onClick={() => changeLastPayment("cash")}
+                  >
+                    Nakit
+                  </button>
+                  <button
+                    type="button"
+                    className={recentSale.paymentType === "pos" ? "is-on" : ""}
+                    disabled={paymentSaving}
+                    onClick={() => changeLastPayment("pos")}
+                  >
+                    Kart
+                  </button>
+                </div>
+              </div>
             )}
             {isCashier && (
               <button type="button" className="dzy-terminal-menu__shift" onClick={handleShiftEndRequest}>

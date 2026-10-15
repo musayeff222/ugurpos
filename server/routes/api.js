@@ -81,6 +81,14 @@ function rejectStaffSaleManage(req, res) {
   return false;
 }
 
+const LAST_SALE_EDIT_MS = 2 * 60 * 1000;
+
+function saleAgeMs(createdAt) {
+  const time = new Date(String(createdAt || "").replace(" ", "T")).getTime();
+  if (!Number.isFinite(time)) return Number.POSITIVE_INFINITY;
+  return Date.now() - time;
+}
+
 function applyProductImage(db, branchId, productId, body, existingPath = null) {
   if (body.removeImage) {
     deleteProductImage(branchId, productId);
@@ -529,12 +537,11 @@ router.post("/sales", (req, res) => {
 });
 
 router.patch("/sales/:id", (req, res) => {
-  if (rejectStaffSaleManage(req, res)) return;
-
+  const staffEdit = !canManageSales(req);
   const { paymentType } = req.body;
-  const allowed = ["cash", "pos", "open"];
+  const allowed = staffEdit ? ["cash", "pos"] : ["cash", "pos", "open"];
   if (!allowed.includes(paymentType)) {
-    return res.status(400).json({ error: "Geçersiz ödeme tipi" });
+    return res.status(400).json({ error: staffEdit ? "Yalnız nəğd və ya kart seçilə bilər" : "Geçersiz ödeme tipi" });
   }
 
   const db = getDb();
@@ -542,6 +549,25 @@ router.patch("/sales/:id", (req, res) => {
   if (!sale) return res.status(404).json({ error: "Satış bulunamadı" });
   if (sale.payment_type === "refund") {
     return res.status(400).json({ error: "İade kaydı düzenlenemez" });
+  }
+
+  if (staffEdit) {
+    const staffName = String(req.user?.staffName || "");
+    if (!staffName || sale.staff_name !== staffName) {
+      return res.status(403).json({ error: "Yalnız öz satışınızın ödənişini dəyişə bilərsiniz" });
+    }
+    const latest = db
+      .prepare(
+        "SELECT id FROM sales WHERE branch_id = ? AND staff_name = ? AND payment_type != 'refund' ORDER BY created_at DESC LIMIT 1"
+      )
+      .get(req.branchId, staffName);
+    if (!latest || latest.id !== sale.id) {
+      return res.status(400).json({ error: "Yalnız son satışın ödənişi dəyişir" });
+    }
+    const age = saleAgeMs(sale.created_at);
+    if (age < -5000 || age > LAST_SALE_EDIT_MS) {
+      return res.status(400).json({ error: "Son satışın ödənişi yalnız 2 dəqiqə ərzində dəyişir" });
+    }
   }
 
   const oldType = sale.payment_type;
@@ -557,6 +583,8 @@ router.patch("/sales/:id", (req, res) => {
     return res.json(getSaleWithItems(db, sale.id));
   }
 
+  const parts = resolvePaymentAmounts(newType, total, 0, 0);
+
   const tx = db.transaction(() => {
     if (customerId) {
       if (oldType === "open" && newType !== "open") {
@@ -565,7 +593,11 @@ router.patch("/sales/:id", (req, res) => {
         db.prepare("UPDATE customers SET debt = debt + ? WHERE id = ?").run(total, customerId);
       }
     }
-    db.prepare("UPDATE sales SET payment_type = ? WHERE id = ? AND branch_id = ?").run(newType, sale.id, req.branchId);
+    db.prepare(
+      `UPDATE sales
+       SET payment_type = ?, cash_amount = ?, pos_amount = ?, payment_method_id = NULL, payment_method_name = NULL
+       WHERE id = ? AND branch_id = ?`
+    ).run(newType, parts.cash, parts.pos, sale.id, req.branchId);
   });
 
   try {

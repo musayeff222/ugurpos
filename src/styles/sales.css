@@ -1732,6 +1732,60 @@
   font-size: 13px;
 }
 
+.dzy-last-sale {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #d8dcea;
+  border-radius: 10px;
+  background: #f7f8fd;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dzy-last-sale__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dzy-last-sale__meta strong {
+  font-size: 13px;
+}
+
+.dzy-last-sale__meta span,
+.dzy-last-sale__meta small {
+  color: #5b6472;
+  font-size: 12px;
+}
+
+.dzy-last-sale__pay {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.dzy-last-sale__pay button {
+  min-height: 34px;
+  border: 1px solid #d8dcea;
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dzy-last-sale__pay button.is-on {
+  border-color: #24608e;
+  background: #24608e;
+  color: #fff;
+}
+
+.dzy-last-sale__pay button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .dzy-terminal-menu__shift {
   width: 100%;
   min-height: 40px;
