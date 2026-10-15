@@ -176,20 +176,16 @@ export default function Sales() {
       withdrawals: shiftWithdrawals,
     };
   }, [paidShiftSales, shiftGrams, state.cashWithdrawals, cashierName, shiftStartedAt]);
-  const recentSale = useMemo(() => {
+  const recentSales = useMemo(() => {
     const pool = [...paidShiftSales];
     if (lastSale && lastSale.paymentType !== "refund" && !pool.some((sale) => sale.id === lastSale.id)) {
       pool.push(lastSale);
     }
-    const latest = pool.sort((a, b) => saleTime(b.createdAt) - saleTime(a.createdAt))[0];
-    if (!latest) return null;
-    const age = now.getTime() - saleTime(latest.createdAt);
-    if (age < 0 || age > LAST_SALE_EDIT_MS) return null;
-    return latest;
+    return pool
+      .map((sale) => ({ sale, left: LAST_SALE_EDIT_MS - (now.getTime() - saleTime(sale.createdAt)) }))
+      .filter((row) => row.left > 0)
+      .sort((a, b) => saleTime(b.sale.createdAt) - saleTime(a.sale.createdAt));
   }, [paidShiftSales, lastSale, now]);
-  const recentSaleLeft = recentSale
-    ? Math.max(0, LAST_SALE_EDIT_MS - (now.getTime() - saleTime(recentSale.createdAt)))
-    : 0;
   const change = Math.max(0, (Number(paid) || 0) - total);
   const itemCount = cart.reduce((s, i) => s + i.qty, 0);
   const money = (value) => formatMoney(value, "az");
@@ -720,14 +716,14 @@ export default function Sales() {
     navigate(next, { replace: true });
   };
 
-  const changeLastPayment = async (paymentType) => {
-    if (!recentSale || paymentSaving || recentSale.paymentType === paymentType) return;
-    setPaymentSaving(true);
+  const changeLastPayment = async (sale, paymentType) => {
+    if (!sale || paymentSaving || sale.paymentType === paymentType) return;
+    setPaymentSaving(sale.id);
     setMessage("");
     try {
-      const updated = await updateSalePayment(recentSale.id, paymentType);
+      const updated = await updateSalePayment(sale.id, paymentType);
       setLastSale(updated);
-      setMessage(paymentType === "cash" ? "Son satış nəğdə keçdi." : "Son satış karta keçdi.");
+      setMessage(paymentType === "cash" ? "Ödəniş nəğdə keçdi." : "Ödəniş karta keçdi.");
     } catch (err) {
       setMessage(err.message || "Ödəniş dəyişmədi.");
     } finally {
@@ -930,36 +926,49 @@ export default function Sales() {
                 Kassadan xərc
               </button>
             )}
-            {isCashier && recentSale && (
-              <div className="dzy-last-sale">
-                <div className="dzy-last-sale__meta">
-                  <strong>Son satış</strong>
-                  <span>
-                    {money(recentSale.total)} · {paymentLabel(recentSale.paymentType, recentSale)}
-                  </span>
-                  <small>
-                    {Math.floor(Math.ceil(recentSaleLeft / 1000) / 60)}:
-                    {String(Math.ceil(recentSaleLeft / 1000) % 60).padStart(2, "0")}
-                  </small>
-                </div>
-                <div className="dzy-last-sale__pay">
-                  <button
-                    type="button"
-                    className={recentSale.paymentType === "cash" ? "is-on" : ""}
-                    disabled={paymentSaving}
-                    onClick={() => changeLastPayment("cash")}
-                  >
-                    Nakit
-                  </button>
-                  <button
-                    type="button"
-                    className={recentSale.paymentType === "pos" ? "is-on" : ""}
-                    disabled={paymentSaving}
-                    onClick={() => changeLastPayment("pos")}
-                  >
-                    Kart
-                  </button>
-                </div>
+            {isCashier && recentSales.length > 0 && (
+              <div className="dzy-last-sales">
+                {recentSales.map(({ sale, left }) => {
+                  const seconds = Math.ceil(left / 1000);
+                  return (
+                    <div className="dzy-last-sale" key={sale.id}>
+                      <div className="dzy-last-sale__meta">
+                        <strong>
+                          {money(sale.total)} · {paymentLabel(sale.paymentType, sale)}
+                        </strong>
+                        <small>
+                          {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+                        </small>
+                      </div>
+                      <ul className="dzy-last-sale__items">
+                        {(sale.items || []).map((item, index) => (
+                          <li key={item.id || `${sale.id}-${index}`}>
+                            <span>{item.name}</span>
+                            <b>{item.qty}</b>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="dzy-last-sale__pay">
+                        <button
+                          type="button"
+                          className={sale.paymentType === "cash" ? "is-on" : ""}
+                          disabled={Boolean(paymentSaving)}
+                          onClick={() => changeLastPayment(sale, "cash")}
+                        >
+                          Nakit
+                        </button>
+                        <button
+                          type="button"
+                          className={sale.paymentType === "pos" ? "is-on" : ""}
+                          disabled={Boolean(paymentSaving)}
+                          onClick={() => changeLastPayment(sale, "pos")}
+                        >
+                          Kart
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
             {isCashier && (

@@ -47,6 +47,19 @@ function kassaBalances(db, firmId) {
   });
 }
 
+function recentMovements(db, firmId) {
+  return db
+    .prepare(
+      `SELECT id, kassa_id AS kassaId, direction, amount, kind, note, created_at AS createdAt
+       FROM account_movements
+       WHERE firm_id = ?
+       ORDER BY created_at DESC
+       LIMIT 80`
+    )
+    .all(firmId)
+    .map((row) => ({ ...row, amount: num(row.amount) }));
+}
+
 function wholesalerDebts(db, firmId) {
   const people = db
     .prepare(
@@ -353,6 +366,7 @@ export function getAccountingOverview(db, firmId) {
     .map((branch) => ({ ...branch, available: branchAvailable(db, branch.id) }));
   return {
     kassas: kassaBalances(db, firmId),
+    movements: recentMovements(db, firmId),
     wholesalers: wholesalerDebts(db, firmId),
     products,
     prices: rememberedPrices(db, firmId),

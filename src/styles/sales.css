@@ -1732,8 +1732,14 @@
   font-size: 13px;
 }
 
-.dzy-last-sale {
+.dzy-last-sales {
   margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dzy-last-sale {
   padding: 10px;
   border: 1px solid #d8dcea;
   border-radius: 10px;
@@ -1743,10 +1749,35 @@
   gap: 8px;
 }
 
-.dzy-last-sale__meta {
+.dzy-last-sale__items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+}
+
+.dzy-last-sale__items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.dzy-last-sale__items span {
+  min-width: 0;
+}
+
+.dzy-last-sale__items b {
+  flex: 0 0 auto;
+}
+
+.dzy-last-sale__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-width: 0;
 }
 

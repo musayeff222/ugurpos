@@ -4054,3 +4054,119 @@ button.admin-branch-card {
   flex-direction: column;
   gap: 4px;
 }
+
+.kasa-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.85fr) minmax(320px, 1.15fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.kasa-totals {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kasa-totals span {
+  background: #f3f3f3;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #181818;
+}
+
+.kasa-cards,
+.kasa-branches,
+.kasa-moves {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.kasa-card,
+.kasa-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.kasa-card.is-on,
+.kasa-branch.is-on {
+  border-color: #0176d3;
+  background: #f3f9ff;
+}
+
+.kasa-card span,
+.kasa-branch span,
+.kasa-moves span,
+.kasa-pull__label {
+  color: #706e6b;
+  font-size: 12px;
+}
+
+.kasa-card b {
+  font-size: 18px;
+}
+
+.kasa-new,
+.kasa-pull__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+}
+
+.kasa-new {
+  grid-template-columns: 1fr auto auto;
+}
+
+.kasa-new input,
+.kasa-new select,
+.kasa-pull__row input {
+  min-height: 34px;
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  padding: 0 8px;
+}
+
+.kasa-pull {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kasa-moves article {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f3f2f2;
+}
+
+.kasa-moves small {
+  display: block;
+  color: #706e6b;
+  font-size: 11px;
+}
+
+.kasa-moves b.is-out {
+  color: #ba0517;
+}
+
+@media (max-width: 800px) {
+  .kasa-layout,
+  .kasa-new,
+  .kasa-pull__row {
+    grid-template-columns: 1fr;
+  }
+}

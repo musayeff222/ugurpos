@@ -34,6 +34,164 @@ function paymentLabel(type) {
   return PAYMENTS.find((item) => item.id === type)?.label || type;
 }
 
+function kassaKindLabel(kind) {
+  if (kind === "nakit") return "Nakit";
+  if (kind === "banka") return "Banka";
+  return "Diğer";
+}
+
+function movementLabel(kind) {
+  if (kind === "branch") return "Şubeden";
+  if (kind === "purchase") return "Alış";
+  if (kind === "debt") return "Borç";
+  return "Hareket";
+}
+
+function KasaDesk({
+  kassas,
+  branches,
+  movements,
+  activeId,
+  onPick,
+  showNew,
+  onToggleNew,
+  kassaForm,
+  setKassaForm,
+  onCreate,
+  pullForm,
+  setPullForm,
+  onPull,
+  saving,
+}) {
+  const active = kassas.find((kassa) => kassa.id === activeId) || kassas[0];
+  const nakitTotal = kassas.filter((kassa) => kassa.kind === "nakit").reduce((sum, kassa) => sum + Number(kassa.balance || 0), 0);
+  const bankaTotal = kassas.filter((kassa) => kassa.kind === "banka").reduce((sum, kassa) => sum + Number(kassa.balance || 0), 0);
+  const branch = branches.find((item) => item.id === pullForm.branchId) || branches[0];
+  const history = movements.filter((row) => row.kassaId === active?.id);
+
+  return (
+    <div className="kasa-layout">
+      <section className="alis-panel kasa-list">
+        <header className="alis-panel__head">
+          <h3>Kasalar</h3>
+          <button type="button" className="btn btn-default btn-sm" onClick={onToggleNew}>
+            {showNew ? "Kapat" : "Yeni"}
+          </button>
+        </header>
+        <div className="kasa-totals">
+          <span>Nakit {formatMoney(nakitTotal)}</span>
+          <span>Banka {formatMoney(bankaTotal)}</span>
+        </div>
+        <div className="kasa-cards">
+          {kassas.map((kassa) => (
+            <button
+              key={kassa.id}
+              type="button"
+              className={kassa.id === active?.id ? "kasa-card is-on" : "kasa-card"}
+              onClick={() => onPick(kassa.id)}
+            >
+              <span>{kassaKindLabel(kassa.kind)}</span>
+              <strong>{kassa.name}</strong>
+              <b>{formatMoney(kassa.balance)}</b>
+            </button>
+          ))}
+          {!kassas.length && <p className="alis-empty">Kasa yok.</p>}
+        </div>
+        {showNew && (
+          <form className="kasa-new" onSubmit={onCreate}>
+            <input
+              value={kassaForm.name}
+              onChange={(e) => setKassaForm({ ...kassaForm, name: e.target.value })}
+              placeholder="Kasa adı"
+              required
+            />
+            <select value={kassaForm.kind} onChange={(e) => setKassaForm({ ...kassaForm, kind: e.target.value })}>
+              <option value="nakit">Nakit</option>
+              <option value="banka">Banka</option>
+              <option value="diger">Diğer</option>
+            </select>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+              Kaydet
+            </button>
+          </form>
+        )}
+      </section>
+
+      <section className="alis-panel kasa-work">
+        <header className="alis-panel__head">
+          <h3>{active?.name || "Kasa seçin"}</h3>
+          <span>{active ? formatMoney(active.balance) : ""}</span>
+        </header>
+        <form className="kasa-pull" onSubmit={onPull}>
+          <span className="kasa-pull__label">Şubeden bu kasaya al</span>
+          <div className="kasa-branches">
+            {branches.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={item.id === branch?.id ? "kasa-branch is-on" : "kasa-branch"}
+                onClick={() => setPullForm({ ...pullForm, branchId: item.id, kassaId: active?.id || pullForm.kassaId, amount: String(item.available || "") })}
+              >
+                <strong>{item.name}</strong>
+                <span>Nakit {formatMoney(item.available || 0)}</span>
+              </button>
+            ))}
+            {!branches.length && <p className="alis-empty">Şube yok.</p>}
+          </div>
+          <div className="kasa-pull__row">
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={pullForm.amount}
+              onChange={(e) => setPullForm({ ...pullForm, amount: e.target.value, kassaId: active?.id || pullForm.kassaId })}
+              placeholder="Tutar"
+              required
+            />
+            <button
+              type="button"
+              className="btn btn-default"
+              disabled={!branch}
+              onClick={() =>
+                setPullForm({
+                  ...pullForm,
+                  branchId: branch?.id || "",
+                  kassaId: active?.id || pullForm.kassaId,
+                  amount: String(branch?.available || ""),
+                })
+              }
+            >
+              Tümü
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={saving || !active}>
+              Kasaya al
+            </button>
+          </div>
+        </form>
+        <div className="kasa-moves">
+          <span>Son hareketler</span>
+          {history.map((row) => (
+            <article key={row.id}>
+              <div>
+                <strong>{movementLabel(row.kind)}</strong>
+                <small>
+                  {when(row.createdAt)}
+                  {row.note ? ` · ${row.note}` : ""}
+                </small>
+              </div>
+              <b className={row.direction === "out" ? "is-out" : ""}>
+                {row.direction === "out" ? "−" : "+"}
+                {formatMoney(row.amount)}
+              </b>
+            </article>
+          ))}
+          {!history.length && <p className="alis-empty">Bu kasada hareket yok.</p>}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function when(value) {
   if (!value) return "—";
   const date = new Date(String(value).replace(" ", "T"));
@@ -59,6 +217,8 @@ export default function AdminMuhasib() {
   const [paymentType, setPaymentType] = useState("nagd");
   const [kassaId, setKassaId] = useState("");
   const [kassaForm, setKassaForm] = useState({ name: "", kind: "nakit" });
+  const [kassaPick, setKassaPick] = useState("");
+  const [showNewKassa, setShowNewKassa] = useState(false);
   const [payForm, setPayForm] = useState({ wholesalerId: "", kassaId: "", amount: "" });
   const [pullForm, setPullForm] = useState({ branchId: "", kassaId: "", amount: "" });
   const [invoice, setInvoice] = useState(null);
@@ -202,8 +362,13 @@ export default function AdminMuhasib() {
     setMessage("");
     setSaving(true);
     try {
-      await api.createAccountKassa(kassaForm);
+      const created = await api.createAccountKassa(kassaForm);
       setKassaForm({ name: "", kind: "nakit" });
+      setShowNewKassa(false);
+      if (created?.id) {
+        setKassaPick(created.id);
+        setPullForm((prev) => ({ ...prev, kassaId: created.id }));
+      }
       await load();
       setMessage("Kasa oluşturuldu.");
     } catch (err) {
@@ -242,7 +407,7 @@ export default function AdminMuhasib() {
     try {
       await api.pullBranchCash({
         branchId: pullForm.branchId,
-        kassaId: pullForm.kassaId,
+        kassaId: kassaPick || pullForm.kassaId,
         amount: Number(pullForm.amount),
       });
       setPullForm((prev) => ({ ...prev, amount: "" }));
@@ -257,7 +422,7 @@ export default function AdminMuhasib() {
 
   return (
     <div className="admin-page erp-page">
-      {tab !== "topdanci" && tab !== "bugun" && tab !== "alis" && (
+      {tab !== "topdanci" && tab !== "bugun" && tab !== "alis" && tab !== "kasa" && (
         <div className="crm-listbar">
           <div>
             <h2>Mühasib</h2>
@@ -633,92 +798,25 @@ export default function AdminMuhasib() {
       )}
 
       {tab === "kasa" && (
-        <>
-          <section className="erp-panel">
-            <header className="erp-panel__head">
-              <h3>Kasalar</h3>
-            </header>
-            <div className="muhasib-kassas">
-              {kassas.map((kassa) => (
-                <article key={kassa.id}>
-                  <strong>{kassa.name}</strong>
-                  <span>{formatMoney(kassa.balance)}</span>
-                </article>
-              ))}
-            </div>
-            <form className="erp-form" onSubmit={addKassa}>
-              <label className="erp-field">
-                <span>Yeni kasa adı</span>
-                <input
-                  value={kassaForm.name}
-                  onChange={(e) => setKassaForm({ ...kassaForm, name: e.target.value })}
-                  required
-                />
-              </label>
-              <label className="erp-field">
-                <span>Tür</span>
-                <select value={kassaForm.kind} onChange={(e) => setKassaForm({ ...kassaForm, kind: e.target.value })}>
-                  <option value="nakit">Nakit</option>
-                  <option value="banka">Banka</option>
-                  <option value="diger">Diğer</option>
-                </select>
-              </label>
-              <div className="erp-field">
-                <span>&nbsp;</span>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  Kasa oluştur
-                </button>
-              </div>
-            </form>
-          </section>
-          <section className="erp-panel">
-            <header className="erp-panel__head">
-              <h3>Şubeden kasaya al</h3>
-            </header>
-            <form className="erp-form" onSubmit={pullCash}>
-              <label className="erp-field">
-                <span>Şube</span>
-                <select
-                  value={pullForm.branchId}
-                  onChange={(e) => setPullForm({ ...pullForm, branchId: e.target.value })}
-                >
-                  {(data?.branches || []).map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name} · nakit {formatMoney(branch.available)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="erp-field">
-                <span>Hangi kasa</span>
-                <select value={pullForm.kassaId} onChange={(e) => setPullForm({ ...pullForm, kassaId: e.target.value })}>
-                  {kassas.map((kassa) => (
-                    <option key={kassa.id} value={kassa.id}>
-                      {kassa.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="erp-field">
-                <span>Tutar</span>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={pullForm.amount}
-                  onChange={(e) => setPullForm({ ...pullForm, amount: e.target.value })}
-                  required
-                />
-              </label>
-              <div className="erp-field">
-                <span>&nbsp;</span>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  Kasaya al
-                </button>
-              </div>
-            </form>
-          </section>
-        </>
+        <KasaDesk
+          kassas={kassas}
+          branches={data?.branches || []}
+          movements={data?.movements || []}
+          activeId={kassaPick || pullForm.kassaId}
+          onPick={(id) => {
+            setKassaPick(id);
+            setPullForm((prev) => ({ ...prev, kassaId: id }));
+          }}
+          showNew={showNewKassa}
+          onToggleNew={() => setShowNewKassa((open) => !open)}
+          kassaForm={kassaForm}
+          setKassaForm={setKassaForm}
+          onCreate={addKassa}
+          pullForm={pullForm}
+          setPullForm={setPullForm}
+          onPull={pullCash}
+          saving={saving}
+        />
       )}
 
       {tab === "borc" && (

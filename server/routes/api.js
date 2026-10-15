@@ -556,14 +556,6 @@ router.patch("/sales/:id", (req, res) => {
     if (!staffName || sale.staff_name !== staffName) {
       return res.status(403).json({ error: "Yalnız öz satışınızın ödənişini dəyişə bilərsiniz" });
     }
-    const latest = db
-      .prepare(
-        "SELECT id FROM sales WHERE branch_id = ? AND staff_name = ? AND payment_type != 'refund' ORDER BY created_at DESC LIMIT 1"
-      )
-      .get(req.branchId, staffName);
-    if (!latest || latest.id !== sale.id) {
-      return res.status(400).json({ error: "Yalnız son satışın ödənişi dəyişir" });
-    }
     const age = saleAgeMs(sale.created_at);
     if (age < -5000 || age > LAST_SALE_EDIT_MS) {
       return res.status(400).json({ error: "Son satışın ödənişi yalnız 2 dəqiqə ərzində dəyişir" });
