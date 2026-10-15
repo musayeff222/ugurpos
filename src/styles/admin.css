@@ -3716,6 +3716,243 @@ button.admin-branch-card {
   }
 }
 
+.alis-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.72fr) minmax(280px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+
+.alis-panel {
+  background: #fff;
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alis-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.alis-panel__head h3 {
+  margin: 0;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alis-panel__head .alis-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0176d3;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.alis-panel__head span {
+  color: #706e6b;
+  font-size: 12px;
+}
+
+.alis-new-seller {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.alis-catalog,
+.alis-cart {
+  min-height: 520px;
+}
+
+.alis-products,
+.alis-lines {
+  flex: 1;
+  min-height: 0;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.alis-products {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.alis-pay {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.alis-pay .muhasib-pay {
+  margin-bottom: 0;
+}
+
+.alis-pay .muhasib-pay .btn {
+  flex: 1;
+}
+
+.alis-product {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.alis-product strong,
+.alis-product span {
+  display: block;
+}
+
+.alis-product span,
+.alis-empty,
+.alis-lines small {
+  color: #706e6b;
+  font-size: 12px;
+}
+
+.alis-product.is-in {
+  border-color: #0176d3;
+  background: #f3f9ff;
+}
+
+.alis-empty {
+  margin: 0;
+  padding: 8px 0;
+}
+
+.alis-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alis-lines article {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f3f2f2;
+}
+
+.alis-line__top,
+.alis-line__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.alis-line__top strong {
+  min-width: 0;
+}
+
+.alis-line__controls b {
+  min-width: 72px;
+  text-align: right;
+}
+
+.alis-qty {
+  display: flex;
+  align-items: center;
+}
+
+.alis-qty button,
+.alis-remove {
+  border: 1px solid #dddbda;
+  background: #fff;
+  min-width: 32px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.alis-qty input,
+.alis-lines label input {
+  width: 72px;
+  min-height: 32px;
+  border: 1px solid #dddbda;
+  text-align: center;
+}
+
+.alis-lines label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.alis-lines label span {
+  color: #706e6b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.alis-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid #dddbda;
+}
+
+.alis-total span {
+  display: block;
+  color: #706e6b;
+  font-size: 12px;
+}
+
+.alis-total strong {
+  font-size: 22px;
+  color: #181818;
+}
+
+@media (max-width: 1100px) {
+  .alis-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .alis-catalog {
+    grid-column: 1 / -1;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .alis-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .alis-catalog,
+  .alis-cart {
+    min-height: 0;
+  }
+}
+
 .day-branch-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

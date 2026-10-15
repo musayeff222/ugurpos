@@ -68,6 +68,12 @@ export default function AdminDay({ day, onChanged }) {
                 <dt>Kart satış</dt>
                 <dd>{formatMoney(branch.cardSales || 0)}</dd>
               </div>
+              {Number(branch.otherSales) > 0 && (
+                <div>
+                  <dt>Diğer satış</dt>
+                  <dd>{formatMoney(branch.otherSales || 0)}</dd>
+                </div>
+              )}
               <div>
                 <dt>Nakitte</dt>
                 <dd>{formatMoney(branch.available || 0)}</dd>

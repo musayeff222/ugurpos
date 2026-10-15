@@ -63,6 +63,7 @@ export default function AdminMuhasib() {
   const [pullForm, setPullForm] = useState({ branchId: "", kassaId: "", amount: "" });
   const [invoice, setInvoice] = useState(null);
   const [historyQuery, setHistoryQuery] = useState("");
+  const [note, setNote] = useState("");
 
   const load = async () => {
     const next = await api.getAccounting();
@@ -122,11 +123,8 @@ export default function AdminMuhasib() {
 
   const addProduct = (product) => {
     setLines((prev) => {
-      const found = prev.find((line) => line.productId === product.id);
-      if (found) {
-        return prev.map((line) =>
-          line.productId === product.id ? { ...line, qty: Number(line.qty || 0) + 1 } : line
-        );
+      if (prev.some((line) => line.productId === product.id)) {
+        return prev.filter((line) => line.productId !== product.id);
       }
       return [
         ...prev,
@@ -139,7 +137,6 @@ export default function AdminMuhasib() {
         },
       ];
     });
-    setQuery("");
   };
 
   const savePurchase = async (event) => {
@@ -160,6 +157,7 @@ export default function AdminMuhasib() {
         wholesalerId,
         paymentType,
         kassaId: paymentType === "borc" ? "" : kassaId,
+        note,
         lines: lines.map((line) => ({
           productId: line.productId,
           qty: Number(line.qty),
@@ -167,6 +165,7 @@ export default function AdminMuhasib() {
         })),
       });
       setLines([]);
+      setNote("");
       const next = await load();
       const saved = (next?.purchases || []).find((row) => row.id === result.id);
       if (saved) setInvoice(saved);
@@ -258,7 +257,7 @@ export default function AdminMuhasib() {
 
   return (
     <div className="admin-page erp-page">
-      {tab !== "topdanci" && tab !== "bugun" && (
+      {tab !== "topdanci" && tab !== "bugun" && tab !== "alis" && (
         <div className="crm-listbar">
           <div>
             <h2>Mühasib</h2>
@@ -290,11 +289,48 @@ export default function AdminMuhasib() {
       {tab === "bugun" && <AdminDay day={data?.day} onChanged={load} />}
 
       {tab === "alis" && (
-        <form className="erp-panel" onSubmit={savePurchase}>
-          <header className="erp-panel__head">
-            <h3>Yeni alış</h3>
-          </header>
-          <div className="erp-form">
+        <form className="alis-layout" onSubmit={savePurchase}>
+          <section className="alis-panel alis-catalog">
+            <header className="alis-panel__head">
+              <h3>
+                <span className="alis-step">1</span>Ürün seç
+              </h3>
+              <span>{lines.length ? `${lines.length} seçili` : `${filtered.length} ürün`}</span>
+            </header>
+            <div className="crm-global-search">
+              <i className="fa fa-search" aria-hidden />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ürün adı yazın" />
+            </div>
+            <div className="alis-products">
+              {filtered.map((product) => {
+                const picked = lines.some((line) => line.productId === product.id);
+                return (
+                  <button
+                    key={product.id}
+                    type="button"
+                    className={picked ? "alis-product is-in" : "alis-product"}
+                    onClick={() => addProduct(product)}
+                  >
+                    <strong>{product.name}</strong>
+                    <span>
+                      {picked ? "Seçildi · tekrar basınca çıkar" : `${product.unit || "Adet"} · ${formatMoney(priceFor(product, wholesalerId, prices))}`}
+                    </span>
+                  </button>
+                );
+              })}
+              {!filtered.length && <p className="alis-empty">Bu aramada ürün yok.</p>}
+            </div>
+          </section>
+
+          <section className="alis-panel alis-seller">
+            <header className="alis-panel__head">
+              <h3>
+                <span className="alis-step">2</span>Toptancı
+              </h3>
+              <button type="button" className="btn btn-default btn-sm" onClick={() => setShowNewSeller((open) => !open)}>
+                {showNewSeller ? "Kapat" : "Yeni"}
+              </button>
+            </header>
             <label className="erp-field">
               <span>Kim satıyor</span>
               <select
@@ -319,148 +355,157 @@ export default function AdminMuhasib() {
                 ))}
               </select>
             </label>
-            <div className="erp-field">
-              <span>Yeni toptancı</span>
-              <button type="button" className="btn" onClick={() => setShowNewSeller((open) => !open)}>
-                {showNewSeller ? "Kapat" : "Toptancı ekle"}
-              </button>
-            </div>
             {showNewSeller && (
-              <div className="erp-form-grid erp-field--full">
-                <label className="erp-field">
-                  <span>Ad</span>
-                  <input value={newSeller.name} onChange={(e) => setNewSeller({ ...newSeller, name: e.target.value })} />
-                </label>
-                <label className="erp-field">
-                  <span>Telefon</span>
-                  <input value={newSeller.phone} onChange={(e) => setNewSeller({ ...newSeller, phone: e.target.value })} />
-                </label>
-                <div className="erp-field">
-                  <span>&nbsp;</span>
-                  <button type="button" className="btn btn-primary" disabled={saving} onClick={addSeller}>
-                    Kaydet
-                  </button>
-                </div>
+              <div className="alis-new-seller">
+                <input
+                  value={newSeller.name}
+                  onChange={(e) => setNewSeller({ ...newSeller, name: e.target.value })}
+                  placeholder="Ad"
+                />
+                <input
+                  value={newSeller.phone}
+                  onChange={(e) => setNewSeller({ ...newSeller, phone: e.target.value })}
+                  placeholder="Telefon"
+                />
+                <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={addSeller}>
+                  Kaydet
+                </button>
               </div>
             )}
+            <p className="alis-empty">Seçilen toptancının kayıtlı alış fiyatı sağdaki satırlara yazılır. Orada değiştirilebilir.</p>
+          </section>
 
-            <label className="erp-field erp-field--full">
-              <span>Ürün ara</span>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Admin ürün listesinden seçin"
-              />
-            </label>
-            <div className="muhasib-products">
-              {filtered.map((product) => (
-                <button key={product.id} type="button" className="muhasib-product" onClick={() => addProduct(product)}>
-                  <strong>{product.name}</strong>
-                  <span>{formatMoney(priceFor(product, wholesalerId, prices))}</span>
-                </button>
-              ))}
-              {!filtered.length && <p>Ürün yok.</p>}
-            </div>
-
+          <section className="alis-panel alis-cart">
+            <header className="alis-panel__head">
+              <h3>
+                <span className="alis-step">3</span>Say ve öde
+              </h3>
+              <span>{lines.length} kalem</span>
+            </header>
+            {!lines.length && <p className="alis-empty">Soldan ürün seçin. Adet ve alış fiyatı burada değişir.</p>}
             {lines.length > 0 && (
-              <div className="erp-table-wrap erp-field--full muhasib-lines">
-                <table className="erp-table">
-                  <thead>
-                    <tr>
-                      <th>Ürün</th>
-                      <th>Adet</th>
-                      <th>Alış fiyatı</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lines.map((line) => (
-                      <tr key={line.productId}>
-                        <td>
-                          {line.name}
-                          {line.unit ? ` (${line.unit})` : ""}
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            min="0.001"
-                            step="0.001"
-                            value={line.qty}
-                            onChange={(e) =>
-                              setLines((prev) =>
-                                prev.map((item) =>
-                                  item.productId === line.productId ? { ...item, qty: e.target.value } : item
-                                )
+              <div className="alis-lines">
+                {lines.map((line) => (
+                  <article key={line.productId}>
+                    <div className="alis-line__top">
+                      <strong>{line.name}</strong>
+                      <button
+                        type="button"
+                        className="alis-remove"
+                        onClick={() => setLines((prev) => prev.filter((item) => item.productId !== line.productId))}
+                      >
+                        Sil
+                      </button>
+                    </div>
+                    <div className="alis-line__controls">
+                      <div className="alis-qty">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLines((prev) =>
+                              prev.map((item) =>
+                                item.productId === line.productId
+                                  ? { ...item, qty: Math.max(1, Number(item.qty || 1) - 1) }
+                                  : item
                               )
-                            }
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={line.buyPrice}
-                            onChange={(e) =>
-                              setLines((prev) =>
-                                prev.map((item) =>
-                                  item.productId === line.productId ? { ...item, buyPrice: e.target.value } : item
-                                )
+                            )
+                          }
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min="0.001"
+                          step="0.001"
+                          value={line.qty}
+                          onChange={(e) =>
+                            setLines((prev) =>
+                              prev.map((item) =>
+                                item.productId === line.productId ? { ...item, qty: e.target.value } : item
                               )
-                            }
-                          />
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="btn"
-                            onClick={() => setLines((prev) => prev.filter((item) => item.productId !== line.productId))}
-                          >
-                            Sil
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                            )
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLines((prev) =>
+                              prev.map((item) =>
+                                item.productId === line.productId
+                                  ? { ...item, qty: Number(item.qty || 0) + 1 }
+                                  : item
+                              )
+                            )
+                          }
+                        >
+                          +
+                        </button>
+                      </div>
+                      <label>
+                        <span>Alış</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={line.buyPrice}
+                          onChange={(e) =>
+                            setLines((prev) =>
+                              prev.map((item) =>
+                                item.productId === line.productId ? { ...item, buyPrice: e.target.value } : item
+                              )
+                            )
+                          }
+                        />
+                      </label>
+                      <b>{formatMoney(Number(line.qty || 0) * Number(line.buyPrice || 0))}</b>
+                    </div>
+                  </article>
+                ))}
               </div>
             )}
 
-            <div className="muhasib-pay">
-              {PAYMENTS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={paymentType === item.id ? "btn btn-primary" : "btn"}
-                  onClick={() => changePayment(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            {paymentType !== "borc" && (
+            <div className="alis-pay">
+              <div className="muhasib-pay">
+                {PAYMENTS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={paymentType === item.id ? "btn btn-primary" : "btn"}
+                    onClick={() => changePayment(item.id)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              {paymentType !== "borc" && (
+                <label className="erp-field">
+                  <span>{paymentType === "kart" ? "Kart kasası" : "Nakit kasa"}</span>
+                  <select value={kassaId} onChange={(e) => setKassaId(e.target.value)}>
+                    {kassas
+                      .filter((kassa) => (paymentType === "kart" ? kassa.kind !== "nakit" : kassa.kind !== "banka"))
+                      .map((kassa) => (
+                        <option key={kassa.id} value={kassa.id}>
+                          {kassa.name} · {formatMoney(kassa.balance)}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
               <label className="erp-field">
-                <span>{paymentType === "kart" ? "Banka kasası" : "Nakit kasa"}</span>
-                <select value={kassaId} onChange={(e) => setKassaId(e.target.value)}>
-                  {kassas.map((kassa) => (
-                    <option key={kassa.id} value={kassa.id}>
-                      {kassa.name} · {formatMoney(kassa.balance)}
-                    </option>
-                  ))}
-                </select>
+                <span>Not</span>
+                <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="İsteğe bağlı" />
               </label>
-            )}
-            <div className="erp-field">
-              <span>Toplam</span>
-              <strong>{formatMoney(total)}</strong>
+              <footer className="alis-total">
+                <div>
+                  <span>Toplam</span>
+                  <strong>{formatMoney(total)}</strong>
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={saving || !lines.length}>
+                  {saving ? "Kaydediliyor..." : "Alışı kaydet"}
+                </button>
+              </footer>
             </div>
-            <div className="erp-field">
-              <span>&nbsp;</span>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
-                Alışı kaydet
-              </button>
-            </div>
-          </div>
+          </section>
         </form>
       )}
 

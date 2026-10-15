@@ -1,4 +1,6 @@
 import { uid } from "../db/index.js";
+import { sql as SQL } from "../db/dialect.js";
+import { localDateISO } from "./businessHours.js";
 import { getSalePaymentParts } from "./salePayments.js";
 
 const PAYMENTS = new Set(["borc", "nagd", "kart"]);
@@ -155,36 +157,42 @@ function ensureFirmDay(db, firmId) {
   return { businessDate, openedAt };
 }
 
-function periodParts(db, branchId, openedAt) {
-  const start = new Date(openedAt).getTime();
+function daySaleParts(db, branchId, date) {
   const sales = db
     .prepare(
-      "SELECT created_at, payment_type, total, cash_amount, pos_amount FROM sales WHERE branch_id = ? AND payment_type != 'refund'"
+      `SELECT payment_type, total, cash_amount, pos_amount FROM sales
+       WHERE branch_id = ? AND payment_type != 'refund' AND ${SQL.date("created_at")} = ?`
     )
-    .all(branchId);
-  return sales
-    .filter((sale) => {
-      const time = new Date(sale.created_at).getTime();
-      return Number.isFinite(time) && time >= start;
-    })
-    .reduce(
-      (sum, sale) => {
-        const parts = getSalePaymentParts(sale);
-        sum.cash += parts.cash;
-        sum.pos += parts.pos;
-        return sum;
-      },
-      { cash: 0, pos: 0 }
-    );
+    .all(branchId, date);
+  return sales.reduce(
+    (sum, sale) => {
+      const parts = getSalePaymentParts(sale);
+      const covered = parts.cash + parts.pos;
+      sum.cash += parts.cash;
+      sum.pos += parts.pos;
+      sum.other += Math.max(0, num(sale.total) - covered);
+      return sum;
+    },
+    { cash: 0, pos: 0, other: 0 }
+  );
 }
 
-function periodExpenses(db, branchId, businessDate) {
-  const rows = db.prepare("SELECT amount, date FROM expense_entries WHERE branch_id = ?").all(branchId);
-  return roundMoney(
-    rows
-      .filter((row) => String(row.date || "").slice(0, 10) >= businessDate)
-      .reduce((sum, row) => sum + num(row.amount), 0)
+function dayExpenses(db, branchId, date) {
+  const withdrawals = num(
+    db
+      .prepare(
+        `SELECT COALESCE(SUM(amount), 0) AS t FROM cash_withdrawals WHERE branch_id = ? AND ${SQL.date("created_at")} = ?`
+      )
+      .get(branchId, date)?.t
   );
+  const entries = num(
+    db
+      .prepare(
+        `SELECT COALESCE(SUM(amount), 0) AS t FROM expense_entries WHERE branch_id = ? AND ${SQL.date("date")} = ?`
+      )
+      .get(branchId, date)?.t
+  );
+  return roundMoney(withdrawals + entries);
 }
 
 function branchCloseRow(db, branchId, businessDate) {
@@ -200,14 +208,15 @@ function dayBranches(db, firmId, businessDate, openedAt) {
     const available = branchAvailable(db, branch.id);
     const cardAvailable = branchCardAvailable(db, branch.id);
     const close = branchCloseRow(db, branch.id, businessDate);
-    const parts = periodParts(db, branch.id, openedAt);
+    const parts = daySaleParts(db, branch.id, localDateISO());
     const closed = Boolean(close) && available <= 0.009 && cardAvailable <= 0.009;
     return {
       id: branch.id,
       name: branch.name,
       cashSales: roundMoney(parts.cash),
       cardSales: roundMoney(parts.pos),
-      expenses: periodExpenses(db, branch.id, businessDate),
+      otherSales: roundMoney(parts.other),
+      expenses: dayExpenses(db, branch.id, localDateISO()),
       available,
       cardAvailable,
       closed,
