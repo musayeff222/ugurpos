@@ -3718,7 +3718,7 @@ button.admin-branch-card {
 
 .alis-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.72fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(200px, 0.55fr) minmax(380px, 1.25fr);
   gap: 12px;
   align-items: stretch;
   margin-bottom: 14px;
@@ -3805,9 +3805,9 @@ button.admin-branch-card {
 .alis-pay {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: auto;
-  padding-top: 8px;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 4px;
 }
 
 .alis-pay .muhasib-pay {
@@ -3856,18 +3856,19 @@ button.admin-branch-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 0 1 auto;
+  max-height: 300px;
 }
 
 .alis-lines article {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   padding-bottom: 8px;
   border-bottom: 1px solid #f3f2f2;
 }
 
-.alis-line__top,
-.alis-line__controls {
+.alis-line__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3878,9 +3879,21 @@ button.admin-branch-card {
   min-width: 0;
 }
 
+.alis-line__controls {
+  display: grid;
+  grid-template-columns: 132px minmax(96px, 1fr) max-content;
+  align-items: end;
+  gap: 8px;
+}
+
 .alis-line__controls b {
-  min-width: 72px;
-  text-align: right;
+  min-width: 76px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+  font-size: 14px;
 }
 
 .alis-qty {
@@ -3893,16 +3906,29 @@ button.admin-branch-card {
   border: 1px solid #dddbda;
   background: #fff;
   min-width: 32px;
-  min-height: 32px;
+  height: 34px;
   cursor: pointer;
+}
+
+.alis-remove {
+  min-width: 0;
+  height: 28px;
+  padding: 0 10px;
 }
 
 .alis-qty input,
 .alis-lines label input {
-  width: 72px;
-  min-height: 32px;
+  width: 64px;
+  height: 34px;
+  min-height: 34px;
   border: 1px solid #dddbda;
   text-align: center;
+}
+
+.alis-lines label input {
+  width: 100%;
+  padding: 0 8px;
+  text-align: right;
 }
 
 .alis-lines label {
