@@ -10,6 +10,7 @@ import "../styles/admin.css";
 const adminNav = [
   {
     title: "Satış",
+    icon: "fa-line-chart",
     items: [
       { to: "/admin", label: "Ana sayfa", icon: "fa-home", end: true },
       { to: "/admin/branches", label: "Şubeler", icon: "fa-building" },
@@ -21,6 +22,7 @@ const adminNav = [
   },
   {
     title: "Mühasib",
+    icon: "fa-calculator",
     items: [
       { to: "/admin/muhasib", label: "Bugün", icon: "fa-calendar", end: true },
       { to: "/admin/muhasib?bolum=alis", label: "Yeni alış", icon: "fa-shopping-basket" },
@@ -31,6 +33,7 @@ const adminNav = [
   },
   {
     title: "Finans",
+    icon: "fa-bank",
     items: [
       { to: "/admin/cash-reports", label: "Raporlar", icon: "fa-bar-chart" },
       { to: "/admin/payment-methods", label: "Ödeme Yöntemleri", icon: "fa-credit-card" },
@@ -39,6 +42,7 @@ const adminNav = [
   },
   {
     title: "Kurulum",
+    icon: "fa-cog",
     items: [
       { to: "/admin/settings", label: "Kurulum", icon: "fa-cog" },
       { to: "/admin/web", label: "Web parametreleri", icon: "fa-globe" },
@@ -82,13 +86,67 @@ export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try {
+      return localStorage.getItem("ugurpos_admin_sidebar") !== "closed";
+    } catch {
+      return true;
+    }
+  });
+  const [openGroup, setOpenGroup] = useState(() => {
+    const path = location.pathname;
+    if (path.startsWith("/admin/muhasib")) return "Mühasib";
+    if (
+      path.startsWith("/admin/cash-reports") ||
+      path.startsWith("/admin/payment-methods") ||
+      path.startsWith("/admin/qr-menu")
+    ) {
+      return "Finans";
+    }
+    if (path.startsWith("/admin/settings") || path.startsWith("/admin/web")) return "Kurulum";
+    return "Satış";
+  });
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+
+  const isNavActive = (item) =>
+    (item.to.startsWith("/admin/muhasib") &&
+      location.pathname.startsWith("/admin/muhasib") &&
+      (new URLSearchParams(item.to.split("?")[1] || "").get("bolum") || "bugun") ===
+        (new URLSearchParams(location.search).get("bolum") || "bugun")) ||
+    (!item.to.startsWith("/admin/muhasib") && location.pathname === item.to) ||
+    (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches")) ||
+    (item.to === "/admin/istehsalat" && location.pathname.startsWith("/admin/istehsalat")) ||
+    (item.to === "/admin/products" && location.pathname.startsWith("/admin/products")) ||
+    (item.to === "/admin/staff" && location.pathname.startsWith("/admin/staff")) ||
+    (item.to === "/admin/qr-menu" && location.pathname.startsWith("/admin/qr-menu")) ||
+    (item.to === "/admin/activity" && location.pathname.startsWith("/admin/activity")) ||
+    (item.to === "/admin/cash-reports" && location.pathname.startsWith("/admin/cash-reports")) ||
+    (item.to === "/admin/payment-methods" && location.pathname.startsWith("/admin/payment-methods")) ||
+    (item.to === "/admin/settings" && location.pathname.startsWith("/admin/settings")) ||
+    (item.to === "/admin/web" && location.pathname.startsWith("/admin/web"));
 
   useEffect(() => {
     setMenuOpen(false);
     setSearchOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const current = adminNav.find((group) => group.items.some((item) => isNavActive(item)));
+    if (current) setOpenGroup(current.title);
+  }, [location.pathname, location.search]);
+
+  const toggleSidebar = () => {
+    setSidebarOpen((open) => {
+      const next = !open;
+      try {
+        localStorage.setItem("ugurpos_admin_sidebar", next ? "open" : "closed");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -115,23 +173,6 @@ export default function AdminLayout() {
     logout();
     navigate("/login/admin", { replace: true });
   };
-
-  const isNavActive = (item) =>
-    (item.to.startsWith("/admin/muhasib") &&
-      location.pathname.startsWith("/admin/muhasib") &&
-      (new URLSearchParams(item.to.split("?")[1] || "").get("bolum") || "bugun") ===
-        (new URLSearchParams(location.search).get("bolum") || "bugun")) ||
-    (!item.to.startsWith("/admin/muhasib") && location.pathname === item.to) ||
-    (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches")) ||
-    (item.to === "/admin/istehsalat" && location.pathname.startsWith("/admin/istehsalat")) ||
-    (item.to === "/admin/products" && location.pathname.startsWith("/admin/products")) ||
-    (item.to === "/admin/staff" && location.pathname.startsWith("/admin/staff")) ||
-    (item.to === "/admin/qr-menu" && location.pathname.startsWith("/admin/qr-menu")) ||
-    (item.to === "/admin/activity" && location.pathname.startsWith("/admin/activity")) ||
-    (item.to === "/admin/cash-reports" && location.pathname.startsWith("/admin/cash-reports")) ||
-    (item.to === "/admin/payment-methods" && location.pathname.startsWith("/admin/payment-methods")) ||
-    (item.to === "/admin/settings" && location.pathname.startsWith("/admin/settings")) ||
-    (item.to === "/admin/web" && location.pathname.startsWith("/admin/web"));
 
   const activeItem = flatNav.find((item) => isNavActive(item));
   const pageTitle =
@@ -166,29 +207,46 @@ export default function AdminLayout() {
   };
 
   const renderNav = (onNavigate) =>
-    adminNav.map((group) => (
-      <div key={group.title} className="erp-nav-group">
-        <p className="erp-nav-title">{group.title}</p>
-        {group.items.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={isNavActive(item) ? "active" : ""}
-            onClick={onNavigate}
+    adminNav.map((group) => {
+      const open = openGroup === group.title;
+      const current = group.items.some((item) => isNavActive(item));
+      return (
+        <div key={group.title} className="erp-nav-group">
+          <button
+            type="button"
+            className={`erp-nav-parent${open ? " is-open" : ""}${current ? " is-current" : ""}`}
+            aria-expanded={open}
+            onClick={() => setOpenGroup(open ? "" : group.title)}
           >
-            <i className={`fa ${item.icon}`} aria-hidden />
-            <span>{item.label}</span>
-            {item.badge === "orders" && pendingQrOrders > 0 && (
-              <em className="admin-nav-badge">{pendingQrOrders}</em>
-            )}
-          </Link>
-        ))}
-      </div>
-    ));
+            <i className={`fa ${group.icon}`} aria-hidden />
+            <span>{group.title}</span>
+            <i className={`fa ${open ? "fa-angle-up" : "fa-angle-down"}`} aria-hidden />
+          </button>
+          {open && (
+            <div className="erp-nav-sub">
+              {group.items.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={isNavActive(item) ? "active" : ""}
+                  onClick={onNavigate}
+                >
+                  <i className={`fa ${item.icon}`} aria-hidden />
+                  <span>{item.label}</span>
+                  {item.badge === "orders" && pendingQrOrders > 0 && (
+                    <em className="admin-nav-badge">{pendingQrOrders}</em>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    });
 
   return (
-    <div className={`admin-shell erp-shell ${menuOpen ? "erp-shell--menu" : ""}`}>
+    <div className={`admin-shell erp-shell ${menuOpen ? "erp-shell--menu" : ""} ${sidebarOpen ? "" : "erp-shell--collapsed"}`}>
       <aside className="admin-sidebar admin-sidebar--desktop erp-sidebar">
         <div className="erp-brand">
           <div className="erp-brand__mark">UP</div>
@@ -308,8 +366,19 @@ export default function AdminLayout() {
 
         <header className="admin-topbar admin-topbar--desktop erp-topbar">
           <div className="erp-topbar__left">
+            <button
+              type="button"
+              className="erp-sidebar-toggle"
+              onClick={toggleSidebar}
+              aria-label={sidebarOpen ? "Menüyü kapat" : "Menüyü aç"}
+              aria-expanded={sidebarOpen}
+            >
+              <i className={`fa ${sidebarOpen ? "fa-angle-left" : "fa-bars"}`} aria-hidden />
+            </button>
+            <div>
             <p className="erp-breadcrumb">{breadcrumb.join(" › ")}</p>
             <h1>{pageTitle}</h1>
+            </div>
           </div>
           <form className="crm-global-search" onSubmit={submitSearch}>
             <i className="fa fa-search" aria-hidden />

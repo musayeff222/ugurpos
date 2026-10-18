@@ -1679,6 +1679,19 @@
   background: #f3f3f3;
 }
 
+.erp-shell--collapsed {
+  grid-template-columns: 0 1fr;
+}
+
+.erp-shell--collapsed .erp-sidebar {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .erp-sidebar {
   background: #032d60;
   padding: 12px 0 12px;
@@ -1748,6 +1761,65 @@
   font-weight: 800;
   letter-spacing: 0.7px;
   text-transform: uppercase;
+}
+
+.erp-nav-parent {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 0;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.erp-nav-parent i {
+  width: 18px;
+  text-align: center;
+}
+
+.erp-nav-parent span {
+  flex: 1;
+}
+
+.erp-nav-parent .fa-angle-down,
+.erp-nav-parent .fa-angle-up {
+  width: auto;
+  color: #9ec3e6;
+}
+
+.erp-nav-parent.is-open,
+.erp-nav-parent.is-current,
+.erp-nav-parent:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.erp-nav-sub a {
+  padding-left: 42px;
+}
+
+.erp-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.erp-sidebar-toggle {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  background: #fff;
+  color: #032d60;
+  cursor: pointer;
 }
 
 .erp-nav a {
