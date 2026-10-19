@@ -112,7 +112,7 @@ export default function App() {
         <Route path="products" element={<AdminCatalog />} />
         <Route path="staff" element={<AdminStaff />} />
         <Route path="payment-methods" element={<AdminPaymentMethods />} />
-        <Route path="muhasib" element={<AdminMuhasib />} />
+        <Route path="muhasib/:bolum?" element={<AdminMuhasib />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />

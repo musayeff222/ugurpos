@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import Modal from "../../components/ui/Modal";
 import { useAuth } from "../../context/AuthContext";
@@ -201,10 +201,12 @@ function when(value) {
 
 export default function AdminMuhasib() {
   const { user } = useAuth();
-  const [params, setParams] = useSearchParams();
-  const requested = params.get("bolum");
+  const navigate = useNavigate();
+  const { bolum } = useParams();
+  const [params] = useSearchParams();
+  const requested = bolum || params.get("bolum");
   const tab = TABS.some((item) => item.id === requested) ? requested : "bugun";
-  const openTab = (id) => setParams(id === "bugun" ? {} : { bolum: id }, { replace: true });
+  const openTab = (id) => navigate(id === "bugun" ? "/admin/muhasib" : `/admin/muhasib/${id}`);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -252,7 +254,7 @@ export default function AdminMuhasib() {
     const list = data?.purchases || [];
     if (!term) return list;
     return list.filter((row) =>
-      `${row.wholesalerName || ""} ${row.wholesalerPhone || ""} ${paymentLabel(row.paymentType)} ${row.lines.map((line) => line.name).join(" ")}`
+      `${row.wholesalerName || ""} ${row.wholesalerPhone || ""} ${paymentLabel(row.paymentType)} ${(row.lines || []).map((line) => line.name).join(" ")}`
         .toLowerCase()
         .includes(term)
     );
@@ -759,7 +761,7 @@ export default function AdminMuhasib() {
                   </tr>
                 </thead>
                 <tbody>
-                  {invoice.lines.map((line, index) => (
+                  {(invoice.lines || []).map((line, index) => (
                     <tr key={`${line.productId || line.name}-${index}`}>
                       <td>{line.name}</td>
                       <td>{line.qty}</td>

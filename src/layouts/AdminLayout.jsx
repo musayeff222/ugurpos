@@ -25,10 +25,10 @@ const adminNav = [
     icon: "fa-calculator",
     items: [
       { to: "/admin/muhasib", label: "Bugün", icon: "fa-calendar", end: true },
-      { to: "/admin/muhasib?bolum=alis", label: "Yeni alış", icon: "fa-shopping-basket" },
-      { to: "/admin/muhasib?bolum=topdanci", label: "Toptancılar", icon: "fa-truck" },
-      { to: "/admin/muhasib?bolum=kasa", label: "Kasalar", icon: "fa-money" },
-      { to: "/admin/muhasib?bolum=borc", label: "Borçlar", icon: "fa-book" },
+      { to: "/admin/muhasib/alis", label: "Yeni alış", icon: "fa-shopping-basket" },
+      { to: "/admin/muhasib/topdanci", label: "Toptancılar", icon: "fa-truck" },
+      { to: "/admin/muhasib/kasa", label: "Kasalar", icon: "fa-money" },
+      { to: "/admin/muhasib/borc", label: "Borçlar", icon: "fa-book" },
     ],
   },
   {
@@ -109,11 +109,16 @@ export default function AdminLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
 
+  const muhasibSection = (pathname, search = "") => {
+    const rest = pathname.slice("/admin/muhasib".length).replace(/^\//, "").split("/")[0];
+    return rest || new URLSearchParams(search).get("bolum") || "bugun";
+  };
+
   const isNavActive = (item) =>
     (item.to.startsWith("/admin/muhasib") &&
       location.pathname.startsWith("/admin/muhasib") &&
-      (new URLSearchParams(item.to.split("?")[1] || "").get("bolum") || "bugun") ===
-        (new URLSearchParams(location.search).get("bolum") || "bugun")) ||
+      muhasibSection(item.to.split("?")[0], item.to.split("?")[1] || "") ===
+        muhasibSection(location.pathname, location.search)) ||
     (!item.to.startsWith("/admin/muhasib") && location.pathname === item.to) ||
     (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches")) ||
     (item.to === "/admin/istehsalat" && location.pathname.startsWith("/admin/istehsalat")) ||

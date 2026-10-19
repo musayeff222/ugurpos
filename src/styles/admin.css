@@ -1800,8 +1800,44 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
+.erp-nav-sub {
+  position: relative;
+  z-index: 1;
+}
+
 .erp-nav-sub a {
   padding-left: 42px;
+}
+
+@media (max-width: 1200px) and (min-width: 992px) {
+  .erp-shell {
+    grid-template-columns: 220px 1fr;
+  }
+
+  .erp-shell .admin-sidebar {
+    padding: 12px 0;
+  }
+
+  .erp-shell .admin-nav a,
+  .erp-shell .admin-sidebar-link,
+  .erp-shell .admin-back,
+  .erp-shell .admin-logout-btn {
+    justify-content: flex-start;
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .erp-shell .admin-nav a span,
+  .erp-shell .admin-sidebar-link span,
+  .erp-shell .erp-brand strong,
+  .erp-shell .erp-brand span,
+  .erp-shell .erp-user-chip div {
+    display: block;
+  }
+
+  .erp-shell .admin-logout-btn {
+    font-size: 14px;
+  }
 }
 
 .erp-topbar__left {
@@ -1831,7 +1867,10 @@
   font-weight: 600;
 }
 
-.erp-nav a span {
+.erp-sidebar .admin-nav a span,
+.erp-nav a span,
+.erp-nav-parent span {
+  display: block;
   flex: 1;
 }
 
@@ -3790,7 +3829,7 @@ button.admin-branch-card {
 
 .alis-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(200px, 0.55fr) minmax(380px, 1.25fr);
+  grid-template-columns: minmax(240px, 1.15fr) minmax(200px, 0.7fr) minmax(280px, 1.1fr);
   gap: 12px;
   align-items: stretch;
   margin-bottom: 14px;
@@ -3862,8 +3901,7 @@ button.admin-branch-card {
 
 .alis-products,
 .alis-lines {
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 auto;
   max-height: 520px;
   overflow: auto;
 }
@@ -3872,6 +3910,7 @@ button.admin-branch-card {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-height: 320px;
 }
 
 .alis-pay {
@@ -4044,7 +4083,10 @@ button.admin-branch-card {
 
   .alis-catalog {
     grid-column: 1 / -1;
-    min-height: 0;
+  }
+
+  .alis-products {
+    min-height: 240px;
   }
 }
 
