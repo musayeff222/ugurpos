@@ -44,6 +44,9 @@ function movementLabel(kind) {
   if (kind === "branch") return "Şubeden";
   if (kind === "purchase") return "Alış";
   if (kind === "debt") return "Borç";
+  if (kind === "deposit") return "Giriş";
+  if (kind === "withdraw") return "Çıkış";
+  if (kind === "transfer") return "Aktarma";
   return "Hareket";
 }
 
@@ -58,6 +61,10 @@ function KasaDesk({
   kassaForm,
   setKassaForm,
   onCreate,
+  onRename,
+  onDelete,
+  onMove,
+  onTransfer,
   pullForm,
   setPullForm,
   onPull,
@@ -68,6 +75,16 @@ function KasaDesk({
   const bankaTotal = kassas.filter((kassa) => kassa.kind === "banka").reduce((sum, kassa) => sum + Number(kassa.balance || 0), 0);
   const branch = branches.find((item) => item.id === pullForm.branchId) || branches[0];
   const history = movements.filter((row) => row.kassaId === active?.id);
+  const others = kassas.filter((kassa) => kassa.id !== active?.id);
+  const [action, setAction] = useState("in");
+  const [money, setMoney] = useState({ amount: "", note: "", toId: "" });
+  const [rename, setRename] = useState({ name: "", kind: "nakit" });
+
+  useEffect(() => {
+    if (!active) return;
+    setRename({ name: active.name || "", kind: active.kind || "nakit" });
+    setMoney((prev) => ({ ...prev, toId: others[0]?.id || "" }));
+  }, [active?.id]);
 
   return (
     <div className="kasa-layout">
@@ -110,6 +127,14 @@ function KasaDesk({
               <option value="banka">Banka</option>
               <option value="diger">Diğer</option>
             </select>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={kassaForm.amount || ""}
+              onChange={(e) => setKassaForm({ ...kassaForm, amount: e.target.value })}
+              placeholder="Açılış tutarı"
+            />
             <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
               Kaydet
             </button>
@@ -122,6 +147,128 @@ function KasaDesk({
           <h3>{active?.name || "Kasa seçin"}</h3>
           <span>{active ? formatMoney(active.balance) : ""}</span>
         </header>
+        {active && (
+          <div className="kasa-actions">
+            {[
+              ["in", "Para koy"],
+              ["out", "Para çek"],
+              ["transfer", "Aktar"],
+              ["branch", "Şubeden"],
+              ["name", "Ad"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={action === id ? "btn btn-primary btn-sm" : "btn btn-sm"}
+                onClick={() => setAction(id)}
+              >
+                {label}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="btn btn-sm kasa-delete"
+              disabled={saving}
+              onClick={() => onDelete(active)}
+            >
+              Sil
+            </button>
+          </div>
+        )}
+        {active && (action === "in" || action === "out") && (
+          <form
+            className="kasa-pull"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const ok = await onMove(active.id, { direction: action, amount: money.amount, note: money.note });
+              if (ok) setMoney((prev) => ({ ...prev, amount: "", note: "" }));
+            }}
+          >
+            <span className="kasa-pull__label">{action === "in" ? "Kasaya para koy" : "Kasadan para çek"}</span>
+            <div className="kasa-pull__row">
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={money.amount}
+                onChange={(e) => setMoney({ ...money, amount: e.target.value })}
+                placeholder="Tutar"
+                required
+              />
+              <input
+                value={money.note}
+                onChange={(e) => setMoney({ ...money, note: e.target.value })}
+                placeholder="Not"
+              />
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {action === "in" ? "Koy" : "Çek"}
+              </button>
+            </div>
+          </form>
+        )}
+        {active && action === "transfer" && (
+          <form
+            className="kasa-pull"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const ok = await onTransfer({ fromId: active.id, toId: money.toId, amount: money.amount, note: money.note });
+              if (ok) setMoney((prev) => ({ ...prev, amount: "", note: "" }));
+            }}
+          >
+            <span className="kasa-pull__label">Başka kasaya aktar</span>
+            <div className="kasa-pull__row">
+              <select value={money.toId} onChange={(e) => setMoney({ ...money, toId: e.target.value })} required>
+                <option value="">Kasa seçin</option>
+                {others.map((kassa) => (
+                  <option key={kassa.id} value={kassa.id}>
+                    {kassa.name} · {formatMoney(kassa.balance)}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={money.amount}
+                onChange={(e) => setMoney({ ...money, amount: e.target.value })}
+                placeholder="Tutar"
+                required
+              />
+              <input
+                value={money.note}
+                onChange={(e) => setMoney({ ...money, note: e.target.value })}
+                placeholder="Not"
+              />
+              <button type="submit" className="btn btn-primary" disabled={saving || !others.length}>
+                Aktar
+              </button>
+            </div>
+            {!others.length && <p className="alis-empty">Aktarmak için ikinci bir kasa oluşturun.</p>}
+          </form>
+        )}
+        {active && action === "name" && (
+          <form
+            className="kasa-pull"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onRename(active.id, rename);
+            }}
+          >
+            <span className="kasa-pull__label">Kasa adı ve türü</span>
+            <div className="kasa-pull__row">
+              <input value={rename.name} onChange={(e) => setRename({ ...rename, name: e.target.value })} required />
+              <select value={rename.kind} onChange={(e) => setRename({ ...rename, kind: e.target.value })}>
+                <option value="nakit">Nakit</option>
+                <option value="banka">Banka</option>
+                <option value="diger">Diğer</option>
+              </select>
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                Kaydet
+              </button>
+            </div>
+          </form>
+        )}
+        {active && action === "branch" && (
         <form className="kasa-pull" onSubmit={onPull}>
           <span className="kasa-pull__label">Şubeden bu kasaya al</span>
           <div className="kasa-branches">
@@ -168,6 +315,7 @@ function KasaDesk({
             </button>
           </div>
         </form>
+        )}
         <div className="kasa-moves">
           <span>Son hareketler</span>
           {history.map((row) => (
@@ -365,16 +513,84 @@ export default function AdminMuhasib() {
     setSaving(true);
     try {
       const created = await api.createAccountKassa(kassaForm);
-      setKassaForm({ name: "", kind: "nakit" });
+      setKassaForm({ name: "", kind: "nakit", amount: "" });
       setShowNewKassa(false);
       if (created?.id) {
         setKassaPick(created.id);
         setPullForm((prev) => ({ ...prev, kassaId: created.id }));
       }
       await load();
-      setMessage("Kasa oluşturuldu.");
+      setMessage(Number(kassaForm.amount) > 0 ? "Kasa oluşturuldu ve açılış tutarı yazıldı." : "Kasa oluşturuldu.");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renameKassa = async (id, form) => {
+    setError("");
+    setMessage("");
+    setSaving(true);
+    try {
+      await api.updateAccountKassa(id, form);
+      await load();
+      setMessage("Kasa güncellendi.");
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeKassa = async (kassa) => {
+    if (!window.confirm(`${kassa.name} silinsin mi? Kasada para varsa önce çekin veya aktarın.`)) return;
+    setError("");
+    setMessage("");
+    setSaving(true);
+    try {
+      await api.deleteAccountKassa(kassa.id);
+      setKassaPick("");
+      await load();
+      setMessage("Kasa silindi.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const moveKassa = async (id, form) => {
+    setError("");
+    setMessage("");
+    setSaving(true);
+    try {
+      await api.moveAccountKassa(id, { ...form, amount: Number(form.amount) });
+      await load();
+      setMessage(form.direction === "out" ? "Kasadan para çekildi." : "Kasaya para kondu.");
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const transferKassa = async (form) => {
+    setError("");
+    setMessage("");
+    setSaving(true);
+    try {
+      await api.transferAccountKassa({ ...form, amount: Number(form.amount) });
+      await load();
+      setMessage("Kasalar arasında aktarıldı.");
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -814,6 +1030,10 @@ export default function AdminMuhasib() {
           kassaForm={kassaForm}
           setKassaForm={setKassaForm}
           onCreate={addKassa}
+          onRename={renameKassa}
+          onDelete={removeKassa}
+          onMove={moveKassa}
+          onTransfer={transferKassa}
           pullForm={pullForm}
           setPullForm={setPullForm}
           onPull={pullCash}

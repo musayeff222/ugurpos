@@ -3,6 +3,10 @@ import { getDb } from "../db/index.js";
 import {
   closeBranchDay,
   createKassa,
+  deleteKassa,
+  moveKassaCash,
+  transferKassa,
+  updateKassa,
   createPurchase,
   createWholesaler,
   getAccountingOverview,
@@ -53,6 +57,38 @@ router.patch("/wholesalers/:id", (req, res) => {
 router.post("/kassas", (req, res) => {
   try {
     res.status(201).json(createKassa(getDb(), req.user.firmId, req.body || {}));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.post("/kassas/transfer", (req, res) => {
+  try {
+    res.json(transferKassa(getDb(), req.user.firmId, req.body || {}));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.patch("/kassas/:id", (req, res) => {
+  try {
+    res.json(updateKassa(getDb(), req.user.firmId, req.params.id, req.body || {}));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.delete("/kassas/:id", (req, res) => {
+  try {
+    res.json(deleteKassa(getDb(), req.user.firmId, req.params.id));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.post("/kassas/:id/cash", (req, res) => {
+  try {
+    res.json(moveKassaCash(getDb(), req.user.firmId, req.params.id, req.body || {}));
   } catch (err) {
     sendError(res, err);
   }

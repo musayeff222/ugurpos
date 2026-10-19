@@ -174,6 +174,13 @@ export const api = {
   updateWholesaler: (id, payload) =>
     request(`/admin/accounting/wholesalers/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   createAccountKassa: (payload) => request("/admin/accounting/kassas", { method: "POST", body: JSON.stringify(payload) }),
+  updateAccountKassa: (id, payload) =>
+    request(`/admin/accounting/kassas/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteAccountKassa: (id) => request(`/admin/accounting/kassas/${id}`, { method: "DELETE" }),
+  moveAccountKassa: (id, payload) =>
+    request(`/admin/accounting/kassas/${id}/cash`, { method: "POST", body: JSON.stringify(payload) }),
+  transferAccountKassa: (payload) =>
+    request("/admin/accounting/kassas/transfer", { method: "POST", body: JSON.stringify(payload) }),
   createAccountPurchase: (payload) =>
     request("/admin/accounting/purchases", { method: "POST", body: JSON.stringify(payload) }),
   payAccountDebt: (payload) => request("/admin/accounting/debts/pay", { method: "POST", body: JSON.stringify(payload) }),

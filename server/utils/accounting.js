@@ -461,13 +461,84 @@ export function getWholesalerDetail(db, firmId, id) {
   return { ...person, purchases: purchaseRows(db, firmId, id), payments, prices };
 }
 
+function kassaKind(value) {
+  return value === "banka" || value === "nakit" ? value : "diger";
+}
+
+function findKassa(db, firmId, id) {
+  const kassa = kassaBalances(db, firmId).find((row) => row.id === id);
+  if (!kassa) throw new Error("Kasa bulunamadı");
+  return kassa;
+}
+
 export function createKassa(db, firmId, body) {
   const name = String(body.name || "").trim();
-  const kind = body.kind === "banka" || body.kind === "nakit" ? body.kind : "diger";
+  const kind = kassaKind(body.kind);
+  const opening = roundMoney(body.amount);
   if (!name) throw new Error("Kasa adı zorunludur");
+  if (opening < 0) throw new Error("Tutar girin");
   const id = uid("kassa");
-  db.prepare("INSERT INTO account_kassas (id, firm_id, name, kind) VALUES (?, ?, ?, ?)").run(id, firmId, name, kind);
-  return { id, name, kind, balance: 0 };
+  const write = db.transaction(() => {
+    db.prepare("INSERT INTO account_kassas (id, firm_id, name, kind) VALUES (?, ?, ?, ?)").run(id, firmId, name, kind);
+    if (opening > 0) {
+      db.prepare(
+        "INSERT INTO account_movements (id, firm_id, kassa_id, direction, amount, kind, ref_id, note) VALUES (?, ?, ?, 'in', ?, 'deposit', ?, ?)"
+      ).run(uid("mov"), firmId, id, opening, id, "Açılış");
+    }
+  });
+  write();
+  return { id, name, kind, balance: opening };
+}
+
+export function updateKassa(db, firmId, id, body) {
+  findKassa(db, firmId, id);
+  const name = String(body.name || "").trim();
+  const kind = kassaKind(body.kind);
+  if (!name) throw new Error("Kasa adı zorunludur");
+  db.prepare("UPDATE account_kassas SET name = ?, kind = ? WHERE id = ? AND firm_id = ?").run(name, kind, id, firmId);
+  return { id, name, kind };
+}
+
+export function deleteKassa(db, firmId, id) {
+  const kassa = findKassa(db, firmId, id);
+  if (Math.abs(kassa.balance) > 0.009) {
+    throw new Error("Kasada para var. Önce çekin veya başka kasaya aktarın");
+  }
+  db.prepare("DELETE FROM account_kassas WHERE id = ? AND firm_id = ?").run(id, firmId);
+  return { ok: true };
+}
+
+export function moveKassaCash(db, firmId, id, body) {
+  const kassa = findKassa(db, firmId, id);
+  const amount = roundMoney(body.amount);
+  if (amount <= 0) throw new Error("Tutar girin");
+  const direction = body.direction === "out" ? "out" : "in";
+  if (direction === "out" && amount > kassa.balance + 0.001) throw new Error("Kasada yeterli para yok");
+  const note = String(body.note || "").trim() || (direction === "out" ? "Kasadan çıkış" : "Kasaya giriş");
+  db.prepare(
+    "INSERT INTO account_movements (id, firm_id, kassa_id, direction, amount, kind, ref_id, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+  ).run(uid("mov"), firmId, kassa.id, direction, amount, direction === "out" ? "withdraw" : "deposit", kassa.id, note);
+  return { ok: true, balance: roundMoney(direction === "out" ? kassa.balance - amount : kassa.balance + amount) };
+}
+
+export function transferKassa(db, firmId, body) {
+  const from = findKassa(db, firmId, String(body.fromId || ""));
+  const to = findKassa(db, firmId, String(body.toId || ""));
+  if (from.id === to.id) throw new Error("İki farklı kasa seçin");
+  const amount = roundMoney(body.amount);
+  if (amount <= 0) throw new Error("Tutar girin");
+  if (amount > from.balance + 0.001) throw new Error("Kasada yeterli para yok");
+  const note = String(body.note || "").trim();
+  const ref = uid("tr");
+  const write = db.transaction(() => {
+    const insert = db.prepare(
+      "INSERT INTO account_movements (id, firm_id, kassa_id, direction, amount, kind, ref_id, note) VALUES (?, ?, ?, ?, ?, 'transfer', ?, ?)"
+    );
+    insert.run(uid("mov"), firmId, from.id, "out", amount, ref, note || `${to.name} kasasına`);
+    insert.run(uid("mov"), firmId, to.id, "in", amount, ref, note || `${from.name} kasasından`);
+  });
+  write();
+  return { ok: true };
 }
 
 function rememberPrice(db, firmId, wholesalerId, productId, buyPrice) {

@@ -4236,17 +4236,14 @@ button.admin-branch-card {
 .kasa-new,
 .kasa-pull__row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
-}
-
-.kasa-new {
-  grid-template-columns: 1fr auto auto;
 }
 
 .kasa-new input,
 .kasa-new select,
-.kasa-pull__row input {
+.kasa-pull__row input,
+.kasa-pull__row select {
   min-height: 34px;
   border: 1px solid #dddbda;
   border-radius: 4px;
@@ -4257,6 +4254,22 @@ button.admin-branch-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.kasa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kasa-delete {
+  margin-left: auto;
+  color: #ba0517;
+}
+
+.kasa-pull__row input,
+.kasa-pull__row select {
+  min-width: 0;
 }
 
 .kasa-moves article {
