@@ -101,7 +101,7 @@ export function createMysqlDb(config) {
     database: config.database,
     waitForConnections: true,
     connectionLimit: 10,
-    charset: "utf8mb4",
+    charset: "utf8mb4_unicode_ci",
     dateStrings: true,
     enableKeepAlive: true,
     ...(config.socketPath ? { socketPath: config.socketPath } : {}),

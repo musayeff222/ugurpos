@@ -14,6 +14,11 @@ function roundMoney(value) {
   return Math.round(num(value) * 100) / 100;
 }
 
+function textEq(db, left, right) {
+  if (db.dialect !== "mysql") return `${left} = ${right}`;
+  return `${left} COLLATE utf8mb4_unicode_ci = ${right} COLLATE utf8mb4_unicode_ci`;
+}
+
 export function ensureAccountKassas(db, firmId) {
   const existing = db.prepare("SELECT id FROM account_kassas WHERE firm_id = ? LIMIT 1").get(firmId);
   if (existing) return;
@@ -111,8 +116,8 @@ function recentPurchases(db, firmId) {
               p.payment_type AS paymentType, p.kassa_id AS kassaId, k.name AS kassaName,
               p.total, p.note, p.created_at AS createdAt
        FROM account_purchases p
-       LEFT JOIN account_wholesalers w ON w.id = p.wholesaler_id
-       LEFT JOIN account_kassas k ON k.id = p.kassa_id
+       LEFT JOIN account_wholesalers w ON ${textEq(db, "w.id", "p.wholesaler_id")}
+       LEFT JOIN account_kassas k ON ${textEq(db, "k.id", "p.kassa_id")}
        WHERE p.firm_id = ?
        ORDER BY p.created_at DESC
        LIMIT 200`
@@ -410,8 +415,8 @@ function purchaseRows(db, firmId, wholesalerId) {
               p.payment_type AS paymentType, p.kassa_id AS kassaId, k.name AS kassaName,
               p.total, p.note, p.created_at AS createdAt
        FROM account_purchases p
-       LEFT JOIN account_wholesalers w ON w.id = p.wholesaler_id
-       LEFT JOIN account_kassas k ON k.id = p.kassa_id
+       LEFT JOIN account_wholesalers w ON ${textEq(db, "w.id", "p.wholesaler_id")}
+       LEFT JOIN account_kassas k ON ${textEq(db, "k.id", "p.kassa_id")}
        WHERE p.firm_id = ? AND p.wholesaler_id = ?
        ORDER BY p.created_at DESC
        LIMIT 80`
@@ -436,7 +441,7 @@ export function getWholesalerDetail(db, firmId, id) {
     .prepare(
       `SELECT m.id, m.amount, m.note, m.created_at AS createdAt, k.name AS kassaName
        FROM account_movements m
-       LEFT JOIN account_kassas k ON k.id = m.kassa_id
+       LEFT JOIN account_kassas k ON ${textEq(db, "k.id", "m.kassa_id")}
        WHERE m.firm_id = ? AND m.kind = 'debt' AND m.ref_id = ?
        ORDER BY m.created_at DESC
        LIMIT 80`
@@ -447,7 +452,7 @@ export function getWholesalerDetail(db, firmId, id) {
     .prepare(
       `SELECT b.firm_product_id AS productId, p.name, b.buy_price AS buyPrice
        FROM account_buy_prices b
-       LEFT JOIN firm_products p ON p.id = b.firm_product_id
+       LEFT JOIN firm_products p ON ${textEq(db, "p.id", "b.firm_product_id")}
        WHERE b.firm_id = ? AND b.wholesaler_id = ?
        ORDER BY p.name`
     )
