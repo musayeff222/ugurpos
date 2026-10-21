@@ -2,12 +2,13 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { getDb } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
-import { signAdminToken, signBranchToken, signStaffToken, authMiddleware } from "../middleware/auth.js";
+import { signAdminToken, signBranchToken, signElemanToken, signStaffToken, authMiddleware } from "../middleware/auth.js";
 import { getBranchesForFirm } from "../middleware/branch.js";
 import { verifyBranchPassword, normalizeBranchEmail } from "../utils/branchAuth.js";
 import { logActivity } from "../utils/activityLog.js";
 import { openStaffShift } from "../utils/staffShifts.js";
 import { getFirmCurrency } from "../utils/qrMenu.js";
+import { findElemanByLogin, publicElemanUser } from "../utils/eleman.js";
 
 const router = Router();
 
@@ -134,6 +135,23 @@ router.post("/branch-login", (req, res) => {
     token,
     user: buildBranchResponse(db, branch),
   });
+});
+
+router.post("/eleman-login", (req, res) => {
+  const { login, password } = req.body || {};
+  try {
+    const db = getDb();
+    const person = findElemanByLogin(db, login, password);
+    const firmName = getFirmName(db, person.firm_id);
+    const token = signElemanToken(person);
+    res.json({
+      token,
+      user: publicElemanUser(person, firmName, getFirmCurrency(db, person.firm_id)),
+    });
+  } catch (err) {
+    const status = err.message === "Invalid credentials" || err.message === "Bu hesab bloklanıb" ? 401 : 400;
+    res.status(status).json({ error: err.message });
+  }
 });
 
 router.get("/staff-for-login", (req, res) => {

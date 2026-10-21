@@ -65,6 +65,11 @@ export const catalogImageUpload = createImageUploadMiddleware(
   (req) => `${req.params.id || `new-${Date.now()}`}`
 );
 
+export const invoiceImageUpload = createImageUploadMiddleware(
+  (req) => ["eleman-invoices", req.user.firmId],
+  () => `inv-${Date.now()}`
+);
+
 export function getUploadsRootAbsolute() {
   return path.resolve(resolveUploadsRoot());
 }

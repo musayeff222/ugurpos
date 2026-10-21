@@ -4,7 +4,7 @@ import LanguageSwitcher from "../components/public/LanguageSwitcher";
 import StaffLoginForm from "../components/StaffLoginForm";
 import { useAuth } from "../context/AuthContext";
 import { useLocale } from "../context/LocaleContext";
-import { getPostLoginPath, isKasiyerAccount, isProductionAccount } from "../utils/authRedirect";
+import { getPostLoginPath, isElemanAccount, isKasiyerAccount, isProductionAccount } from "../utils/authRedirect";
 import "../styles/login.css";
 
 const COPY = {
@@ -42,6 +42,10 @@ export default function Login({ mode = "sube" }) {
   const [error, setError] = useState("");
   const copy = COPY[mode] || COPY.sube;
   const isStaff = mode === "kasiyer" || mode === "persenol";
+
+  if (isAuthenticated && isElemanAccount(user)) {
+    return <Navigate to="/eleman" replace />;
+  }
 
   if (isAuthenticated && isAdmin && !isBranchUser) {
     return <Navigate to="/admin" replace />;

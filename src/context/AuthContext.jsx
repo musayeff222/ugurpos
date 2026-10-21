@@ -55,6 +55,18 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const loginEleman = async (login, password) => {
+    setLoading(true);
+    try {
+      const { token, user: account } = await api.elemanLogin(login, password);
+      sessionStorage.removeItem(ADMIN_BACKUP_KEY);
+      persistUser(account, token);
+      return account;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loginStaff = async (login, password, options = {}) => {
     setLoading(true);
     try {
@@ -253,6 +265,7 @@ export function AuthProvider({ children }) {
         user,
         login,
         loginBranch,
+        loginEleman,
         loginStaff,
         returnToBranchSession,
         endStaffShift,

@@ -10,6 +10,7 @@ import adminRoutes from "./routes/admin.js";
 import apiRoutes from "./routes/api.js";
 import publicRoutes from "./routes/public.js";
 import productionRoutes from "./routes/production.js";
+import elemanRoutes from "./routes/eleman.js";
 import { startBusinessDayScheduler } from "./utils/businessDayScheduler.js";
 import { notifyRequest } from "./utils/telegram.js";
 
@@ -56,6 +57,7 @@ app.use("/api/public", publicRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", authMiddleware, adminRoutes);
 app.use("/api/production", authMiddleware, productionRoutes);
+app.use("/api/eleman", authMiddleware, elemanRoutes);
 app.use("/api", authMiddleware, apiRoutes);
 
 export default app;

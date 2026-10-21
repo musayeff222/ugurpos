@@ -21,6 +21,14 @@ const adminNav = [
     ],
   },
   {
+    title: "Əlman",
+    icon: "fa-user",
+    items: [
+      { to: "/admin/eleman/anbar", label: "Anbar", icon: "fa-cubes" },
+      { to: "/admin/eleman/list", label: "Əlmanlar", icon: "fa-users" },
+    ],
+  },
+  {
     title: "Mühasib",
     icon: "fa-calculator",
     items: [
@@ -67,6 +75,9 @@ function getBreadcrumb(pathname, pageTitle) {
   if (pathname.startsWith("/admin/branches/new")) return ["UgurPOS", "Şubeler", "Yeni kayıt"];
   if (pathname.startsWith("/admin/branches/")) return ["UgurPOS", "Şubeler", "Kayıt"];
   if (pathname.startsWith("/admin/branches")) return ["UgurPOS", "Şubeler"];
+  if (pathname.startsWith("/admin/eleman/list")) return ["UgurPOS", "Əlman", "Əlmanlar"];
+  if (pathname.startsWith("/admin/eleman/anbar") || pathname === "/admin/eleman") return ["UgurPOS", "Əlman", "Anbar"];
+  if (pathname.startsWith("/admin/eleman/")) return ["UgurPOS", "Əlman", "Əməliyyatlar"];
   return ["UgurPOS", pageTitle];
 }
 
@@ -95,6 +106,7 @@ export default function AdminLayout() {
   });
   const [openGroup, setOpenGroup] = useState(() => {
     const path = location.pathname;
+    if (path.startsWith("/admin/eleman")) return "Əlman";
     if (path.startsWith("/admin/muhasib")) return "Mühasib";
     if (
       path.startsWith("/admin/cash-reports") ||
@@ -129,7 +141,13 @@ export default function AdminLayout() {
     (item.to === "/admin/cash-reports" && location.pathname.startsWith("/admin/cash-reports")) ||
     (item.to === "/admin/payment-methods" && location.pathname.startsWith("/admin/payment-methods")) ||
     (item.to === "/admin/settings" && location.pathname.startsWith("/admin/settings")) ||
-    (item.to === "/admin/web" && location.pathname.startsWith("/admin/web"));
+    (item.to === "/admin/web" && location.pathname.startsWith("/admin/web")) ||
+    (item.to === "/admin/eleman/anbar" &&
+      (location.pathname === "/admin/eleman" || location.pathname.startsWith("/admin/eleman/anbar"))) ||
+    (item.to === "/admin/eleman/list" &&
+      location.pathname.startsWith("/admin/eleman") &&
+      !location.pathname.startsWith("/admin/eleman/anbar") &&
+      location.pathname !== "/admin/eleman");
 
   useEffect(() => {
     setMenuOpen(false);

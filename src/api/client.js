@@ -54,6 +54,9 @@ export const api = {
   staffLogin: (payload) =>
     request("/auth/staff-login", { method: "POST", body: JSON.stringify(payload) }),
 
+  elemanLogin: (login, password) =>
+    request("/auth/eleman-login", { method: "POST", body: JSON.stringify({ login, password }) }),
+
   getOfflineStaff: () => request("/auth/offline-staff"),
 
   openStaffShift: (payload) =>
@@ -187,6 +190,44 @@ export const api = {
   pullBranchCash: (payload) => request("/admin/accounting/pull", { method: "POST", body: JSON.stringify(payload) }),
   closeBranchDay: (branchId) =>
     request("/admin/accounting/days/close", { method: "POST", body: JSON.stringify({ branchId }) }),
+
+  getElemanProducts: () => request("/admin/eleman/products"),
+  updateElemanProduct: (id, payload) =>
+    request(`/admin/eleman/products/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  getElemanPeople: () => request("/admin/eleman/people"),
+  createElemanPerson: (payload) =>
+    request("/admin/eleman/people", { method: "POST", body: JSON.stringify(payload) }),
+  getElemanPerson: (id) => request(`/admin/eleman/people/${id}`),
+  updateElemanPerson: (id, payload) =>
+    request(`/admin/eleman/people/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  blockElemanPerson: (id) => request(`/admin/eleman/people/${id}/block`, { method: "POST", body: JSON.stringify({ blocked: true }) }),
+  unblockElemanPerson: (id) =>
+    request(`/admin/eleman/people/${id}/unblock`, { method: "POST", body: JSON.stringify({ blocked: false }) }),
+  addElemanCash: (id, payload) =>
+    request(`/admin/eleman/people/${id}/cash`, { method: "POST", body: JSON.stringify(payload) }),
+  getElemanOverview: () => request("/eleman/overview"),
+  getElemanCashiers: (branchId) => request(`/eleman/branches/${branchId}/cashiers`),
+  createElemanPurchase: (payload) =>
+    request("/eleman/purchases", { method: "POST", body: JSON.stringify(payload) }),
+  createElemanDelivery: (payload) =>
+    request("/eleman/deliveries", { method: "POST", body: JSON.stringify(payload) }),
+  getElemanPendingDeliveries: () => request("/eleman/deliveries/pending"),
+  acceptElemanDelivery: (id) => request(`/eleman/deliveries/${id}/accept`, { method: "POST", body: "{}" }),
+  uploadElemanInvoice: async (file) => {
+    const form = new FormData();
+    form.append("image", file);
+    const headers = {};
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch("/api/eleman/invoice", { method: "POST", headers, body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || res.statusText || "Faktura yüklənmədi");
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  },
 
   getAdminCatalogGroups: () => request("/admin/catalog/groups"),
   createAdminCatalogGroup: (name) =>

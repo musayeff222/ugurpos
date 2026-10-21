@@ -9,7 +9,7 @@ import Topbar from "../components/Topbar";
 import MobileMenu from "../components/MobileMenu";
 import ImpersonationBanner from "../components/ImpersonationBanner";
 import useIsDesktop from "../hooks/useIsDesktop";
-import { isProductionAccount } from "../utils/authRedirect";
+import { isElemanAccount, isProductionAccount } from "../utils/authRedirect";
 import "../styles/layout.css";
 import "../styles/mobile-menu.css";
 
@@ -38,6 +38,10 @@ export default function MainLayout() {
 
   if (isAdmin && !isBranchUser && !isImpersonating && isOnline) {
     return <Navigate to="/admin" replace />;
+  }
+
+  if (isElemanAccount(user)) {
+    return <Navigate to="/eleman" replace />;
   }
 
   if (isProductionAccount(user)) {

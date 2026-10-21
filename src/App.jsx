@@ -52,6 +52,14 @@ import AdminCatalog from "./pages/admin/AdminCatalog";
 import AdminStaff from "./pages/admin/AdminStaff";
 import AdminPaymentMethods from "./pages/admin/AdminPaymentMethods";
 import AdminMuhasib from "./pages/admin/AdminMuhasib";
+import AdminElemanAnbar from "./pages/admin/AdminElemanAnbar";
+import AdminElemanList from "./pages/admin/AdminElemanList";
+import AdminElemanDetail from "./pages/admin/AdminElemanDetail";
+import ElemanLayout from "./layouts/ElemanLayout";
+import ElemanLogin from "./pages/eleman/ElemanLogin";
+import ElemanHome from "./pages/eleman/ElemanHome";
+import ElemanAlis from "./pages/eleman/ElemanAlis";
+import ElemanVeris from "./pages/eleman/ElemanVeris";
 import ProductionLayout from "./layouts/ProductionLayout";
 import ProductionRawMaterials from "./pages/production/ProductionRawMaterials";
 import ProductionWarehouse from "./pages/production/ProductionWarehouse";
@@ -90,6 +98,12 @@ export default function App() {
       <Route path="/login/istesalat" element={<Login mode="istesalat" />} />
       <Route path="/login/sube" element={<Login mode="sube" />} />
       <Route path="/login/persenol" element={<Login mode="persenol" />} />
+      <Route path="/eleman-login" element={<ElemanLogin />} />
+      <Route path="/eleman" element={<ElemanLayout />}>
+        <Route index element={<ElemanHome />} />
+        <Route path="alis" element={<ElemanAlis />} />
+        <Route path="veris" element={<ElemanVeris />} />
+      </Route>
       <Route path="/m/order/:orderId" element={<PublicOrderStatus />} />
       <Route path="/m/orders" element={<Navigate to="/m" replace />} />
       <Route path="/m/branch/:branchId/cart" element={<PublicBranchCart />} />
@@ -113,6 +127,10 @@ export default function App() {
         <Route path="staff" element={<AdminStaff />} />
         <Route path="payment-methods" element={<AdminPaymentMethods />} />
         <Route path="muhasib/:bolum?" element={<AdminMuhasib />} />
+        <Route path="eleman" element={<Navigate to="/admin/eleman/anbar" replace />} />
+        <Route path="eleman/anbar" element={<AdminElemanAnbar />} />
+        <Route path="eleman/list" element={<AdminElemanList />} />
+        <Route path="eleman/:id" element={<AdminElemanDetail />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="/branchs" element={<Navigate to="/admin/branches" replace />} />

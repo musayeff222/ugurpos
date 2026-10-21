@@ -96,6 +96,8 @@ export default function Sales() {
   const [lastSale, setLastSale] = useState(null);
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [now, setNow] = useState(new Date());
+  const [elemanDeliveries, setElemanDeliveries] = useState([]);
+  const [acceptingDelivery, setAcceptingDelivery] = useState("");
   const barcodeRef = useRef(null);
   const printWrapRef = useRef(null);
 
@@ -337,6 +339,25 @@ export default function Sales() {
       clearInterval(timer);
     };
   }, [user?.branchId]);
+
+  useEffect(() => {
+    if (!isStaffUser) return undefined;
+    let cancelled = false;
+    const loadDeliveries = async () => {
+      try {
+        const rows = await api.getElemanPendingDeliveries();
+        if (!cancelled) setElemanDeliveries(Array.isArray(rows) ? rows : []);
+      } catch {
+        if (!cancelled) setElemanDeliveries([]);
+      }
+    };
+    loadDeliveries();
+    const timer = setInterval(loadDeliveries, 12000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [isStaffUser, user?.staffId]);
 
   const dismissNotifications = async () => {
     const ids = notifications.map((n) => n.id);
@@ -1481,6 +1502,49 @@ export default function Sales() {
             </button>
           ))}
         </div>
+      </Modal>
+
+      <Modal
+        open={elemanDeliveries.length > 0}
+        title="Əlman təhvili"
+        onClose={() => {}}
+        closable={false}
+      >
+        {elemanDeliveries[0] && (
+          <div>
+            <p>
+              <strong>{elemanDeliveries[0].elemanName}</strong> bu məhsulları təhvil almısınız?
+            </p>
+            <ul>
+              {(elemanDeliveries[0].lines || []).map((line, index) => (
+                <li key={`${line.productId}-${index}`}>
+                  {line.qty} {line.unit} {line.name}
+                </li>
+              ))}
+            </ul>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={Boolean(acceptingDelivery)}
+                onClick={async () => {
+                  setAcceptingDelivery(elemanDeliveries[0].id);
+                  try {
+                    await api.acceptElemanDelivery(elemanDeliveries[0].id);
+                    setElemanDeliveries((prev) => prev.filter((row) => row.id !== elemanDeliveries[0].id));
+                    setMessage("Təhvil qəbul edildi.");
+                  } catch (err) {
+                    setMessage(err.message);
+                  } finally {
+                    setAcceptingDelivery("");
+                  }
+                }}
+              >
+                Qəbul et
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <Modal open={priceModal} title="Fiyat Gör" onClose={() => setPriceModal(false)}>

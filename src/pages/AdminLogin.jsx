@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getPostLoginPath } from "../utils/authRedirect";
+import { getPostLoginPath, isElemanAccount } from "../utils/authRedirect";
 import "../styles/login.css";
 import "../styles/admin.css";
 
@@ -12,6 +12,10 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  if (isAuthenticated && isElemanAccount(user)) {
+    return <Navigate to="/eleman" replace />;
+  }
 
   if (isAuthenticated && isAdmin) {
     return <Navigate to="/admin" replace />;

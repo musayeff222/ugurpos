@@ -36,6 +36,18 @@ export function signBranchToken(branch, firmName) {
   });
 }
 
+export function signElemanToken(person) {
+  return signToken({
+    id: `eleman_${person.id}`,
+    email: person.login,
+    firmId: person.firm_id,
+    elemanId: person.id,
+    staffName: `${person.first_name || ""} ${person.last_name || ""}`.trim(),
+    role: "eleman",
+    loginType: "eleman",
+  });
+}
+
 export function signStaffToken(staff, branch, firmName, options = {}) {
   const payload = {
     id: `staff_${staff.id}`,
