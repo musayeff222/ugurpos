@@ -9,7 +9,9 @@ export default function ElemanLogin() {
   const location = useLocation();
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   if (isAuthenticated && user?.loginType === "eleman") {
     return <Navigate to="/eleman" replace />;
@@ -26,6 +28,7 @@ export default function ElemanLogin() {
       setError("Login və parol yazın.");
       return;
     }
+    setBusy(true);
     try {
       const account = await loginEleman(login.trim(), password);
       if (account.loginType !== "eleman") {
@@ -36,30 +39,47 @@ export default function ElemanLogin() {
       navigate(location.state?.from?.pathname || "/eleman", { replace: true });
     } catch (err) {
       setError(err.message === "Invalid credentials" ? "Login və ya parol səhvdir." : err.message);
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
     <div className="el-login">
-      <form onSubmit={handleSubmit}>
+      <div className="el-login__glow" aria-hidden />
+      <form className="el-login__card" onSubmit={handleSubmit}>
+        <div className="el-login__mark">İK</div>
+        <p className="el-login__kicker">İstanbul Çiğköfte</p>
         <h1>Əlman girişi</h1>
-        <p>Login və parolunuzla daxil olun.</p>
+        <p className="el-login__hint">Öz login və parolunuzla daxil olun.</p>
         <label className="el-field">
           <span>Login</span>
-          <input value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username" />
+          <input
+            value={login}
+            onChange={(e) => setLogin(e.target.value)}
+            autoComplete="username"
+            inputMode="text"
+            placeholder="məsələn mustafa"
+          />
         </label>
         <label className="el-field">
           <span>Parol</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
+          <div className="el-login__pass">
+            <input
+              type={showPass ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              placeholder="••••"
+            />
+            <button type="button" onClick={() => setShowPass((open) => !open)}>
+              {showPass ? "Gizlət" : "Göstər"}
+            </button>
+          </div>
         </label>
-        {error && <p className="login-error">{error}</p>}
-        <button type="submit" className="btn btn-primary">
-          Daxil ol
+        {error && <p className="el-login__error">{error}</p>}
+        <button type="submit" className="el-login__submit" disabled={busy}>
+          {busy ? "Girilir..." : "Daxil ol"}
         </button>
       </form>
     </div>

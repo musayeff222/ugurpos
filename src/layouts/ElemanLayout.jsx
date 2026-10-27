@@ -20,22 +20,23 @@ export default function ElemanLayout() {
   return (
     <div className="el-shell">
       <header className="el-top">
-        <div>
-          <strong>{name}</strong>
-          <small>Əlman paneli</small>
-        </div>
-        <div>
-          <Link to="/eleman">Ana səhifə</Link>{" "}
-          <button
-            type="button"
-            onClick={() => {
-              logout();
-              navigate("/eleman-login", { replace: true });
-            }}
-          >
-            Çıxış
-          </button>
-        </div>
+        <Link to="/eleman" className="el-top__who">
+          <span className="el-login__mark el-login__mark--sm">İK</span>
+          <span>
+            <strong>{name}</strong>
+            <small>Əlman</small>
+          </span>
+        </Link>
+        <button
+          type="button"
+          className="el-top__out"
+          onClick={() => {
+            logout();
+            navigate("/eleman-login", { replace: true });
+          }}
+        >
+          Çıxış
+        </button>
       </header>
       <Outlet />
     </div>

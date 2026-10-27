@@ -374,7 +374,7 @@ export function listBranchCashiers(db, firmId, branchId) {
   return { branch, cashiers };
 }
 
-function parseLines(db, firmId, rawLines) {
+function parseLines(db, firmId, rawLines, options = {}) {
   const catalog = listElemanProducts(db, firmId);
   return (Array.isArray(rawLines) ? rawLines : [])
     .map((line) => {
@@ -382,12 +382,15 @@ function parseLines(db, firmId, rawLines) {
       const qty = roundQty(line.qty);
       if (!product || qty <= 0) return null;
       const unit = normalizeUnit(line.unit || product.unit);
+      const entered = roundMoney(line.price);
+      const price = options.useEnteredPrice ? entered : roundMoney(product.price);
+      if (options.useEnteredPrice && price <= 0) return null;
       return {
         productId: product.id,
         name: product.name,
         qty,
         unit,
-        price: roundMoney(product.price),
+        price,
       };
     })
     .filter(Boolean);
@@ -399,9 +402,9 @@ export function createElemanPurchase(db, firmId, elemanId, body) {
     firmId
   );
   if (!person) throw new Error("Əlman tapılmadı");
-  const lines = parseLines(db, firmId, body.lines);
-  if (!lines.length) throw new Error("Məhsul seçin");
-  const total = roundMoney(body.total);
+  const lines = parseLines(db, firmId, body.lines, { useEnteredPrice: true });
+  if (!lines.length) throw new Error("Məhsul və alış qiymətini yazın");
+  const total = roundMoney(lines.reduce((sum, line) => sum + line.qty * line.price, 0));
   if (total <= 0) throw new Error("Məbləğ yazın");
   const balance = elemanBalance(db, elemanId);
   if (total > balance + 0.001) throw new Error("Kassada kifayət qədər pul yoxdur");

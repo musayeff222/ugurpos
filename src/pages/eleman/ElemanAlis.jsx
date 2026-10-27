@@ -7,7 +7,6 @@ export default function ElemanAlis() {
   const [data, setData] = useState(null);
   const [cart, setCart] = useState([]);
   const [payOpen, setPayOpen] = useState(false);
-  const [total, setTotal] = useState("");
   const [file, setFile] = useState(null);
   const [invoice, setInvoice] = useState(null);
   const [error, setError] = useState("");
@@ -21,25 +20,42 @@ export default function ElemanAlis() {
   }, []);
 
   const products = data?.products || [];
-  const amount = useMemo(() => cart.reduce((sum, line) => sum + Number(line.qty || 0), 0), [cart]);
+  const total = useMemo(
+    () => cart.reduce((sum, line) => sum + Number(line.qty || 0) * Number(line.price || 0), 0),
+    [cart]
+  );
+  const ready = cart.length > 0 && cart.every((line) => Number(line.qty) > 0 && Number(line.price) > 0);
 
   const toggle = (product) => {
     setCart((prev) => {
       if (prev.some((line) => line.productId === product.id)) {
         return prev.filter((line) => line.productId !== product.id);
       }
-      return [...prev, { productId: product.id, name: product.name, unit: product.unit, qty: 1 }];
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          name: product.name,
+          unit: product.unit,
+          qty: 1,
+          price: product.price > 0 ? String(product.price) : "",
+        },
+      ];
     });
   };
 
-  const setQty = (productId, qty) => {
-    setCart((prev) => prev.map((line) => (line.productId === productId ? { ...line, qty } : line)));
+  const patchLine = (productId, patch) => {
+    setCart((prev) => prev.map((line) => (line.productId === productId ? { ...line, ...patch } : line)));
   };
 
   const pay = async (event) => {
     event.preventDefault();
     setError("");
     setMessage("");
+    if (!ready) {
+      setError("Hər məhsulun sayını və alış qiymətini yazın.");
+      return;
+    }
     if (!file) {
       setError("Faktura şəklini yükləyin.");
       return;
@@ -48,12 +64,10 @@ export default function ElemanAlis() {
     try {
       const uploaded = await api.uploadElemanInvoice(file);
       await api.createElemanPurchase({
-        lines: cart,
-        total: Number(total),
+        lines: cart.map((line) => ({ ...line, qty: Number(line.qty), price: Number(line.price) })),
         invoiceUrl: uploaded.invoiceUrl,
       });
       setCart([]);
-      setTotal("");
       setFile(null);
       setPayOpen(false);
       await load();
@@ -67,13 +81,15 @@ export default function ElemanAlis() {
 
   return (
     <div className="el-page">
-      <h2>Alış</h2>
-      <p>Anbar məhsullarını seçin, sonra ödəniş edin.</p>
+      <div className="el-pagehead">
+        <div>
+          <h2>Alış</h2>
+          <p>Məhsulu seçin, sayını və alış qiymətini yazın.</p>
+        </div>
+        <b>Kassa {formatMoney(data?.balance || 0)}</b>
+      </div>
       {error && <div className="alert alert-danger">{error}</div>}
       {message && <div className="alert alert-info">{message}</div>}
-      <p>
-        Kassa: <strong>{formatMoney(data?.balance || 0)}</strong>
-      </p>
       <div className="el-grid">
         {products.map((product) => {
           const picked = cart.find((line) => line.productId === product.id);
@@ -94,36 +110,55 @@ export default function ElemanAlis() {
 
       {cart.length > 0 && (
         <div className="el-cart">
-          <h3>Səbət · {amount} məhsul</h3>
+          <h3>Səbət · {cart.length} məhsul</h3>
           {cart.map((line) => (
-            <article key={line.productId}>
-              <div>
+            <article key={line.productId} className="el-cart__line">
+              <div className="el-cart__name">
                 <strong>{line.name}</strong>
-                <small>
-                  {" "}
-                  {line.unit === "kq" ? "kq" : "ədəd"}
-                </small>
+                <small>{line.unit === "kq" ? "kq" : "ədəd"}</small>
               </div>
-              <div className="el-qty">
+              <label className="el-field">
+                <span>Say</span>
                 <input
                   type="number"
                   min="0.001"
                   step="0.001"
+                  inputMode="decimal"
                   value={line.qty}
-                  onChange={(e) => setQty(line.productId, e.target.value)}
+                  onChange={(e) => patchLine(line.productId, { qty: e.target.value })}
                 />
+              </label>
+              <label className="el-field">
+                <span>Alış qiyməti</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={line.price}
+                  placeholder="0.00"
+                  onChange={(e) => patchLine(line.productId, { price: e.target.value })}
+                />
+              </label>
+              <div className="el-cart__sum">
+                <span>Cəm</span>
+                <b>{formatMoney(Number(line.qty || 0) * Number(line.price || 0))}</b>
                 <button type="button" className="btn btn-sm" onClick={() => toggle({ id: line.productId })}>
                   Sil
                 </button>
               </div>
             </article>
           ))}
+          <footer className="el-cart__total">
+            <span>Ümumi</span>
+            <strong>{formatMoney(total)}</strong>
+          </footer>
         </div>
       )}
 
       <div className="el-paybar">
-        <button type="button" className="btn btn-primary" disabled={!cart.length} onClick={() => setPayOpen(true)}>
-          Ödəniş
+        <button type="button" className="el-login__submit" disabled={!ready} onClick={() => setPayOpen(true)}>
+          Ödəniş · {formatMoney(total)}
         </button>
       </div>
 
@@ -140,10 +175,16 @@ export default function ElemanAlis() {
 
       <Modal open={payOpen} title="Ödəniş" onClose={() => setPayOpen(false)}>
         <form onSubmit={pay}>
-          <label className="el-field">
-            <span>Ümumi məbləğ</span>
-            <input type="number" min="0.01" step="0.01" value={total} onChange={(e) => setTotal(e.target.value)} required />
-          </label>
+          <p>
+            Ümumi <strong>{formatMoney(total)}</strong> kassadan çıxılacaq.
+          </p>
+          <ul>
+            {cart.map((line) => (
+              <li key={line.productId}>
+                {line.qty} {line.unit === "kq" ? "kq" : "ədəd"} {line.name} · {formatMoney(line.price)}
+              </li>
+            ))}
+          </ul>
           <label className="el-field">
             <span>Faktura şəkli</span>
             <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
@@ -152,7 +193,7 @@ export default function ElemanAlis() {
             <button type="button" className="btn" onClick={() => setPayOpen(false)}>
               Bağla
             </button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            <button type="submit" className="el-login__submit" disabled={saving}>
               {saving ? "Ödənilir..." : "Ödə"}
             </button>
           </div>
@@ -168,7 +209,8 @@ export default function ElemanAlis() {
             <ul>
               {(invoice.lines || []).map((line, index) => (
                 <li key={`${line.productId}-${index}`}>
-                  {line.qty} {line.unit} {line.name}
+                  {line.qty} {line.unit} {line.name} · {formatMoney(line.price)} ={" "}
+                  {formatMoney(Number(line.qty || 0) * Number(line.price || 0))}
                 </li>
               ))}
             </ul>
