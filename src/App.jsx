@@ -64,11 +64,11 @@ import ElemanAlisTarixce from "./pages/eleman/ElemanAlisTarixce";
 import ElemanVeris from "./pages/eleman/ElemanVeris";
 import ElemanVerisTarixce from "./pages/eleman/ElemanVerisTarixce";
 import ElemanAnaEkran from "./pages/eleman/ElemanAnaEkran";
+import ElemanFranchise from "./pages/eleman/ElemanFranchise";
 import {
   ElemanAyarlar,
   ElemanAxtaris,
   ElemanEmeliyyatlar,
-  ElemanFranchise,
 } from "./pages/eleman/ElemanMenuPages";
 import ProductionLayout from "./layouts/ProductionLayout";
 import ProductionRawMaterials from "./pages/production/ProductionRawMaterials";

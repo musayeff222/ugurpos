@@ -14,6 +14,7 @@ const TABS = [
   { id: "topdanci", label: "Toptancılar" },
   { id: "kasa", label: "Kasalar" },
   { id: "borc", label: "Borçlar" },
+  { id: "franchise", label: "Franchise borçları" },
 ];
 
 const PAYMENTS = [
@@ -370,6 +371,7 @@ export default function AdminMuhasib() {
   const [kassaPick, setKassaPick] = useState("");
   const [showNewKassa, setShowNewKassa] = useState(false);
   const [payForm, setPayForm] = useState({ wholesalerId: "", kassaId: "", amount: "" });
+  const [franchisePay, setFranchisePay] = useState({ branchId: "", amount: "" });
   const [pullForm, setPullForm] = useState({ branchId: "", kassaId: "", amount: "" });
   const [invoice, setInvoice] = useState(null);
   const [historyQuery, setHistoryQuery] = useState("");
@@ -388,6 +390,10 @@ export default function AdminMuhasib() {
     setPullForm((prev) => ({
       branchId: prev.branchId || next.branches[0]?.id || "",
       kassaId: prev.kassaId || next.kassas.find((kassa) => kassa.kind === "nakit")?.id || next.kassas[0]?.id || "",
+      amount: prev.amount,
+    }));
+    setFranchisePay((prev) => ({
+      branchId: prev.branchId || next.franchiseDebts?.find((row) => row.debt > 0)?.id || next.franchiseDebts?.[0]?.id || "",
       amount: prev.amount,
     }));
     return next;
@@ -610,6 +616,26 @@ export default function AdminMuhasib() {
       setPayForm((prev) => ({ ...prev, amount: "" }));
       await load();
       setMessage("Borç ödemesi kasadan düşüldü.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const payFranchise = async (event) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    setSaving(true);
+    try {
+      await api.payFranchiseDebt({
+        branchId: franchisePay.branchId,
+        amount: Number(franchisePay.amount),
+      });
+      setFranchisePay((prev) => ({ ...prev, amount: "" }));
+      await load();
+      setMessage("Franchise borcu ödendi. Para eleman franchise kasasına düştü.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1107,6 +1133,94 @@ export default function AdminMuhasib() {
               <span>&nbsp;</span>
               <button type="submit" className="btn btn-primary" disabled={saving}>
                 Borcu öde
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      {tab === "franchise" && (
+        <section className="erp-panel">
+          <header className="erp-panel__head">
+            <h3>Franchise borçları</h3>
+          </header>
+          <div className="erp-table-wrap">
+            <table className="erp-table">
+              <thead>
+                <tr>
+                  <th>Şube</th>
+                  <th>Aldığı</th>
+                  <th>Ödediği</th>
+                  <th>Kalan borç</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data?.franchiseDebts || []).map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.name}</td>
+                    <td>{formatMoney(row.received)}</td>
+                    <td>{formatMoney(row.paid)}</td>
+                    <td>{formatMoney(row.debt)}</td>
+                  </tr>
+                ))}
+                {!(data?.franchiseDebts || []).length && (
+                  <tr>
+                    <td colSpan={4} className="erp-table__empty">
+                      Franchise şube yok.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {(data?.franchiseDebts || [])
+            .filter((row) => row.sales?.length || row.payments?.length)
+            .map((row) => (
+              <div key={`${row.id}-hist`} style={{ marginTop: 16 }}>
+                <h4>{row.name}</h4>
+                {(row.sales || []).map((sale) => (
+                  <p key={sale.id}>
+                    {formatDateTime(sale.createdAt)} · {sale.elemanName} · {sale.payType === "debt" ? "Borç" : "Nakit"} ·{" "}
+                    {(sale.lines || []).map((line) => `${line.qty} ${line.unit} ${line.name}`).join(", ")} ·{" "}
+                    {formatMoney(sale.total)}
+                  </p>
+                ))}
+                {(row.payments || []).map((pay) => (
+                  <p key={pay.id}>
+                    {formatDateTime(pay.createdAt)} · {pay.elemanName} · ödeme · {formatMoney(pay.amount)}
+                  </p>
+                ))}
+              </div>
+            ))}
+          <form className="erp-form" onSubmit={payFranchise}>
+            <label className="erp-field">
+              <span>Şube</span>
+              <select
+                value={franchisePay.branchId}
+                onChange={(e) => setFranchisePay({ ...franchisePay, branchId: e.target.value })}
+              >
+                {(data?.franchiseDebts || []).map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.name} · {formatMoney(row.debt)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="erp-field">
+              <span>Tutar</span>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={franchisePay.amount}
+                onChange={(e) => setFranchisePay({ ...franchisePay, amount: e.target.value })}
+                required
+              />
+            </label>
+            <div className="erp-field">
+              <span>&nbsp;</span>
+              <button type="submit" className="btn btn-primary" disabled={saving || !(data?.franchiseDebts || []).length}>
+                Borcu al
               </button>
             </div>
           </form>

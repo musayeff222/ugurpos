@@ -211,6 +211,19 @@ export default function AdminBranchDetail() {
     }
   };
 
+  const moveToBranches = async () => {
+    if (!window.confirm(`"${getBranchLabel(branch)}" tekrar Şubelere taşınsın mı?`)) return;
+    setMessage("");
+    setError("");
+    try {
+      const updated = await api.updateBranch(id, { kind: "sales" });
+      setBranch((prev) => ({ ...prev, ...updated }));
+      navigate(`/admin/branches/${id}`, { replace: true, state: { message: "Şubelere taşındı." } });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleDelete = async () => {
     const nextLabel = getBranchLabel(branch);
     if (!window.confirm(`"${nextLabel}" şubesini silmek istediğinize emin misiniz?`)) return;
@@ -328,8 +341,12 @@ export default function AdminBranchDetail() {
     .reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
   const isProduction = branch?.kind === "production";
   const isFranchise = branch?.kind === "franchise";
-  const visibleTabs = isProduction ? [{ id: "settings", label: "Ayarlar" }] : TABS;
-  const currentTab = isProduction ? "settings" : tab;
+  const visibleTabs = isProduction
+    ? [{ id: "settings", label: "Ayarlar" }]
+    : isFranchise
+      ? TABS.filter((item) => ["stock", "staff", "settings"].includes(item.id))
+      : TABS;
+  const currentTab = visibleTabs.some((item) => item.id === tab) ? tab : visibleTabs[0]?.id || "settings";
   const showDateFilter = ["sold", "cash", "expenses", "reports"].includes(currentTab);
 
   const dateFilterBar = showDateFilter ? (
@@ -379,14 +396,19 @@ export default function AdminBranchDetail() {
                 <Link to={adminListPath(branchListKind(branch))} className="btn btn-default btn-sm">
                   Liste
                 </Link>
-                {branch.active && (
+                {isFranchise ? (
+                  <button type="button" className="btn btn-primary btn-sm" onClick={moveToBranches}>
+                    Şubelere taşı
+                  </button>
+                ) : null}
+                {branch.active && !isFranchise && (
                   <button type="button" className="btn btn-primary btn-sm" onClick={handleEnterPos} disabled={entering}>
                     {entering ? "..." : isProduction ? "İstehsalata geç" : "Şubeye geç"}
                   </button>
                 )}
               </div>
             </div>
-            {!isProduction && (
+            {!isProduction && !isFranchise && (
             <dl className="crm-highlights">
               <div>
                 <dt>Bugün</dt>
@@ -857,8 +879,8 @@ export default function AdminBranchDetail() {
                       <th>Rol</th>
                       <th>İşe başlama</th>
                       <th>Maaş</th>
-                      <th>Günlük satış</th>
-                      <th>Aylık satış</th>
+                      {!isFranchise && <th>Günlük satış</th>}
+                      {!isFranchise && <th>Aylık satış</th>}
                       <th>Yeni parola</th>
                       <th></th>
                     </tr>
@@ -903,14 +925,18 @@ export default function AdminBranchDetail() {
                             }
                           />
                         </td>
-                        <td data-label="Günlük satış">
-                          {formatMoney(person.todayTotal)}
-                          <small>{person.todayCount} satış</small>
-                        </td>
-                        <td data-label="Aylık satış">
-                          {formatMoney(person.monthTotal)}
-                          <small>{person.monthCount} satış</small>
-                        </td>
+                        {!isFranchise && (
+                          <td data-label="Günlük satış">
+                            {formatMoney(person.todayTotal)}
+                            <small>{person.todayCount} satış</small>
+                          </td>
+                        )}
+                        {!isFranchise && (
+                          <td data-label="Aylık satış">
+                            {formatMoney(person.monthTotal)}
+                            <small>{person.monthCount} satış</small>
+                          </td>
+                        )}
                         <td data-label="Yeni parola">
                           <input
                             className="crm-inline-input staff-password-input"
@@ -933,21 +959,23 @@ export default function AdminBranchDetail() {
                             >
                               Kaydet
                             </button>
-                            <button
-                              type="button"
-                              className="btn btn-default btn-sm"
-                              disabled={enteringStaffId === person.id || !branch.active}
-                              onClick={() => handleEnterStaff(person)}
-                            >
-                              {enteringStaffId === person.id ? "..." : "Çalışan hesabına geç"}
-                            </button>
+                            {!isFranchise && (
+                              <button
+                                type="button"
+                                className="btn btn-default btn-sm"
+                                disabled={enteringStaffId === person.id || !branch.active}
+                                onClick={() => handleEnterStaff(person)}
+                              >
+                                {enteringStaffId === person.id ? "..." : "Çalışan hesabına geç"}
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
                     ))}
                     {!workspace?.staff?.length && (
                       <tr>
-                        <td colSpan={10} className="erp-table__empty">
+                        <td colSpan={isFranchise ? 8 : 10} className="erp-table__empty">
                           Çalışan yok. Admin → Çalışanlar sayfasından ekleyin.
                         </td>
                       </tr>

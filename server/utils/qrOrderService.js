@@ -45,7 +45,7 @@ export function listQrOrders(db, { firmId, branchId, status, limit = 50 }) {
     sql += " AND o.branch_id = ?";
     params.push(branchId);
   } else if (firmId) {
-    sql += " AND b.firm_id = ?";
+    sql += " AND b.firm_id = ? AND (b.kind IS NULL OR b.kind != 'franchise')";
     params.push(firmId);
   }
 

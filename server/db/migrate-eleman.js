@@ -86,6 +86,22 @@ export function migrateEleman(db) {
     )${tableTail}`
   );
   addColumnIfMissing(db, "eleman_stock", "unit_cost", `${money} NOT NULL DEFAULT 0`);
+  addColumnIfMissing(db, "eleman_products", "franchise_percent", `${money} NOT NULL DEFAULT 0`);
+  addColumnIfMissing(db, "eleman_cash", "wallet", `${text} NOT NULL DEFAULT 'main'`);
+  addColumnIfMissing(db, "eleman_deliveries", "channel", `${text} NOT NULL DEFAULT 'branch'`);
+  addColumnIfMissing(db, "eleman_deliveries", "pay_type", `${text} NOT NULL DEFAULT ''`);
+  tryExec(
+    db,
+    `CREATE TABLE IF NOT EXISTS eleman_franchise_payments (
+      id ${id} PRIMARY KEY,
+      firm_id ${id} NOT NULL,
+      branch_id ${id} NOT NULL,
+      eleman_id ${id},
+      amount ${money} NOT NULL DEFAULT 0,
+      note ${longText},
+      created_at ${stamp}
+    )${tableTail}`
+  );
   tryExec(
     db,
     `CREATE TABLE IF NOT EXISTS eleman_purchases (

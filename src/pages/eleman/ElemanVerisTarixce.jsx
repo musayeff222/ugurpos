@@ -24,7 +24,7 @@ export default function ElemanVerisTarixce() {
       </div>
       {error && <div className="alert alert-danger">{error}</div>}
       <section className="el-history">
-        {(data?.deliveries || []).map((row) => (
+        {(data?.deliveries || []).filter((row) => row.channel !== "franchise").map((row) => (
           <button key={row.id} type="button" onClick={() => setDetail(row)}>
             <span>
               {row.branchName} · {row.status === "accepted" ? t("veris.accepted") : t("veris.pending")}
@@ -32,7 +32,7 @@ export default function ElemanVerisTarixce() {
             <b>{formatMoney(row.total)}</b>
           </button>
         ))}
-        {!data?.deliveries?.length && <p>{t("veris.empty")}</p>}
+        {!(data?.deliveries || []).filter((row) => row.channel !== "franchise").length && <p>{t("veris.empty")}</p>}
       </section>
       {detail ? (
         <div className="el-full">

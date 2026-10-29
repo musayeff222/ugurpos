@@ -60,7 +60,27 @@ export default function AdminElemanAnbar() {
                 }}
               />
             </label>
-            <small>{formatMoney(product.price)}</small>
+            <label className="el-field">
+              <span>Franchise faiz %</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                defaultValue={product.franchisePercent || 0}
+                disabled={saving === product.id}
+                onBlur={(e) => {
+                  if (Number(e.target.value) !== Number(product.franchisePercent || 0)) {
+                    save(product, { franchisePercent: e.target.value });
+                  }
+                }}
+              />
+            </label>
+            <small>
+              {formatMoney(product.price)}
+              {Number(product.franchisePercent) > 0
+                ? ` · franchise +${Number(product.franchisePercent)}%`
+                : ""}
+            </small>
           </article>
         ))}
       </div>

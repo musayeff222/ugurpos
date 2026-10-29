@@ -7,28 +7,6 @@ import { ELEMAN_LANGS, elT } from "../../i18n/eleman";
 import { formatDateTime, formatMoney } from "../../utils/format";
 import ElemanInvoiceScreen from "./ElemanInvoiceScreen";
 
-function Placeholder({ title, text }) {
-  return (
-    <div className="el-page">
-      <div className="el-pagehead">
-        <div>
-          <h2>{title}</h2>
-          <p>{text}</p>
-        </div>
-      </div>
-      <article className="el-card" style={{ cursor: "default" }}>
-        <span>Tezliklə</span>
-        <strong>{title}</strong>
-        <small>Bu bölmənin nə üçün olduğunu sonra deyəcəksiniz.</small>
-      </article>
-    </div>
-  );
-}
-
-export function ElemanFranchise() {
-  return <Placeholder title="Franchise" text="Bu kartın nə üçün olduğunu sonra deyəcəksiniz." />;
-}
-
 export function ElemanAyarlar() {
   const { user, patchUser } = useAuth();
   const { lang, setLang } = useLocale();

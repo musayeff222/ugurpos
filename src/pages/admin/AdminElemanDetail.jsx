@@ -44,16 +44,16 @@ export default function AdminElemanDetail() {
       </div>
       <div className="crm-metrics crm-metrics--4">
         <article>
-          <span>Kassa</span>
+          <span>Əsas kassa</span>
           <strong>{formatMoney(person.balance)}</strong>
+        </article>
+        <article>
+          <span>Franchise kassası</span>
+          <strong>{formatMoney(person.franchiseBalance)}</strong>
         </article>
         <article>
           <span>Alışların cəmi</span>
           <strong>{formatMoney(person.purchaseTotal)}</strong>
-        </article>
-        <article>
-          <span>Verişlərin cəmi</span>
-          <strong>{formatMoney(person.deliveryTotal)}</strong>
         </article>
         <article>
           <span>Anbar</span>
@@ -78,7 +78,9 @@ export default function AdminElemanDetail() {
           <header className="erp-panel__head">
             <h3>Verişlər</h3>
           </header>
-          {(person.deliveries || []).map((row) => (
+          {(person.deliveries || [])
+            .filter((row) => row.channel !== "franchise")
+            .map((row) => (
             <button key={row.id} type="button" className="el-history" style={{ display: "block", marginBottom: 8 }} onClick={() => setDelivery(row)}>
               <span>
                 {row.branchName} · {row.status === "accepted" ? "Qəbul" : "Gözləyir"}
@@ -86,9 +88,29 @@ export default function AdminElemanDetail() {
               <b> {formatMoney(row.total)}</b>
             </button>
           ))}
-          {!person.deliveries?.length && <p className="hint-text">Veriş yoxdur.</p>}
+          {!person.deliveries?.filter((row) => row.channel !== "franchise").length && <p className="hint-text">Veriş yoxdur.</p>}
         </section>
       </div>
+
+      <section className="erp-panel" style={{ marginTop: 16 }}>
+        <header className="erp-panel__head">
+          <h3>Franchise verilənlər</h3>
+          <span>Kassa {formatMoney(person.franchiseBalance)}</span>
+        </header>
+        {(person.franchiseDeliveries || person.deliveries || [])
+          .filter((row) => row.channel === "franchise")
+          .map((row) => (
+            <button key={row.id} type="button" className="el-history" style={{ display: "block", marginBottom: 8 }} onClick={() => setDelivery(row)}>
+              <span>
+                {row.branchName} · {row.payType === "debt" ? "Borç" : "Nakit"}
+              </span>
+              <b> {formatMoney(row.total)}</b>
+            </button>
+          ))}
+        {!(person.franchiseDeliveries || person.deliveries || []).filter((row) => row.channel === "franchise").length && (
+          <p className="hint-text">Franchise verişi yoxdur.</p>
+        )}
+      </section>
 
       <Modal open={Boolean(invoice)} title="Alış fakturası" onClose={() => setInvoice(null)}>
         {invoice && (
@@ -119,6 +141,7 @@ export default function AdminElemanDetail() {
           <div>
             <p>
               {formatDateTime(delivery.createdAt)} · {formatMoney(delivery.total)}
+              {delivery.channel === "franchise" ? ` · ${delivery.payType === "debt" ? "Borç" : "Nakit"}` : ""}
             </p>
             <ul>
               {(delivery.lines || []).map((line, index) => (

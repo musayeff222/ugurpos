@@ -2,6 +2,7 @@ import { uid } from "../db/index.js";
 import { sql as SQL } from "../db/dialect.js";
 import { localDateISO } from "./businessHours.js";
 import { getSalePaymentParts } from "./salePayments.js";
+import { listFranchiseDebts } from "./eleman.js";
 
 const PAYMENTS = new Set(["borc", "nagd", "kart"]);
 
@@ -381,6 +382,7 @@ export function getAccountingOverview(db, firmId) {
     prices: rememberedPrices(db, firmId),
     purchases: recentPurchases(db, firmId),
     branches,
+    franchiseDebts: listFranchiseDebts(db, firmId),
     day: getFirmDay(db, firmId),
   };
 }

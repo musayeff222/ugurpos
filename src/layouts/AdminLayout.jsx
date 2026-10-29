@@ -38,6 +38,7 @@ const adminNav = [
       { to: "/admin/muhasib/topdanci", label: "Toptancılar", icon: "fa-truck" },
       { to: "/admin/muhasib/kasa", label: "Kasalar", icon: "fa-money" },
       { to: "/admin/muhasib/borc", label: "Borçlar", icon: "fa-book" },
+      { to: "/admin/muhasib/franchise", label: "Franchise borçları", icon: "fa-handshake-o" },
     ],
   },
   {

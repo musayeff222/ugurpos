@@ -106,18 +106,29 @@ function addStock(db, firmId, elemanId, productId, unit, qty, unitCost = 0) {
   }
 }
 
-export function elemanBalance(db, elemanId) {
-  const inn = num(
-    db.prepare("SELECT COALESCE(SUM(amount), 0) AS t FROM eleman_cash WHERE eleman_id = ? AND direction = 'in'").get(
-      elemanId
-    )?.t
+function cashWallet(value) {
+  return String(value || "main") === "franchise" ? "franchise" : "main";
+}
+
+function franchiseSellPrice(unitCost, percent) {
+  return roundMoney(roundMoney(unitCost) * (1 + num(percent) / 100));
+}
+
+function insertElemanCash(db, { firmId, elemanId, direction, amount, kind, refId, note, wallet = "main" }) {
+  db.prepare(
+    "INSERT INTO eleman_cash (id, firm_id, eleman_id, direction, amount, kind, ref_id, note, wallet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  ).run(uid("elc"), firmId, elemanId, direction, roundMoney(amount), kind, refId || null, note || "", cashWallet(wallet));
+}
+
+export function elemanBalance(db, elemanId, wallet = "main") {
+  const bag = cashWallet(wallet);
+  const rows = db.prepare("SELECT direction, amount, wallet FROM eleman_cash WHERE eleman_id = ?").all(elemanId);
+  return roundMoney(
+    rows.reduce((sum, row) => {
+      if (cashWallet(row.wallet) !== bag) return sum;
+      return sum + (row.direction === "in" ? num(row.amount) : -num(row.amount));
+    }, 0)
   );
-  const out = num(
-    db.prepare("SELECT COALESCE(SUM(amount), 0) AS t FROM eleman_cash WHERE eleman_id = ? AND direction = 'out'").get(
-      elemanId
-    )?.t
-  );
-  return roundMoney(inn - out);
 }
 
 function mapPerson(row, extras = {}) {
@@ -173,6 +184,8 @@ function mapDelivery(db, row) {
     staffName: `${row.staffName || row.staff_name || ""} ${row.staffSurname || row.staff_surname || ""}`.trim(),
     total: num(row.total),
     status: row.status,
+    channel: String(row.channel || "branch") === "franchise" ? "franchise" : "branch",
+    payType: String(row.pay_type || ""),
     createdAt: row.created_at,
     acceptedAt: row.accepted_at || "",
     lines: deliveryLines(db, row.id),
@@ -183,12 +196,13 @@ export function listElemanProducts(db, firmId) {
   ensureElemanCatalog(db, firmId);
   return db
     .prepare(
-      "SELECT id, name, unit, price, sort_no AS sortNo, active FROM eleman_products WHERE firm_id = ? ORDER BY sort_no, name"
+      "SELECT id, name, unit, price, franchise_percent AS franchisePercent, sort_no AS sortNo, active FROM eleman_products WHERE firm_id = ? ORDER BY sort_no, name"
     )
     .all(firmId)
     .map((row) => ({
       ...row,
       price: num(row.price),
+      franchisePercent: num(row.franchisePercent),
       active: Number(row.active) !== 0,
       unit: normalizeUnit(row.unit),
     }));
@@ -201,15 +215,11 @@ export function updateElemanProduct(db, firmId, id, body) {
   if (!name) throw new Error("Məhsul adı yazın");
   const unit = normalizeUnit(body.unit);
   const price = roundMoney(body.price);
+  const franchisePercent = Math.max(0, roundMoney(body.franchisePercent ?? body.franchise_percent));
   const active = body.active === false || body.active === 0 ? 0 : 1;
-  db.prepare("UPDATE eleman_products SET name = ?, unit = ?, price = ?, active = ? WHERE id = ? AND firm_id = ?").run(
-    name,
-    unit,
-    price,
-    active,
-    id,
-    firmId
-  );
+  db.prepare(
+    "UPDATE eleman_products SET name = ?, unit = ?, price = ?, franchise_percent = ?, active = ? WHERE id = ? AND firm_id = ?"
+  ).run(name, unit, price, franchisePercent, active, id, firmId);
   return listElemanProducts(db, firmId).find((row) => row.id === id);
 }
 
@@ -225,6 +235,7 @@ export function listElemanPeople(db, firmId) {
     mapPerson(row, {
       no: index + 1,
       balance: elemanBalance(db, row.id),
+      franchiseBalance: elemanBalance(db, row.id, "franchise"),
       purchaseTotal: num(
         db.prepare("SELECT COALESCE(SUM(total), 0) AS t FROM eleman_purchases WHERE eleman_id = ?").get(row.id)?.t
       ),
@@ -275,11 +286,14 @@ export function getElemanPerson(db, firmId, id) {
   return {
     ...mapPerson(row, {
       balance: elemanBalance(db, id),
+      franchiseBalance: elemanBalance(db, id, "franchise"),
       purchaseTotal: purchases.reduce((sum, item) => sum + item.total, 0),
-      deliveryTotal: accepted.reduce((sum, item) => sum + item.total, 0),
+      deliveryTotal: accepted.filter((item) => item.channel !== "franchise").reduce((sum, item) => sum + item.total, 0),
+      franchiseDeliveryTotal: accepted.filter((item) => item.channel === "franchise").reduce((sum, item) => sum + item.total, 0),
     }),
     purchases,
     deliveries,
+    franchiseDeliveries: deliveries.filter((item) => item.channel === "franchise"),
     stock,
   };
 }
@@ -342,10 +356,17 @@ export function addElemanCash(db, firmId, id, body) {
   if (!person) throw new Error("Əlman tapılmadı");
   const amount = roundMoney(body.amount);
   if (amount <= 0) throw new Error("Məbləğ yazın");
-  db.prepare(
-    "INSERT INTO eleman_cash (id, firm_id, eleman_id, direction, amount, kind, ref_id, note) VALUES (?, ?, ?, 'in', ?, 'deposit', ?, ?)"
-  ).run(uid("elc"), firmId, id, amount, id, String(body.note || "").trim() || "Kassa artırıldı");
-  return { balance: elemanBalance(db, id), name: personName(person) };
+  insertElemanCash(db, {
+    firmId,
+    elemanId: id,
+    direction: "in",
+    amount,
+    kind: "deposit",
+    refId: id,
+    note: String(body.note || "").trim() || "Kassa artırıldı",
+    wallet: "main",
+  });
+  return { balance: elemanBalance(db, id), franchiseBalance: elemanBalance(db, id, "franchise"), name: personName(person) };
 }
 
 export function findElemanByLogin(db, login, password) {
@@ -366,23 +387,32 @@ export function elemanOverview(db, firmId, elemanId) {
   for (const item of person.stock) {
     stockMap[`${item.productId}:${normalizeUnit(item.unit)}`] = item.qty;
   }
-  const withStock = products.map((product) => ({
-    ...product,
-    stock: stockQty(db, elemanId, product.id, product.unit),
-    unitCost: stockCost(db, elemanId, product.id, product.unit),
-  }));
-  const branches = db
+  const withStock = products.map((product) => {
+    const unitCost = stockCost(db, elemanId, product.id, product.unit);
+    return {
+      ...product,
+      stock: stockQty(db, elemanId, product.id, product.unit),
+      unitCost,
+      franchisePrice: franchiseSellPrice(unitCost, product.franchisePercent),
+    };
+  });
+  const rows = db
     .prepare(
-      "SELECT id, name FROM branches WHERE firm_id = ? AND active = 1 AND (kind IS NULL OR kind = '' OR kind != 'production') ORDER BY name"
+      "SELECT id, name, kind FROM branches WHERE firm_id = ? AND active = 1 AND (kind IS NULL OR kind = '' OR kind != 'production') ORDER BY name"
     )
     .all(firmId);
+  const branches = rows.filter((row) => String(row.kind || "") !== "franchise");
+  const franchiseBranches = rows.filter((row) => String(row.kind || "") === "franchise");
   return {
     person,
     balance: person.balance,
+    franchiseBalance: person.franchiseBalance,
     products: withStock,
     branches,
+    franchiseBranches,
     purchases: person.purchases,
-    deliveries: person.deliveries,
+    deliveries: person.deliveries.filter((item) => item.channel !== "franchise"),
+    franchiseDeliveries: person.franchiseDeliveries,
   };
 }
 
@@ -416,10 +446,14 @@ function parseLines(db, firmId, rawLines, options = {}) {
       if (options.useEnteredPrice) {
         price = entered;
         if (price <= 0) return null;
-      } else if (options.useStockCost) {
-        price = stockCost(db, options.elemanId, product.id, unit);
-        if (price <= 0) {
+      } else if (options.useStockCost || options.useFranchisePrice) {
+        const cost = stockCost(db, options.elemanId, product.id, unit);
+        if (cost <= 0) {
           throw new Error(`${product.name} üçün alış qiyməti yoxdur. Əvvəl alış edin.`);
+        }
+        price = options.useFranchisePrice ? franchiseSellPrice(cost, product.franchisePercent) : cost;
+        if (price <= 0) {
+          throw new Error(`${product.name} üçün franchise qiyməti yoxdur`);
         }
       }
       return {
@@ -459,12 +493,31 @@ export function createElemanPurchase(db, firmId, elemanId, body) {
       insertLine.run(uid("ell"), purchaseId, line.productId, line.name, line.qty, line.unit, line.price);
       addStock(db, firmId, elemanId, line.productId, line.unit, line.qty, line.price);
     }
-    db.prepare(
-      "INSERT INTO eleman_cash (id, firm_id, eleman_id, direction, amount, kind, ref_id, note) VALUES (?, ?, ?, 'out', ?, 'purchase', ?, ?)"
-    ).run(uid("elc"), firmId, elemanId, total, purchaseId, "Alış");
+    insertElemanCash(db, {
+      firmId,
+      elemanId,
+      direction: "out",
+      amount: total,
+      kind: "purchase",
+      refId: purchaseId,
+      note: "Alış",
+      wallet: "main",
+    });
   });
   write();
   return mapPurchase(db, db.prepare("SELECT * FROM eleman_purchases WHERE id = ?").get(purchaseId));
+}
+
+function loadDeliveryRow(db, deliveryId) {
+  return db
+    .prepare(
+      `SELECT d.*, b.name AS branchName, s.name AS staffName, s.surname AS staffSurname
+       FROM eleman_deliveries d
+       LEFT JOIN branches b ON ${textEq(db, "b.id", "d.branch_id")}
+       LEFT JOIN staff s ON ${textEq(db, "s.id", "d.staff_id")}
+       WHERE d.id = ?`
+    )
+    .get(deliveryId);
 }
 
 export function createElemanDelivery(db, firmId, elemanId, body) {
@@ -473,16 +526,24 @@ export function createElemanDelivery(db, firmId, elemanId, body) {
     firmId
   );
   if (!person) throw new Error("Əlman tapılmadı");
-  const branch = db.prepare("SELECT id, name FROM branches WHERE id = ? AND firm_id = ? AND active = 1").get(
+  const branch = db.prepare("SELECT id, name, kind FROM branches WHERE id = ? AND firm_id = ? AND active = 1").get(
     body.branchId,
     firmId
   );
   if (!branch) throw new Error("Filial seçin");
-  const staff = db
-    .prepare("SELECT id, name, surname FROM staff WHERE id = ? AND branch_id = ? AND active = 1")
-    .get(body.staffId, branch.id);
-  if (!staff) throw new Error("Kassir seçin");
-  const lines = parseLines(db, firmId, body.lines, { useStockCost: true, elemanId });
+  const isFranchise = String(branch.kind || "") === "franchise";
+  let staff = null;
+  if (!isFranchise) {
+    staff = db
+      .prepare("SELECT id, name, surname FROM staff WHERE id = ? AND branch_id = ? AND active = 1")
+      .get(body.staffId, branch.id);
+    if (!staff) throw new Error("Kassir seçin");
+  }
+  const lines = parseLines(db, firmId, body.lines, {
+    elemanId,
+    useStockCost: !isFranchise,
+    useFranchisePrice: isFranchise,
+  });
   if (!lines.length) throw new Error("Məhsul seçin");
   for (const line of lines) {
     const have = stockQty(db, elemanId, line.productId, line.unit);
@@ -491,11 +552,24 @@ export function createElemanDelivery(db, firmId, elemanId, body) {
     }
   }
   const total = roundMoney(lines.reduce((sum, line) => sum + line.qty * line.price, 0));
+  const payType = isFranchise && String(body.payType || "cash") === "debt" ? "debt" : isFranchise ? "cash" : "";
   const deliveryId = uid("elver");
+  const acceptedAt = isFranchise ? new Date().toISOString() : null;
   const write = db.transaction(() => {
     db.prepare(
-      "INSERT INTO eleman_deliveries (id, firm_id, eleman_id, branch_id, staff_id, total, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')"
-    ).run(deliveryId, firmId, elemanId, branch.id, staff.id, total);
+      "INSERT INTO eleman_deliveries (id, firm_id, eleman_id, branch_id, staff_id, total, status, channel, pay_type, accepted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).run(
+      deliveryId,
+      firmId,
+      elemanId,
+      branch.id,
+      staff?.id || "",
+      total,
+      isFranchise ? "accepted" : "pending",
+      isFranchise ? "franchise" : "branch",
+      payType,
+      acceptedAt
+    );
     const insertLine = db.prepare(
       "INSERT INTO eleman_delivery_lines (id, delivery_id, product_id, name, qty, unit, price) VALUES (?, ?, ?, ?, ?, ?, ?)"
     );
@@ -503,20 +577,111 @@ export function createElemanDelivery(db, firmId, elemanId, body) {
       insertLine.run(uid("ell"), deliveryId, line.productId, line.name, line.qty, line.unit, line.price);
       addStock(db, firmId, elemanId, line.productId, line.unit, -line.qty);
     }
+    if (isFranchise && payType === "cash" && total > 0) {
+      insertElemanCash(db, {
+        firmId,
+        elemanId,
+        direction: "in",
+        amount: total,
+        kind: "franchise",
+        refId: deliveryId,
+        note: `${branch.name} franchise`,
+        wallet: "franchise",
+      });
+    }
   });
   write();
-  return mapDelivery(
-    db,
-    db
+  return mapDelivery(db, loadDeliveryRow(db, deliveryId));
+}
+
+export function listFranchiseDebts(db, firmId) {
+  const branches = db
+    .prepare("SELECT id, name FROM branches WHERE firm_id = ? AND kind = 'franchise' ORDER BY name")
+    .all(firmId);
+  return branches.map((branch) => {
+    const sales = db
       .prepare(
-        `SELECT d.*, b.name AS branchName, s.name AS staffName, s.surname AS staffSurname
+        `SELECT d.*, p.first_name AS firstName, p.last_name AS lastName
          FROM eleman_deliveries d
-         LEFT JOIN branches b ON ${textEq(db, "b.id", "d.branch_id")}
-         LEFT JOIN staff s ON ${textEq(db, "s.id", "d.staff_id")}
-         WHERE d.id = ?`
+         LEFT JOIN eleman_people p ON ${textEq(db, "p.id", "d.eleman_id")}
+         WHERE d.firm_id = ? AND d.branch_id = ? AND d.channel = 'franchise'
+         ORDER BY d.created_at DESC`
       )
-      .get(deliveryId)
-  );
+      .all(firmId, branch.id)
+      .map((row) => ({
+        ...mapDelivery(db, row),
+        elemanName: personName(row),
+      }));
+    const payments = db
+      .prepare(
+        `SELECT pay.id, pay.amount, pay.note, pay.created_at AS createdAt, pay.eleman_id AS elemanId,
+                p.first_name AS firstName, p.last_name AS lastName
+         FROM eleman_franchise_payments pay
+         LEFT JOIN eleman_people p ON ${textEq(db, "p.id", "pay.eleman_id")}
+         WHERE pay.branch_id = ?
+         ORDER BY pay.created_at DESC`
+      )
+      .all(branch.id)
+      .map((row) => ({
+        id: row.id,
+        amount: num(row.amount),
+        note: row.note || "",
+        createdAt: row.createdAt,
+        elemanId: row.elemanId,
+        elemanName: personName(row),
+      }));
+    const received = roundMoney(sales.reduce((sum, row) => sum + num(row.total), 0));
+    const cashPaid = roundMoney(sales.filter((row) => row.payType === "cash").reduce((sum, row) => sum + num(row.total), 0));
+    const debtSales = roundMoney(sales.filter((row) => row.payType === "debt").reduce((sum, row) => sum + num(row.total), 0));
+    const extraPaid = roundMoney(payments.reduce((sum, row) => sum + num(row.amount), 0));
+    return {
+      id: branch.id,
+      name: branch.name,
+      received,
+      paid: roundMoney(cashPaid + extraPaid),
+      debt: roundMoney(Math.max(0, debtSales - extraPaid)),
+      cashPaid,
+      extraPaid,
+      sales,
+      payments,
+    };
+  });
+}
+
+export function payFranchiseDebt(db, firmId, body) {
+  const branch = db
+    .prepare("SELECT id, name FROM branches WHERE id = ? AND firm_id = ? AND kind = 'franchise'")
+    .get(body.branchId, firmId);
+  if (!branch) throw new Error("Franchise şube bulunamadı");
+  const amount = roundMoney(body.amount);
+  if (amount <= 0) throw new Error("Məbləğ yazın");
+  const row = listFranchiseDebts(db, firmId).find((item) => item.id === branch.id);
+  if (!row || amount > row.debt + 0.001) throw new Error("Borc bu qədər deyil");
+  let elemanId = String(body.elemanId || "");
+  if (!elemanId) {
+    elemanId = row.sales.find((item) => item.payType === "debt")?.elemanId || "";
+  }
+  if (!elemanId) throw new Error("Əlman tapılmadı");
+  const person = db.prepare("SELECT id FROM eleman_people WHERE id = ? AND firm_id = ?").get(elemanId, firmId);
+  if (!person) throw new Error("Əlman tapılmadı");
+  const payId = uid("elfp");
+  const write = db.transaction(() => {
+    db.prepare(
+      "INSERT INTO eleman_franchise_payments (id, firm_id, branch_id, eleman_id, amount, note) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run(payId, firmId, branch.id, elemanId, amount, String(body.note || "").trim() || "Franchise borç ödənişi");
+    insertElemanCash(db, {
+      firmId,
+      elemanId,
+      direction: "in",
+      amount,
+      kind: "franchise_pay",
+      refId: payId,
+      note: `${branch.name} borç ödənişi`,
+      wallet: "franchise",
+    });
+  });
+  write();
+  return listFranchiseDebts(db, firmId);
 }
 
 export function pendingStaffDeliveries(db, staffId, branchId) {

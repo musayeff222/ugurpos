@@ -24,6 +24,11 @@ export default function ElemanHome() {
           <strong>{formatMoney(data?.balance || 0)}</strong>
           <small>{t("home.cashHint")}</small>
         </article>
+        <Link to="/eleman/franchise" className="el-card">
+          <span>{t("home.franchiseCash")}</span>
+          <strong>{formatMoney(data?.franchiseBalance || 0)}</strong>
+          <small>{t("home.franchiseHint")}</small>
+        </Link>
         <Link to="/eleman/alis" className="el-card">
           <span>{t("menu.alis")}</span>
           <strong>{data?.purchases?.length || 0}</strong>
@@ -33,11 +38,6 @@ export default function ElemanHome() {
           <span>{t("menu.veris")}</span>
           <strong>{data?.deliveries?.length || 0}</strong>
           <small>{t("home.verisHint")}</small>
-        </Link>
-        <Link to="/eleman/franchise" className="el-card">
-          <span>{t("menu.franchise")}</span>
-          <strong>→</strong>
-          <small>{t("home.soon")}</small>
         </Link>
       </div>
     </div>

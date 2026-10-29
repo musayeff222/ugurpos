@@ -187,6 +187,8 @@ export const api = {
   createAccountPurchase: (payload) =>
     request("/admin/accounting/purchases", { method: "POST", body: JSON.stringify(payload) }),
   payAccountDebt: (payload) => request("/admin/accounting/debts/pay", { method: "POST", body: JSON.stringify(payload) }),
+  payFranchiseDebt: (payload) =>
+    request("/admin/accounting/franchise-debts/pay", { method: "POST", body: JSON.stringify(payload) }),
   pullBranchCash: (payload) => request("/admin/accounting/pull", { method: "POST", body: JSON.stringify(payload) }),
   closeBranchDay: (branchId) =>
     request("/admin/accounting/days/close", { method: "POST", body: JSON.stringify({ branchId }) }),

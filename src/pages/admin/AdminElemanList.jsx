@@ -110,7 +110,8 @@ export default function AdminElemanList() {
                 <th>Ad</th>
                 <th>Telefon</th>
                 <th>Login</th>
-                <th>Kassa</th>
+                <th>Əsas kassa</th>
+                <th>Franchise kassası</th>
                 <th></th>
               </tr>
             </thead>
@@ -129,6 +130,7 @@ export default function AdminElemanList() {
                       {formatMoney(person.balance)}
                     </button>
                   </td>
+                  <td>{formatMoney(person.franchiseBalance || 0)}</td>
                   <td>
                     <div className="staff-row-actions">
                       <button
@@ -166,7 +168,7 @@ export default function AdminElemanList() {
               ))}
               {!people.length && (
                 <tr>
-                  <td colSpan={6} className="erp-table__empty">
+                  <td colSpan={7} className="erp-table__empty">
                     Hələ əlman yoxdur.
                   </td>
                 </tr>

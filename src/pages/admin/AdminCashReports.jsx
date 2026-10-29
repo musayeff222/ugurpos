@@ -4,6 +4,7 @@ import DataTable from "../../components/ui/DataTable";
 import Modal from "../../components/ui/Modal";
 import { formatDateTime, formatMoney, todayISO } from "../../utils/format";
 import { getBranchLabel } from "../../utils/branchDisplay";
+import { isFranchiseKind } from "../../utils/adminPaths";
 
 export default function AdminCashReports() {
   const [branches, setBranches] = useState([]);
@@ -25,7 +26,7 @@ export default function AdminCashReports() {
     setLoading(true);
     setError("");
     try {
-      const branchList = await api.getAdminBranches();
+      const branchList = (await api.getAdminBranches()).filter((b) => !isFranchiseKind(b));
       setBranches(branchList);
       const params = {};
       if (filters.branchId) params.branchId = filters.branchId;

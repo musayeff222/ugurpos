@@ -47,7 +47,7 @@ import { staffWorkHoursMonth, staffWorkHoursToday } from "../utils/staffShifts.j
 import { ciroBonus } from "../utils/ciroBonus.js";
 import { clearBranchProductionIncoming, listBranchProductionGrams } from "../utils/ingredientStock.js";
 import { deleteProductImage } from "../utils/productImage.js";
-import { normalizeBranchKind } from "../utils/branchKind.js";
+import { isFranchiseBranch, normalizeBranchKind } from "../utils/branchKind.js";
 import accountingRouter from "./accounting.js";
 import elemanAdminRouter from "./elemanAdmin.js";
 
@@ -108,8 +108,9 @@ router.get("/summary", (req, res) => {
       stats,
     };
   });
+  const owned = mapped.filter((b) => b.kind !== "franchise");
 
-  const totals = mapped.reduce(
+  const totals = owned.reduce(
     (acc, b) => {
       acc.todayCount += Number(b.stats?.todayCount || 0);
       acc.todayTotal += Number(b.stats?.todayTotal || 0);
@@ -129,7 +130,7 @@ router.get("/summary", (req, res) => {
         .prepare(
           `SELECT COUNT(*) as c FROM qr_orders qo
            INNER JOIN branches b ON b.id = qo.branch_id
-           WHERE b.firm_id = ? AND qo.status = 'pending'`
+           WHERE b.firm_id = ? AND qo.status = 'pending' AND (b.kind IS NULL OR b.kind != 'franchise')`
         )
         .get(firmId).c
     );
@@ -137,12 +138,20 @@ router.get("/summary", (req, res) => {
     pendingQrOrders = 0;
   }
 
-  const recentActivity = listActivityLogs(db, firmId, { limit: 8 }).map(rowToActivityLog);
+  const franchiseIds = new Set(
+    db
+      .prepare("SELECT id FROM branches WHERE firm_id = ? AND kind = 'franchise'")
+      .all(firmId)
+      .map((row) => row.id)
+  );
+  const recentActivity = listActivityLogs(db, firmId, { limit: 8 })
+    .filter((row) => !row.branch_id || !franchiseIds.has(row.branch_id))
+    .map(rowToActivityLog);
 
   res.json({
     firmId,
     firmName: req.user.firmName,
-    branchCount,
+    branchCount: owned.filter((b) => b.active).length,
     userCount,
     ...totals,
     pendingQrOrders,
@@ -591,7 +600,7 @@ router.get("/staff", (req, res) => {
   const rows = db.prepare("SELECT * FROM staff ORDER BY name").all();
   res.json(
     rows
-      .filter((row) => branchMap[row.branch_id])
+      .filter((row) => branchMap[row.branch_id] && !isFranchiseBranch(branchMap[row.branch_id]))
       .map((row) => rowToAdminStaff(row, branchMap[row.branch_id], db))
   );
 });
@@ -605,6 +614,7 @@ router.post("/staff", (req, res) => {
   if (!password?.trim()) return res.status(400).json({ error: "Parola zorunludur" });
   const branch = getBranchOr404(db, branchId, req.user.firmId);
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
+  if (isFranchiseBranch(branch)) return res.status(400).json({ error: "Franchise şubeye çalışan buradan eklenemez" });
   const normalizedLogin = login.trim().toLowerCase();
   const taken = db.prepare("SELECT id FROM staff WHERE login = ?").get(normalizedLogin);
   if (taken) return res.status(409).json({ error: "Bu login zaten kullanılıyor" });
@@ -697,6 +707,7 @@ router.post("/staff/:id/impersonate", (req, res) => {
   const branch = getBranchOr404(db, staff.branch_id, req.user.firmId);
   if (!branch) return res.status(404).json({ error: "Çalışan bulunamadı" });
   if (!branch.active) return res.status(400).json({ error: "Pasif şubeye giriş yapılamaz" });
+  if (isFranchiseBranch(branch)) return res.status(400).json({ error: "Franchise şubeye giriş yapılamaz" });
 
   const adminUser = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
   const firmName = adminUser?.firm_name || req.user.firmName || "Firma";
@@ -788,6 +799,7 @@ router.post("/branches/:id/enter", (req, res) => {
   const branch = getBranchOr404(db, req.params.id, req.user.firmId);
   if (!branch) return res.status(404).json({ error: "Şube bulunamadı" });
   if (!branch.active) return res.status(400).json({ error: "Pasif şubeye giriş yapılamaz" });
+  if (isFranchiseBranch(branch)) return res.status(400).json({ error: "Franchise şubeye giriş yapılamaz" });
 
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
   const branchKind = branch.kind === "production" ? "production" : "sales";
@@ -974,8 +986,9 @@ router.get("/cash-withdrawals", (req, res) => {
   let rows = db.prepare("SELECT * FROM cash_withdrawals ORDER BY created_at DESC").all();
 
   const branchIds = db
-    .prepare("SELECT id FROM branches WHERE firm_id = ?")
+    .prepare("SELECT id, kind FROM branches WHERE firm_id = ?")
     .all(req.user.firmId)
+    .filter((b) => !isFranchiseBranch(b))
     .map((b) => b.id);
   rows = rows.filter((row) => branchIds.includes(row.branch_id));
 
@@ -1030,8 +1043,9 @@ router.get("/business-day-reports", (req, res) => {
   let rows = db.prepare("SELECT * FROM business_day_reports ORDER BY business_date DESC").all();
 
   const branchIds = db
-    .prepare("SELECT id FROM branches WHERE firm_id = ?")
+    .prepare("SELECT id, kind FROM branches WHERE firm_id = ?")
     .all(req.user.firmId)
+    .filter((b) => !isFranchiseBranch(b))
     .map((b) => b.id);
   rows = rows.filter((row) => branchIds.includes(row.branch_id));
 
@@ -1112,7 +1126,8 @@ router.get("/qr-menu", (req, res) => {
   const firmRow = ensureFirmSettings(db, req.user.firmId, req.user.firmName);
   const rows = db
     .prepare(`SELECT * FROM branches WHERE firm_id = ? ORDER BY ${SQL.branchOrder()}, name`)
-    .all(req.user.firmId);
+    .all(req.user.firmId)
+    .filter((row) => !isFranchiseBranch(row));
 
   const branches = rows.map((row) => {
     const menu = enrichMenuBranch(row, firmRow);
@@ -1275,19 +1290,33 @@ router.patch("/qr-orders/:id", (req, res) => {
 router.get("/activity", (req, res) => {
   const db = getDb();
   const limit = Number(req.query.limit) || 80;
-  const rows = listActivityLogs(db, req.user.firmId, { limit });
+  const franchiseIds = new Set(
+    db
+      .prepare("SELECT id FROM branches WHERE firm_id = ? AND kind = 'franchise'")
+      .all(req.user.firmId)
+      .map((row) => row.id)
+  );
+  const rows = listActivityLogs(db, req.user.firmId, { limit })
+    .filter((row) => !row.branch_id || !franchiseIds.has(row.branch_id));
   res.json(rows.map(rowToActivityLog));
 });
 
 router.get("/activity/poll", (req, res) => {
   const db = getDb();
   const after = req.query.after || null;
-  const rows = listActivityLogs(db, req.user.firmId, { limit: 30, after });
+  const franchiseIds = new Set(
+    db
+      .prepare("SELECT id FROM branches WHERE firm_id = ? AND kind = 'franchise'")
+      .all(req.user.firmId)
+      .map((row) => row.id)
+  );
+  const rows = listActivityLogs(db, req.user.firmId, { limit: 30, after })
+    .filter((row) => !row.branch_id || !franchiseIds.has(row.branch_id));
   const pendingQrOrders = db
     .prepare(
       `SELECT COUNT(*) as c FROM qr_orders o
        JOIN branches b ON b.id = o.branch_id
-       WHERE b.firm_id = ? AND o.status = 'pending'`
+       WHERE b.firm_id = ? AND o.status = 'pending' AND (b.kind IS NULL OR b.kind != 'franchise')`
     )
     .get(req.user.firmId).c;
 

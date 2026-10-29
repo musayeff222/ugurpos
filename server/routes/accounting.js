@@ -15,6 +15,7 @@ import {
   pullBranchCash,
   updateWholesaler,
 } from "../utils/accounting.js";
+import { payFranchiseDebt } from "../utils/eleman.js";
 
 const router = Router();
 
@@ -105,6 +106,14 @@ router.post("/purchases", (req, res) => {
 router.post("/debts/pay", (req, res) => {
   try {
     res.json(payDebt(getDb(), req.user.firmId, req.body || {}));
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.post("/franchise-debts/pay", (req, res) => {
+  try {
+    res.json(payFranchiseDebt(getDb(), req.user.firmId, req.body || {}));
   } catch (err) {
     sendError(res, err);
   }

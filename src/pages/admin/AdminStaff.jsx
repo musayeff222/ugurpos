@@ -4,6 +4,7 @@ import { api } from "../../api/client";
 import Modal from "../../components/ui/Modal";
 import { useAuth } from "../../context/AuthContext";
 import { getBranchLabel } from "../../utils/branchDisplay";
+import { isFranchiseKind } from "../../utils/adminPaths";
 import { formatMoney } from "../../utils/format";
 
 const emptyForm = {
@@ -65,9 +66,10 @@ export default function AdminStaff() {
 
   const load = async () => {
     const [branchList, people] = await Promise.all([api.getAdminBranches(), api.getAdminStaff()]);
-    setBranches(branchList);
+    const owned = branchList.filter((b) => !isFranchiseKind(b));
+    setBranches(owned);
     setStaff(people);
-    setForm((prev) => (prev.branchId || !branchList[0] ? prev : { ...prev, branchId: branchList[0].id }));
+    setForm((prev) => (prev.branchId || !owned[0] ? prev : { ...prev, branchId: owned[0].id }));
   };
 
   useEffect(() => {
