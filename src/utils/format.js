@@ -28,7 +28,8 @@ export function formatDate(date = new Date(), lang = "tr") {
 
 export function formatDateTime(date = new Date(), lang = "tr") {
   const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleString(lang === "az" ? "az-AZ" : "tr-TR");
+  const locales = { az: "az-AZ", tr: "tr-TR", ru: "ru-RU", en: "en-GB" };
+  return d.toLocaleString(locales[lang] || "tr-TR");
 }
 
 export function todayISO(date = new Date()) {

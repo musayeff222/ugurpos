@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useLocale } from "../../context/LocaleContext";
+import { elT } from "../../i18n/eleman";
+import { initElemanPwa } from "../../utils/elemanPwa";
 import "../../styles/eleman.css";
 
 export default function ElemanLogin() {
   const { loginEleman, isAuthenticated, user, logout } = useAuth();
+  const { lang } = useLocale();
+  const t = (key) => elT(lang, key);
   const navigate = useNavigate();
   const location = useLocation();
   const [login, setLogin] = useState("");
@@ -12,6 +17,10 @@ export default function ElemanLogin() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    initElemanPwa();
+  }, []);
 
   if (isAuthenticated && user?.loginType === "eleman") {
     return <Navigate to="/eleman" replace />;
@@ -25,7 +34,7 @@ export default function ElemanLogin() {
     event.preventDefault();
     setError("");
     if (!login.trim() || !password.trim()) {
-      setError("Login və parol yazın.");
+      setError(t("login.need"));
       return;
     }
     setBusy(true);
@@ -33,12 +42,12 @@ export default function ElemanLogin() {
       const account = await loginEleman(login.trim(), password);
       if (account.loginType !== "eleman") {
         logout();
-        setError("Bu giriş yalnız əlman üçündür.");
+        setError(t("login.bad"));
         return;
       }
       navigate(location.state?.from?.pathname || "/eleman", { replace: true });
     } catch (err) {
-      setError(err.message === "Invalid credentials" ? "Login və ya parol səhvdir." : err.message);
+      setError(err.message === "Invalid credentials" ? t("login.bad") : err.message);
     } finally {
       setBusy(false);
     }
@@ -48,10 +57,10 @@ export default function ElemanLogin() {
     <div className="el-login">
       <div className="el-login__glow" aria-hidden />
       <form className="el-login__card" onSubmit={handleSubmit}>
-        <div className="el-login__mark">İK</div>
+        <img className="el-login__logo" src="/icons/cigkofte-192.png" alt="İstanbul Çiğköfte" />
         <p className="el-login__kicker">İstanbul Çiğköfte</p>
-        <h1>Əlman girişi</h1>
-        <p className="el-login__hint">Öz login və parolunuzla daxil olun.</p>
+        <h1>{t("login.title")}</h1>
+        <p className="el-login__hint">{t("login.hint")}</p>
         <label className="el-field">
           <span>Login</span>
           <input
@@ -63,7 +72,7 @@ export default function ElemanLogin() {
           />
         </label>
         <label className="el-field">
-          <span>Parol</span>
+          <span>{t("login.pass")}</span>
           <div className="el-login__pass">
             <input
               type={showPass ? "text" : "password"}
@@ -73,13 +82,13 @@ export default function ElemanLogin() {
               placeholder="••••"
             />
             <button type="button" onClick={() => setShowPass((open) => !open)}>
-              {showPass ? "Gizlət" : "Göstər"}
+              {showPass ? t("login.hide") : t("login.show")}
             </button>
           </div>
         </label>
         {error && <p className="el-login__error">{error}</p>}
         <button type="submit" className="el-login__submit" disabled={busy}>
-          {busy ? "Girilir..." : "Daxil ol"}
+          {busy ? t("login.busy") : t("login.submit")}
         </button>
       </form>
     </div>

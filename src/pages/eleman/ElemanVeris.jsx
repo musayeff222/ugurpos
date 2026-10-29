@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
 import { parseAmount } from "../../utils/compressImage";
-import { formatDateTime, formatMoney } from "../../utils/format";
+import { formatMoney } from "../../utils/format";
 
 function gramsToKq(grams) {
   return Math.round((parseAmount(grams) / 1000) * 1000) / 1000;
@@ -27,7 +27,6 @@ export default function ElemanVeris() {
   const [lines, setLines] = useState([]);
   const [staffId, setStaffId] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [detail, setDetail] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -220,19 +219,6 @@ export default function ElemanVeris() {
         </>
       )}
 
-      <section className="el-history">
-        <h3>Veriş tarixçəsi</h3>
-        {(data?.deliveries || []).map((row) => (
-          <button key={row.id} type="button" onClick={() => setDetail(row)}>
-            <span>
-              {row.branchName} · {row.status === "accepted" ? "Qəbul edilib" : "Gözləyir"}
-            </span>
-            <b>{formatMoney(row.total)}</b>
-          </button>
-        ))}
-        {!data?.deliveries?.length && <p>Veriş yoxdur.</p>}
-      </section>
-
       {confirmOpen ? (
         <div className="el-full">
           <header className="el-full__bar">
@@ -268,37 +254,6 @@ export default function ElemanVeris() {
               {saving ? "Göndərilir..." : "Təsdiqlə"}
             </button>
           </form>
-        </div>
-      ) : null}
-
-      {detail ? (
-        <div className="el-full">
-          <header className="el-full__bar">
-            <button type="button" className="el-full__back" onClick={() => setDetail(null)}>
-              Geri
-            </button>
-            <h2>{detail.branchName || "Veriş"}</h2>
-          </header>
-          <div className="el-full__body">
-            <article className="el-invoice">
-              <p>
-                {formatDateTime(detail.createdAt, "az")} · {formatMoney(detail.total)}
-              </p>
-              <p>{detail.status === "accepted" ? "Qəbul edilib" : "Gözləyir"}</p>
-              <ul>
-                {(detail.lines || []).map((line, index) => (
-                  <li key={`${line.productId}-${index}`}>
-                    <span>
-                      {line.qty} {line.unit} {line.name}
-                    </span>
-                    <b>
-                      {formatMoney(line.price)} · {formatMoney(Number(line.qty || 0) * Number(line.price || 0))}
-                    </b>
-                  </li>
-                ))}
-              </ul>
-            </article>
-          </div>
         </div>
       ) : null}
     </div>

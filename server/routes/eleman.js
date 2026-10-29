@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getDb } from "../db/index.js";
 import { invoiceImageUpload } from "../middleware/imageUpload.js";
+import { signElemanToken } from "../middleware/auth.js";
 import {
   acceptElemanDelivery,
   createElemanDelivery,
@@ -8,6 +9,8 @@ import {
   elemanOverview,
   listBranchCashiers,
   pendingStaffDeliveries,
+  publicElemanUser,
+  updateElemanSelf,
 } from "../utils/eleman.js";
 
 const router = Router();
@@ -45,6 +48,22 @@ function maybeInvoiceUpload(req, res, next) {
     });
   });
 }
+
+router.patch("/profile", requireEleman, (req, res) => {
+  try {
+    const db = getDb();
+    const row = updateElemanSelf(db, req.user.firmId, req.user.elemanId, req.body || {});
+    const firmName =
+      db.prepare("SELECT firm_name FROM users WHERE firm_id = ? LIMIT 1").get(req.user.firmId)?.firm_name ||
+      req.user.firmName;
+    res.json({
+      token: signElemanToken(row),
+      user: publicElemanUser(row, firmName, req.user.currency),
+    });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
 
 router.get("/overview", requireEleman, (req, res) => {
   try {

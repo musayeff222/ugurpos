@@ -59,13 +59,15 @@ import ElemanLayout from "./layouts/ElemanLayout";
 import ElemanLogin from "./pages/eleman/ElemanLogin";
 import ElemanHome from "./pages/eleman/ElemanHome";
 import ElemanAlis from "./pages/eleman/ElemanAlis";
+import ElemanAlisTarixce from "./pages/eleman/ElemanAlisTarixce";
 import ElemanVeris from "./pages/eleman/ElemanVeris";
+import ElemanVerisTarixce from "./pages/eleman/ElemanVerisTarixce";
+import ElemanAnaEkran from "./pages/eleman/ElemanAnaEkran";
 import {
   ElemanAyarlar,
   ElemanAxtaris,
   ElemanEmeliyyatlar,
   ElemanFranchise,
-  ElemanLogolar,
 } from "./pages/eleman/ElemanMenuPages";
 import ProductionLayout from "./layouts/ProductionLayout";
 import ProductionRawMaterials from "./pages/production/ProductionRawMaterials";
@@ -108,14 +110,17 @@ export default function App() {
       <Route path="/eleman-login" element={<ElemanLogin />} />
       <Route path="/eleman" element={<ElemanLayout />}>
         <Route index element={<ElemanHome />} />
+        <Route path="ana-ekran" element={<ElemanAnaEkran />} />
         <Route path="alis" element={<ElemanAlis />} />
+        <Route path="alis-tarixce" element={<ElemanAlisTarixce />} />
         <Route path="veris" element={<ElemanVeris />} />
+        <Route path="veris-tarixce" element={<ElemanVerisTarixce />} />
         <Route path="franchise" element={<ElemanFranchise />} />
         <Route path="firancays" element={<Navigate to="/eleman/franchise" replace />} />
         <Route path="emeliyyatlar" element={<ElemanEmeliyyatlar />} />
         <Route path="axtaris" element={<ElemanAxtaris />} />
         <Route path="ayarlar" element={<ElemanAyarlar />} />
-        <Route path="logolar" element={<ElemanLogolar />} />
+        <Route path="logolar" element={<Navigate to="/eleman" replace />} />
       </Route>
       <Route path="/m/order/:orderId" element={<PublicOrderStatus />} />
       <Route path="/m/orders" element={<Navigate to="/m" replace />} />

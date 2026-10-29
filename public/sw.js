@@ -1,11 +1,20 @@
-const SHELL_CACHE = "ugurpos-shell-v1";
-const ASSET_CACHE = "ugurpos-assets-v1";
+const SHELL_CACHE = "ugurpos-shell-v2";
+const ASSET_CACHE = "ugurpos-assets-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(["/", "/index.html", "/favicon.svg"]))
+      .then((cache) =>
+        cache.addAll([
+          "/",
+          "/index.html",
+          "/favicon.svg",
+          "/eleman-manifest.webmanifest",
+          "/icons/cigkofte-192.png",
+          "/icons/cigkofte-512.png",
+        ])
+      )
       .then(() => self.skipWaiting())
       .catch(() => self.skipWaiting())
   );

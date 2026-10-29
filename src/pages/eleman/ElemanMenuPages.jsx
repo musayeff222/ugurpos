@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../../api/client";
+import { api, setToken } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import { useLocale } from "../../context/LocaleContext";
+import { ELEMAN_LANGS, elT } from "../../i18n/eleman";
 import { formatDateTime, formatMoney } from "../../utils/format";
 import ElemanInvoiceScreen from "./ElemanInvoiceScreen";
 
@@ -28,27 +30,108 @@ export function ElemanFranchise() {
 }
 
 export function ElemanAyarlar() {
-  const { user } = useAuth();
+  const { user, patchUser } = useAuth();
+  const { lang, setLang } = useLocale();
+  const t = (key) => elT(lang, key);
   const name = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.staffName || "";
+  const [login, setLogin] = useState(user?.email || "");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const save = async (event) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    const loginChanged = login.trim() && login.trim().toLowerCase() !== String(user?.email || "").toLowerCase();
+    if ((loginChanged || password) && !currentPassword) {
+      setError(t("settings.needPass"));
+      return;
+    }
+    if (!loginChanged && !password) {
+      setMessage(t("settings.saved"));
+      return;
+    }
+    setSaving(true);
+    try {
+      const next = await api.updateElemanProfile({
+        login: login.trim(),
+        currentPassword,
+        password,
+      });
+      if (next.token) setToken(next.token);
+      if (next.user) patchUser(next.user);
+      setCurrentPassword("");
+      setPassword("");
+      setMessage(t("settings.saved"));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="el-page">
       <div className="el-pagehead">
         <div>
-          <h2>Ayarlar</h2>
-          <p>Hesab məlumatı. Digər ayarlar sonra əlavə olunacaq.</p>
+          <h2>{t("settings.title")}</h2>
+          <p>{t("settings.hint")}</p>
         </div>
       </div>
-      <article className="el-card" style={{ cursor: "default" }}>
-        <span>Hesab</span>
+      {error && <div className="alert alert-danger">{error}</div>}
+      {message && <div className="alert alert-info">{message}</div>}
+      <article className="el-card" style={{ cursor: "default", marginBottom: 14 }}>
+        <span>{t("role")}</span>
         <strong>{name}</strong>
-        <small>{user?.email || user?.login || ""}</small>
+        <small>{user?.email || ""}</small>
       </article>
+      <div className="el-langs">
+        <span>{t("settings.lang")}</span>
+        <div>
+          {ELEMAN_LANGS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={lang === item.id ? "is-on" : ""}
+              onClick={() => setLang(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <form className="el-settings" onSubmit={save}>
+        <label className="el-field">
+          <span>{t("settings.login")}</span>
+          <input value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username" />
+        </label>
+        <label className="el-field">
+          <span>{t("settings.currentPass")}</span>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+        </label>
+        <label className="el-field">
+          <span>{t("settings.newPass")}</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+        </label>
+        <button type="submit" className="el-login__submit" disabled={saving}>
+          {saving ? t("settings.saving") : t("settings.save")}
+        </button>
+      </form>
     </div>
   );
-}
-
-export function ElemanLogolar() {
-  return <Placeholder title="Loqolar" text="Logo bölməsi sonra doldurulacaq." />;
 }
 
 function useOverview() {
@@ -62,6 +145,8 @@ function useOverview() {
 
 export function ElemanEmeliyyatlar() {
   const { user } = useAuth();
+  const { lang } = useLocale();
+  const t = (key) => elT(lang, key);
   const { data, error } = useOverview();
   const [invoice, setInvoice] = useState(null);
   const name = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.staffName || "";
@@ -86,8 +171,8 @@ export function ElemanEmeliyyatlar() {
     <div className="el-page">
       <div className="el-pagehead">
         <div>
-          <h2>Əməliyyatlar</h2>
-          <p>Alış və veriş tarixçəsi.</p>
+          <h2>{t("menu.ops")}</h2>
+          <p>{t("ops.hint")}</p>
         </div>
       </div>
       {error && <div className="alert alert-danger">{error}</div>}
@@ -96,20 +181,20 @@ export function ElemanEmeliyyatlar() {
           row.kind === "alis" ? (
             <button key={row.id} type="button" onClick={() => setInvoice(row)}>
               <span>
-                Alış · {formatDateTime(row.createdAt, "az")}
+                {t("menu.alis")} · {formatDateTime(row.createdAt, lang)}
               </span>
               <b>{formatMoney(row.total)}</b>
             </button>
           ) : (
-            <Link key={row.id} to="/eleman/veris">
+            <Link key={row.id} to="/eleman/veris-tarixce">
               <span>
-                Veriş · {row.title} · {row.status === "accepted" ? "Qəbul" : "Gözləyir"}
+                {t("menu.veris")} · {row.title} · {row.status === "accepted" ? t("veris.accepted") : t("veris.pending")}
               </span>
               <b>{formatMoney(row.total)}</b>
             </Link>
           )
         )}
-        {!rows.length && <p>Əməliyyat yoxdur.</p>}
+        {!rows.length && <p>{t("ops.empty")}</p>}
       </section>
       {invoice ? (
         <ElemanInvoiceScreen
@@ -125,6 +210,8 @@ export function ElemanEmeliyyatlar() {
 
 export function ElemanAxtaris() {
   const { user } = useAuth();
+  const { lang } = useLocale();
+  const t = (key) => elT(lang, key);
   const { data, error } = useOverview();
   const [query, setQuery] = useState("");
   const [invoice, setInvoice] = useState(null);
@@ -152,32 +239,34 @@ export function ElemanAxtaris() {
     <div className="el-page">
       <div className="el-pagehead">
         <div>
-          <h2>Axtarış</h2>
-          <p>Alış və verişdə məhsul və ya filial axtarın.</p>
+          <h2>{t("menu.search")}</h2>
+          <p>{t("search.hint")}</p>
         </div>
       </div>
       {error && <div className="alert alert-danger">{error}</div>}
       <label className="el-field">
         <span>Axtar</span>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="məhsul, filial..." />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search.placeholder")} />
       </label>
       <section className="el-history">
         {rows.map((row) =>
           row.kind === "alis" ? (
             <button key={row.id} type="button" onClick={() => setInvoice(row)}>
-              <span>Alış · {formatDateTime(row.createdAt, "az")}</span>
+              <span>
+                {t("menu.alis")} · {formatDateTime(row.createdAt, lang)}
+              </span>
               <b>{formatMoney(row.total)}</b>
             </button>
           ) : (
-            <Link key={row.id} to="/eleman/veris">
+            <Link key={row.id} to="/eleman/veris-tarixce">
               <span>
-                Veriş · {row.branchName} · {formatDateTime(row.createdAt, "az")}
+                {t("menu.veris")} · {row.branchName} · {formatDateTime(row.createdAt, lang)}
               </span>
               <b>{formatMoney(row.total)}</b>
             </Link>
           )
         )}
-        {!rows.length && <p>Nəticə yoxdur.</p>}
+        {!rows.length && <p>{t("search.empty")}</p>}
       </section>
       {invoice ? (
         <ElemanInvoiceScreen

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { compressInvoiceImage, parseAmount } from "../../utils/compressImage";
-import { formatDateTime, formatMoney } from "../../utils/format";
+import { formatMoney } from "../../utils/format";
 import ElemanInvoiceScreen from "./ElemanInvoiceScreen";
 
 export default function ElemanAlis() {
@@ -202,17 +202,6 @@ export default function ElemanAlis() {
           Ödəniş · {formatMoney(total)}
         </button>
       </div>
-
-      <section className="el-history">
-        <h3>Alış tarixçəsi</h3>
-        {(data?.purchases || []).map((row) => (
-          <button key={row.id} type="button" onClick={() => setInvoice(row)}>
-            <span>{formatDateTime(row.createdAt, "az")}</span>
-            <b>{formatMoney(row.total)}</b>
-          </button>
-        ))}
-        {!data?.purchases?.length && <p>Alış yoxdur.</p>}
-      </section>
 
       {payOpen ? (
         <div className="el-full">

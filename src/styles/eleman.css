@@ -216,6 +216,90 @@ body.el-lock {
   flex: 0 0 auto;
 }
 
+.el-top__logo,
+.el-drawer__logo,
+.el-login__logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #7a1f12;
+  flex: 0 0 auto;
+}
+
+.el-login__logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+}
+
+.el-langs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.el-langs > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #78716c;
+}
+
+.el-langs > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.el-langs button {
+  min-height: 48px;
+  border: 1px solid #e7e0d8;
+  background: #fff;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.el-langs button.is-on {
+  border-color: #7a1f12;
+  background: #fff7f3;
+  color: #7a1f12;
+}
+
+.el-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #e7e0d8;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.el-install {
+  background: #fff;
+  border: 1px solid #e7e0d8;
+  border-radius: 20px;
+  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.el-install img {
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+}
+
+.el-install p {
+  color: #57534e;
+  margin: 4px 0 0;
+}
+
 .el-login__kicker {
   margin: 4px 0 0;
   color: #a16207;

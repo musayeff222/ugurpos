@@ -206,6 +206,8 @@ export const api = {
   addElemanCash: (id, payload) =>
     request(`/admin/eleman/people/${id}/cash`, { method: "POST", body: JSON.stringify(payload) }),
   getElemanOverview: () => request("/eleman/overview"),
+  updateElemanProfile: (payload) =>
+    request("/eleman/profile", { method: "PATCH", body: JSON.stringify(payload) }),
   getElemanCashiers: (branchId) => request(`/eleman/branches/${branchId}/cashiers`),
   createElemanPurchase: async (payload, file) => {
     if (!file) {

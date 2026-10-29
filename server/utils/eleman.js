@@ -548,6 +548,31 @@ export function acceptElemanDelivery(db, staffId, branchId, deliveryId) {
   return mapDelivery(db, { ...row, status: "accepted", accepted_at: acceptedAt, branchName: "" });
 }
 
+export function updateElemanSelf(db, firmId, elemanId, body) {
+  const existing = db
+    .prepare("SELECT * FROM eleman_people WHERE id = ? AND firm_id = ? AND blocked = 0")
+    .get(elemanId, firmId);
+  if (!existing) throw new Error("Əlman tapılmadı");
+  const login = body.login !== undefined ? normalizeLogin(body.login) : existing.login;
+  const password = String(body.password || "");
+  const currentPassword = String(body.currentPassword || "");
+  if (!login) throw new Error("Login yazın");
+  const loginChanged = login !== normalizeLogin(existing.login);
+  if ((loginChanged || password) && !bcrypt.compareSync(currentPassword, existing.password_hash)) {
+    throw new Error("Mövcud parol səhvdir");
+  }
+  if (loginChanged || password) {
+    updateElemanPerson(db, firmId, elemanId, {
+      firstName: existing.first_name,
+      lastName: existing.last_name,
+      phone: existing.phone,
+      login,
+      password,
+    });
+  }
+  return db.prepare("SELECT * FROM eleman_people WHERE id = ?").get(elemanId);
+}
+
 export function publicElemanUser(row, firmName, currency) {
   return {
     id: row.id,
