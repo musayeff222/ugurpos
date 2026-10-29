@@ -160,7 +160,7 @@ export default function AdminElemanList() {
           <small>cəmi</small>
         </article>
         <article>
-          <span>Stoklu</span>
+          <span>Anbarı olan</span>
           <strong>{withStock}</strong>
           <small>əlində məhsul var</small>
         </article>
@@ -175,7 +175,7 @@ export default function AdminElemanList() {
                 <th>Durum</th>
                 <th>Əsas kassa</th>
                 <th>Franchise</th>
-                <th>Stok</th>
+                <th>Anbar</th>
                 <th></th>
               </tr>
             </thead>
@@ -207,7 +207,7 @@ export default function AdminElemanList() {
                   <td>{formatMoney(person.franchiseBalance || 0)}</td>
                   <td>
                     <Link className="btn btn-primary btn-sm" to={`/admin/eleman/${person.id}/stok`}>
-                      Stok
+                      Anbar
                     </Link>
                     <small style={{ display: "block", marginTop: 4 }}>
                       {Number(person.stockCount || 0) > 0 ? `${person.stockCount} məhsul` : "Yox"}
@@ -270,14 +270,14 @@ export default function AdminElemanList() {
                     <strong>{formatMoney(person.balance)}</strong>
                   </div>
                   <div>
-                    <span>Stok</span>
+                    <span>Anbar</span>
                     <strong>{Number(person.stockCount || 0) > 0 ? person.stockCount : "Yox"}</strong>
                   </div>
                 </div>
               </Link>
               <div style={{ display: "flex", gap: 8, padding: "0 12px 12px" }}>
                 <Link className="btn btn-primary btn-sm" to={`/admin/eleman/${person.id}/stok`}>
-                  Stok
+                  Anbar
                 </Link>
                 <button type="button" className="btn btn-default btn-sm" onClick={() => setCashOpen(person)}>
                   Kassa

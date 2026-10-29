@@ -82,7 +82,7 @@ function getBreadcrumb(pathname, pageTitle) {
   if (pathname.startsWith("/admin/franchise")) return ["UgurPOS", "Franchise"];
   if (pathname.startsWith("/admin/eleman/list")) return ["UgurPOS", "Əlman", "Əlmanlar"];
   if (pathname.startsWith("/admin/eleman/anbar") || pathname === "/admin/eleman") return ["UgurPOS", "Əlman", "Anbar"];
-  if (/^\/admin\/eleman\/[^/]+\/stok/.test(pathname)) return ["UgurPOS", "Əlman", "Stok"];
+  if (/^\/admin\/eleman\/[^/]+\/stok/.test(pathname)) return ["UgurPOS", "Əlman", "Anbar"];
   if (pathname.startsWith("/admin/eleman/")) return ["UgurPOS", "Əlman", "Əməliyyatlar"];
   return ["UgurPOS", pageTitle];
 }

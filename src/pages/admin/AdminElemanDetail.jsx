@@ -40,7 +40,7 @@ export default function AdminElemanDetail() {
         </div>
         <div className="crm-listbar__tools">
           <Link to={`/admin/eleman/${person.id}/stok`} className="btn btn-primary btn-sm">
-            Stok
+            Anbar
           </Link>
           <Link to="/admin/eleman/list" className="btn btn-default btn-sm">
             Əlmanlar
@@ -61,7 +61,7 @@ export default function AdminElemanDetail() {
           <strong>{formatMoney(person.purchaseTotal)}</strong>
         </article>
         <article>
-          <span>Stok</span>
+          <span>Anbar</span>
           <strong>{person.stock?.length || 0}</strong>
           <small>
             <Link to={`/admin/eleman/${person.id}/stok`}>Aç</Link>
