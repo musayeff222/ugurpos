@@ -281,7 +281,7 @@ body.el-lock {
   background: #fff;
   border: 1px solid #e7e0d8;
   border-radius: 20px;
-  padding: 24px 18px;
+  padding: 28px 18px 22px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -295,9 +295,79 @@ body.el-lock {
   border-radius: 24px;
 }
 
-.el-install p {
+.el-install strong {
+  font-size: 20px;
+}
+
+.el-install small {
+  color: #78716c;
+}
+
+.el-install p,
+.el-install__msg {
   color: #57534e;
   margin: 4px 0 0;
+}
+
+.el-install__ok {
+  margin-top: 12px;
+  font-weight: 700;
+  color: #166534;
+}
+
+.el-install__btn {
+  width: 100%;
+  max-width: 320px;
+  min-height: 56px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 16px;
+  background: #7a1f12;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.el-install__btn:disabled {
+  opacity: 0.55;
+}
+
+.el-ios {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+}
+
+.el-ios__dim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(28, 25, 23, 0.45);
+}
+
+.el-ios__sheet {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+.el-ios__sheet strong {
+  display: block;
+  font-size: 18px;
+}
+
+.el-ios__sheet ol {
+  margin: 12px 0 8px;
+  padding-left: 20px;
+  color: #44403c;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .el-login__kicker {

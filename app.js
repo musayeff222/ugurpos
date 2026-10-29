@@ -37,7 +37,15 @@ if (!process.env.VERCEL) {
     })
   );
 
-  app.use(express.static(distDir));
+  app.use(
+    express.static(distDir, {
+      setHeaders(res, filePath) {
+        if (filePath.endsWith(".webmanifest")) {
+          res.setHeader("Content-Type", "application/manifest+json; charset=utf-8");
+        }
+      },
+    })
+  );
 
   // Express 5: '*' isimli wildcard gerektirir (/{*splat})
   app.get("/{*splat}", (req, res, next) => {

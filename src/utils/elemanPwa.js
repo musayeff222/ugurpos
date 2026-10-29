@@ -2,8 +2,42 @@ let deferredPrompt = null;
 const listeners = new Set();
 
 function notify() {
-  const ready = Boolean(deferredPrompt);
-  listeners.forEach((fn) => fn(ready));
+  listeners.forEach((fn) => fn(Boolean(deferredPrompt)));
+}
+
+function takePrompt(event) {
+  if (event?.preventDefault) event.preventDefault();
+  deferredPrompt = event || window.__ugurposInstall || null;
+  if (typeof window !== "undefined") window.__ugurposInstall = deferredPrompt;
+  notify();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", takePrompt);
+  window.addEventListener("ugurpos-can-install", () => takePrompt(window.__ugurposInstall));
+  window.addEventListener("appinstalled", () => {
+    deferredPrompt = null;
+    window.__ugurposInstall = null;
+    notify();
+  });
+  if (window.__ugurposInstall) takePrompt(window.__ugurposInstall);
+}
+
+function ua() {
+  return typeof navigator === "undefined" ? "" : navigator.userAgent || "";
+}
+
+export function isIosDevice() {
+  return /iphone|ipad|ipod/i.test(ua()) || (typeof navigator !== "undefined" && navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+export function isAndroidDevice() {
+  return /android/i.test(ua());
+}
+
+export function isInAppBrowser() {
+  const text = ua();
+  return /FBAN|FBAV|Instagram|Line\/|WhatsApp|Twitter|Snapchat|TikTok|Bytedance|WebView/i.test(text) || (isAndroidDevice() && /; wv\)/.test(text));
 }
 
 export function initElemanPwa() {
@@ -26,6 +60,22 @@ export function initElemanPwa() {
   }
   theme.content = "#7a1f12";
 
+  const appleTags = [
+    ["apple-mobile-web-app-capable", "yes"],
+    ["mobile-web-app-capable", "yes"],
+    ["apple-mobile-web-app-status-bar-style", "black-translucent"],
+    ["apple-mobile-web-app-title", "Çiğköfte"],
+  ];
+  appleTags.forEach(([name, content]) => {
+    let tag = document.querySelector(`meta[name="${name}"]`);
+    if (!tag) {
+      tag = document.createElement("meta");
+      tag.name = name;
+      document.head.appendChild(tag);
+    }
+    tag.content = content;
+  });
+
   let apple = document.querySelector('link[rel="apple-touch-icon"]');
   if (!apple) {
     apple = document.createElement("link");
@@ -34,15 +84,11 @@ export function initElemanPwa() {
   }
   apple.href = "/icons/cigkofte-192.png";
 
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredPrompt = event;
-    notify();
-  });
-  window.addEventListener("appinstalled", () => {
-    deferredPrompt = null;
-    notify();
-  });
+  if (import.meta.env.PROD && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }
+
+  if (window.__ugurposInstall) takePrompt(window.__ugurposInstall);
 }
 
 export function isElemanStandalone() {
@@ -51,20 +97,29 @@ export function isElemanStandalone() {
 }
 
 export function canInstallEleman() {
-  return Boolean(deferredPrompt);
+  return Boolean(deferredPrompt || (typeof window !== "undefined" && window.__ugurposInstall));
 }
 
 export function subscribeElemanInstall(fn) {
   listeners.add(fn);
-  fn(Boolean(deferredPrompt));
+  fn(canInstallEleman());
   return () => listeners.delete(fn);
 }
 
+export function openElemanInChrome() {
+  if (typeof window === "undefined") return;
+  const path = `${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const fallback = encodeURIComponent(window.location.href);
+  window.location.href = `intent://${path}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
+}
+
 export async function installElemanApp() {
-  if (!deferredPrompt) return false;
-  deferredPrompt.prompt();
-  const choice = await deferredPrompt.userChoice;
+  const promptEvent = deferredPrompt || (typeof window !== "undefined" ? window.__ugurposInstall : null);
+  if (!promptEvent?.prompt) return { ok: false, reason: "missing" };
+  promptEvent.prompt();
+  const choice = await promptEvent.userChoice;
   deferredPrompt = null;
+  if (typeof window !== "undefined") window.__ugurposInstall = null;
   notify();
-  return choice.outcome === "accepted";
+  return { ok: choice.outcome === "accepted", reason: choice.outcome };
 }

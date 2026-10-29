@@ -1,5 +1,5 @@
-const SHELL_CACHE = "ugurpos-shell-v2";
-const ASSET_CACHE = "ugurpos-assets-v2";
+const SHELL_CACHE = "ugurpos-shell-v3";
+const ASSET_CACHE = "ugurpos-assets-v3";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
