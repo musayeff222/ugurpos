@@ -38,9 +38,14 @@ export default function AdminElemanDetail() {
             {person.blocked ? " · bloklu" : ""}
           </span>
         </div>
-        <Link to="/admin/eleman/list" className="btn btn-default">
-          Əlmanlar
-        </Link>
+        <div className="crm-listbar__tools">
+          <Link to={`/admin/eleman/${person.id}/stok`} className="btn btn-primary btn-sm">
+            Stok
+          </Link>
+          <Link to="/admin/eleman/list" className="btn btn-default btn-sm">
+            Əlmanlar
+          </Link>
+        </div>
       </div>
       <div className="crm-metrics crm-metrics--4">
         <article>
@@ -56,8 +61,11 @@ export default function AdminElemanDetail() {
           <strong>{formatMoney(person.purchaseTotal)}</strong>
         </article>
         <article>
-          <span>Anbar</span>
+          <span>Stok</span>
           <strong>{person.stock?.length || 0}</strong>
+          <small>
+            <Link to={`/admin/eleman/${person.id}/stok`}>Aç</Link>
+          </small>
         </article>
       </div>
 

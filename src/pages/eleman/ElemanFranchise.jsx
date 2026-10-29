@@ -3,7 +3,7 @@ import { api } from "../../api/client";
 import { useLocale } from "../../context/LocaleContext";
 import { elT } from "../../i18n/eleman";
 import { parseAmount } from "../../utils/compressImage";
-import { formatDateTime, formatMoney } from "../../utils/format";
+import { formatMoney } from "../../utils/format";
 
 function gramsToKq(grams) {
   return Math.round((parseAmount(grams) / 1000) * 1000) / 1000;
@@ -40,7 +40,8 @@ export default function ElemanFranchise() {
     load().catch((err) => setError(err.message));
   }, []);
 
-  const ready = lines.length > 0 && lines.every((line) => lineQty(line) > 0);
+  const ready =
+    lines.length > 0 && lines.every((line) => lineQty(line) > 0 && parseAmount(line.sellPrice) > 0);
   const total = useMemo(() => lines.reduce((sum, line) => sum + lineTotal(line), 0), [lines]);
 
   const pickBranch = (item) => {
@@ -64,8 +65,7 @@ export default function ElemanFranchise() {
           qty: product.unit === "kq" ? "" : 1,
           grams: "",
           unitCost: Number(product.unitCost || 0),
-          sellPrice: Number(product.franchisePrice || 0),
-          percent: Number(product.franchisePercent || 0),
+          sellPrice: product.franchisePrice ? String(product.franchisePrice) : "",
           stock: product.stock || 0,
         },
       ];
@@ -81,7 +81,7 @@ export default function ElemanFranchise() {
     setError("");
     setMessage("");
     if (!ready) {
-      setError(t("veris.needQty"));
+      setError(t("franchise.needPrice"));
       return;
     }
     setSaving(true);
@@ -93,6 +93,7 @@ export default function ElemanFranchise() {
           productId: line.productId,
           unit: line.unit,
           qty: lineQty(line),
+          price: parseAmount(line.sellPrice),
         })),
       });
       setConfirmOpen(false);
@@ -122,29 +123,16 @@ export default function ElemanFranchise() {
       {message && <div className="alert alert-info">{message}</div>}
 
       {!branch && (
-        <>
-          <div className="el-grid">
-            {(data?.franchiseBranches || []).map((item) => (
-              <button key={item.id} type="button" className="el-tile" onClick={() => pickBranch(item)}>
-                <span>{t("menu.franchise")}</span>
-                <strong>{item.name}</strong>
-                <small>{t("franchise.toBranch")}</small>
-              </button>
-            ))}
-            {!data?.franchiseBranches?.length && <p>{t("franchise.empty")}</p>}
-          </div>
-          <section className="el-history">
-            {(data?.franchiseDeliveries || []).map((row) => (
-              <button key={row.id} type="button">
-                <span>
-                  {row.branchName} · {row.payType === "debt" ? t("franchise.debt") : t("franchise.cash")} ·{" "}
-                  {formatDateTime(row.createdAt, lang)}
-                </span>
-                <b>{formatMoney(row.total)}</b>
-              </button>
-            ))}
-          </section>
-        </>
+        <div className="el-grid">
+          {(data?.franchiseBranches || []).map((item) => (
+            <button key={item.id} type="button" className="el-tile" onClick={() => pickBranch(item)}>
+              <span>{t("menu.franchise")}</span>
+              <strong>{item.name}</strong>
+              <small>{t("franchise.toBranch")}</small>
+            </button>
+          ))}
+          {!data?.franchiseBranches?.length && <p>{t("franchise.empty")}</p>}
+        </div>
       )}
 
       {branch && (
@@ -164,8 +152,7 @@ export default function ElemanFranchise() {
                   <strong>{product.name}</strong>
                   <small>
                     {t("alis.stock")}: {isKq ? `${product.stock || 0} kq` : product.stock || 0}
-                    {product.unitCost ? ` · ${t("alis.price")} ${formatMoney(product.unitCost)}` : ""}
-                    {product.franchisePrice ? ` · +${Number(product.franchisePercent || 0)}% ${formatMoney(product.franchisePrice)}` : ""}
+                    {product.franchisePrice ? ` · ${t("franchise.price")} ${formatMoney(product.franchisePrice)}` : ""}
                   </small>
                 </button>
               );
@@ -178,12 +165,10 @@ export default function ElemanFranchise() {
                 {t("alis.cart")} · {lines.length} {t("alis.product")}
               </h3>
               {lines.map((line) => (
-                <article key={line.productId} className="el-cart__line el-cart__line--veris">
+                <article key={line.productId} className="el-cart__line">
                   <div className="el-cart__name">
                     <strong>{line.name}</strong>
-                    <small>
-                      {formatMoney(line.unitCost)} + {line.percent}% = {formatMoney(line.sellPrice)}
-                    </small>
+                    <small>{line.unit === "kq" ? "kq" : "ədəd"}</small>
                   </div>
                   {line.unit === "kq" ? (
                     <label className="el-field">
@@ -210,6 +195,17 @@ export default function ElemanFranchise() {
                       />
                     </label>
                   )}
+                  <label className="el-field">
+                    <span>{t("franchise.price")}</span>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={line.sellPrice}
+                      onChange={(e) => patchLine(line.productId, { sellPrice: e.target.value })}
+                    />
+                  </label>
                   <div className="el-cart__sum">
                     <span>{t("alis.sum")}</span>
                     <b>{formatMoney(lineTotal(line))}</b>

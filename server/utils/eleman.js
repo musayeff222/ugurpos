@@ -244,8 +244,62 @@ export function listElemanPeople(db, firmId) {
           .prepare("SELECT COALESCE(SUM(total), 0) AS t FROM eleman_deliveries WHERE eleman_id = ? AND status = 'accepted'")
           .get(row.id)?.t
       ),
+      stockCount: num(
+        db.prepare("SELECT COUNT(*) AS c FROM eleman_stock WHERE eleman_id = ? AND qty > 0").get(row.id)?.c
+      ),
     })
   );
+}
+
+function listElemanStockBoard(db, elemanId) {
+  const boughtRows = db
+    .prepare(
+      `SELECT l.product_id AS productId, MAX(l.name) AS name, MAX(l.unit) AS unit, SUM(l.qty) AS qty
+       FROM eleman_purchase_lines l
+       INNER JOIN eleman_purchases p ON ${textEq(db, "p.id", "l.purchase_id")}
+       WHERE p.eleman_id = ?
+       GROUP BY l.product_id`
+    )
+    .all(elemanId);
+  const givenRows = db
+    .prepare(
+      `SELECT l.product_id AS productId, SUM(l.qty) AS qty
+       FROM eleman_delivery_lines l
+       INNER JOIN eleman_deliveries d ON ${textEq(db, "d.id", "l.delivery_id")}
+       WHERE d.eleman_id = ? AND d.status = 'accepted'
+       GROUP BY l.product_id`
+    )
+    .all(elemanId);
+  const givenMap = Object.fromEntries(givenRows.map((row) => [row.productId, roundQty(row.qty)]));
+  const remainRows = db
+    .prepare(
+      `SELECT st.product_id AS productId, p.name, st.unit, st.qty, st.unit_cost AS unitCost
+       FROM eleman_stock st
+       LEFT JOIN eleman_products p ON ${textEq(db, "p.id", "st.product_id")}
+       WHERE st.eleman_id = ?`
+    )
+    .all(elemanId);
+  const remainMap = Object.fromEntries(remainRows.map((row) => [row.productId, row]));
+  const ids = [...new Set([...boughtRows.map((row) => row.productId), ...remainRows.map((row) => row.productId)])];
+  return ids
+    .map((productId) => {
+      const bought = boughtRows.find((row) => row.productId === productId);
+      const remain = remainMap[productId];
+      const boughtQty = roundQty(bought?.qty);
+      const remaining = roundQty(remain?.qty);
+      const givenQty = givenMap[productId] != null ? givenMap[productId] : roundQty(Math.max(0, boughtQty - remaining));
+      return {
+        productId,
+        name: bought?.name || remain?.name || "Məhsul",
+        unit: unitLabel(bought?.unit || remain?.unit),
+        boughtQty,
+        givenQty,
+        remaining,
+        unitCost: roundMoney(remain?.unitCost),
+        status: remaining > 0.0001 ? "var" : "yok",
+      };
+    })
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), "az"));
 }
 
 export function getElemanPerson(db, firmId, id) {
@@ -295,6 +349,7 @@ export function getElemanPerson(db, firmId, id) {
     deliveries,
     franchiseDeliveries: deliveries.filter((item) => item.channel === "franchise"),
     stock,
+    stockBoard: listElemanStockBoard(db, id),
   };
 }
 
@@ -451,7 +506,11 @@ function parseLines(db, firmId, rawLines, options = {}) {
         if (cost <= 0) {
           throw new Error(`${product.name} üçün alış qiyməti yoxdur. Əvvəl alış edin.`);
         }
-        price = options.useFranchisePrice ? franchiseSellPrice(cost, product.franchisePercent) : cost;
+        if (options.useFranchisePrice) {
+          price = entered > 0 ? entered : franchiseSellPrice(cost, product.franchisePercent);
+        } else {
+          price = cost;
+        }
         if (price <= 0) {
           throw new Error(`${product.name} üçün franchise qiyməti yoxdur`);
         }

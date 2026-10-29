@@ -56,6 +56,7 @@ import AdminMuhasib from "./pages/admin/AdminMuhasib";
 import AdminElemanAnbar from "./pages/admin/AdminElemanAnbar";
 import AdminElemanList from "./pages/admin/AdminElemanList";
 import AdminElemanDetail from "./pages/admin/AdminElemanDetail";
+import AdminElemanStock from "./pages/admin/AdminElemanStock";
 import ElemanLayout from "./layouts/ElemanLayout";
 import ElemanLogin from "./pages/eleman/ElemanLogin";
 import ElemanHome from "./pages/eleman/ElemanHome";
@@ -65,6 +66,7 @@ import ElemanVeris from "./pages/eleman/ElemanVeris";
 import ElemanVerisTarixce from "./pages/eleman/ElemanVerisTarixce";
 import ElemanAnaEkran from "./pages/eleman/ElemanAnaEkran";
 import ElemanFranchise from "./pages/eleman/ElemanFranchise";
+import ElemanFranchiseTarixce from "./pages/eleman/ElemanFranchiseTarixce";
 import {
   ElemanAyarlar,
   ElemanAxtaris,
@@ -117,6 +119,7 @@ export default function App() {
         <Route path="veris" element={<ElemanVeris />} />
         <Route path="veris-tarixce" element={<ElemanVerisTarixce />} />
         <Route path="franchise" element={<ElemanFranchise />} />
+        <Route path="franchise-tarixce" element={<ElemanFranchiseTarixce />} />
         <Route path="firancays" element={<Navigate to="/eleman/franchise" replace />} />
         <Route path="emeliyyatlar" element={<ElemanEmeliyyatlar />} />
         <Route path="axtaris" element={<ElemanAxtaris />} />
@@ -152,6 +155,7 @@ export default function App() {
         <Route path="eleman" element={<Navigate to="/admin/eleman/anbar" replace />} />
         <Route path="eleman/anbar" element={<AdminElemanAnbar />} />
         <Route path="eleman/list" element={<AdminElemanList />} />
+        <Route path="eleman/:id/stok" element={<AdminElemanStock />} />
         <Route path="eleman/:id" element={<AdminElemanDetail />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
