@@ -23,8 +23,8 @@ function Placeholder({ title, text }) {
   );
 }
 
-export function ElemanFirancays() {
-  return <Placeholder title="Firancays" text="Bu kartın nə üçün olduğunu sonra deyəcəksiniz." />;
+export function ElemanFranchise() {
+  return <Placeholder title="Franchise" text="Bu kartın nə üçün olduğunu sonra deyəcəksiniz." />;
 }
 
 export function ElemanAyarlar() {

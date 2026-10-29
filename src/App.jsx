@@ -64,7 +64,7 @@ import {
   ElemanAyarlar,
   ElemanAxtaris,
   ElemanEmeliyyatlar,
-  ElemanFirancays,
+  ElemanFranchise,
   ElemanLogolar,
 } from "./pages/eleman/ElemanMenuPages";
 import ProductionLayout from "./layouts/ProductionLayout";
@@ -110,7 +110,8 @@ export default function App() {
         <Route index element={<ElemanHome />} />
         <Route path="alis" element={<ElemanAlis />} />
         <Route path="veris" element={<ElemanVeris />} />
-        <Route path="firancays" element={<ElemanFirancays />} />
+        <Route path="franchise" element={<ElemanFranchise />} />
+        <Route path="firancays" element={<Navigate to="/eleman/franchise" replace />} />
         <Route path="emeliyyatlar" element={<ElemanEmeliyyatlar />} />
         <Route path="axtaris" element={<ElemanAxtaris />} />
         <Route path="ayarlar" element={<ElemanAyarlar />} />

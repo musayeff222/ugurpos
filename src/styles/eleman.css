@@ -639,7 +639,7 @@ body.el-lock {
 }
 
 .el-cart__line--veris {
-  grid-template-columns: 1fr 110px 88px minmax(90px, auto);
+  grid-template-columns: 1fr 110px minmax(90px, auto);
 }
 
 @media (max-width: 720px) {

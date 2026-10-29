@@ -3,6 +3,23 @@ import { api } from "../../api/client";
 import { parseAmount } from "../../utils/compressImage";
 import { formatDateTime, formatMoney } from "../../utils/format";
 
+function gramsToKq(grams) {
+  return Math.round((parseAmount(grams) / 1000) * 1000) / 1000;
+}
+
+function lineQty(line) {
+  return line.unit === "kq" ? gramsToKq(line.grams) : parseAmount(line.qty);
+}
+
+function lineTotal(line) {
+  return lineQty(line) * Number(line.unitCost || 0);
+}
+
+function qtyLabel(line) {
+  if (line.unit === "kq") return `${parseAmount(line.grams) || 0} q`;
+  return `${parseAmount(line.qty) || 0} ədəd`;
+}
+
 export default function ElemanVeris() {
   const [data, setData] = useState(null);
   const [branch, setBranch] = useState(null);
@@ -21,11 +38,8 @@ export default function ElemanVeris() {
     load().catch((err) => setError(err.message));
   }, []);
 
-  const ready = lines.length > 0 && lines.every((line) => parseAmount(line.qty) > 0);
-  const total = useMemo(
-    () => lines.reduce((sum, line) => sum + parseAmount(line.qty) * Number(line.price || 0), 0),
-    [lines]
-  );
+  const ready = lines.length > 0 && lines.every((line) => lineQty(line) > 0);
+  const total = useMemo(() => lines.reduce((sum, line) => sum + lineTotal(line), 0), [lines]);
 
   const pickBranch = async (item) => {
     setError("");
@@ -51,8 +65,9 @@ export default function ElemanVeris() {
           productId: product.id,
           name: product.name,
           unit: product.unit,
-          qty: 1,
-          price: product.price,
+          qty: product.unit === "kq" ? "" : 1,
+          grams: product.unit === "kq" ? "" : "",
+          unitCost: Number(product.unitCost || 0),
           stock: product.stock || 0,
         },
       ];
@@ -76,7 +91,11 @@ export default function ElemanVeris() {
       await api.createElemanDelivery({
         branchId: branch.id,
         staffId,
-        lines: lines.map((line) => ({ ...line, qty: parseAmount(line.qty) })),
+        lines: lines.map((line) => ({
+          productId: line.productId,
+          unit: line.unit,
+          qty: lineQty(line),
+        })),
       });
       setConfirmOpen(false);
       setBranch(null);
@@ -120,6 +139,7 @@ export default function ElemanVeris() {
           <div className="el-grid">
             {(data?.products || []).map((product) => {
               const picked = lines.find((line) => line.productId === product.id);
+              const isKq = product.unit === "kq";
               return (
                 <button
                   key={product.id}
@@ -127,9 +147,12 @@ export default function ElemanVeris() {
                   className={picked ? "el-tile is-on" : "el-tile"}
                   onClick={() => toggle(product)}
                 >
-                  <span>{product.unit === "kq" ? "kq" : "ədəd"}</span>
+                  <span>{isKq ? "kq" : "ədəd"}</span>
                   <strong>{product.name}</strong>
-                  <small>Anbar: {product.stock || 0}</small>
+                  <small>
+                    Anbar: {isKq ? `${product.stock || 0} kq` : product.stock || 0}
+                    {product.unitCost ? ` · 1 ${isKq ? "kq" : "ədəd"} ${formatMoney(product.unitCost)}` : ""}
+                  </small>
                 </button>
               );
             })}
@@ -142,29 +165,40 @@ export default function ElemanVeris() {
                 <article key={line.productId} className="el-cart__line el-cart__line--veris">
                   <div className="el-cart__name">
                     <strong>{line.name}</strong>
-                    <small>Anbar {line.stock || 0}</small>
+                    <small>
+                      Anbar {line.unit === "kq" ? `${line.stock || 0} kq` : line.stock || 0} · 1{" "}
+                      {line.unit === "kq" ? "kq" : "ədəd"} {formatMoney(line.unitCost)}
+                    </small>
                   </div>
-                  <label className="el-field">
-                    <span>Ölçü</span>
-                    <select value={line.unit} onChange={(e) => patchLine(line.productId, { unit: e.target.value })}>
-                      <option value="kq">kq</option>
-                      <option value="adet">ədəd</option>
-                    </select>
-                  </label>
-                  <label className="el-field">
-                    <span>Say</span>
-                    <input
-                      type="number"
-                      min="0.001"
-                      step="0.001"
-                      inputMode="decimal"
-                      value={line.qty}
-                      onChange={(e) => patchLine(line.productId, { qty: e.target.value })}
-                    />
-                  </label>
+                  {line.unit === "kq" ? (
+                    <label className="el-field">
+                      <span>Qram</span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        inputMode="numeric"
+                        placeholder="200"
+                        value={line.grams}
+                        onChange={(e) => patchLine(line.productId, { grams: e.target.value })}
+                      />
+                    </label>
+                  ) : (
+                    <label className="el-field">
+                      <span>Say</span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        inputMode="numeric"
+                        value={line.qty}
+                        onChange={(e) => patchLine(line.productId, { qty: e.target.value })}
+                      />
+                    </label>
+                  )}
                   <div className="el-cart__sum">
                     <span>Cəm</span>
-                    <b>{formatMoney(parseAmount(line.qty) * Number(line.price || 0))}</b>
+                    <b>{formatMoney(lineTotal(line))}</b>
                     <button type="button" className="btn btn-sm" onClick={() => toggle({ id: line.productId })}>
                       Sil
                     </button>
@@ -210,12 +244,12 @@ export default function ElemanVeris() {
           <form className="el-full__body" onSubmit={submit}>
             {error && <div className="alert alert-danger">{error}</div>}
             <p>
-              {branch?.name} · {lines.length} məhsul
+              {branch?.name} · {formatMoney(total)}
             </p>
             <ul className="el-full__lines">
               {lines.map((line) => (
                 <li key={line.productId}>
-                  {line.qty} {line.unit === "kq" ? "kq" : "ədəd"} {line.name}
+                  {qtyLabel(line)} {line.name} · {formatMoney(lineTotal(line))}
                 </li>
               ))}
             </ul>
@@ -257,6 +291,9 @@ export default function ElemanVeris() {
                     <span>
                       {line.qty} {line.unit} {line.name}
                     </span>
+                    <b>
+                      {formatMoney(line.price)} · {formatMoney(Number(line.qty || 0) * Number(line.price || 0))}
+                    </b>
                   </li>
                 ))}
               </ul>

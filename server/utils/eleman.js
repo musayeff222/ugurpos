@@ -59,31 +59,50 @@ export function ensureElemanCatalog(db, firmId) {
   write();
 }
 
-function stockQty(db, elemanId, productId, unit) {
-  const row = db
-    .prepare("SELECT qty FROM eleman_stock WHERE eleman_id = ? AND product_id = ? AND unit = ?")
+function stockRow(db, elemanId, productId, unit) {
+  return db
+    .prepare(
+      "SELECT qty, unit_cost AS unitCost FROM eleman_stock WHERE eleman_id = ? AND product_id = ? AND unit = ?"
+    )
     .get(elemanId, productId, normalizeUnit(unit));
-  return roundQty(row?.qty);
 }
 
-function addStock(db, firmId, elemanId, productId, unit, qty) {
+function stockQty(db, elemanId, productId, unit) {
+  return roundQty(stockRow(db, elemanId, productId, unit)?.qty);
+}
+
+function stockCost(db, elemanId, productId, unit) {
+  return roundMoney(stockRow(db, elemanId, productId, unit)?.unitCost);
+}
+
+function addStock(db, firmId, elemanId, productId, unit, qty, unitCost = 0) {
   const nextUnit = normalizeUnit(unit);
   const nextQty = roundQty(qty);
   if (!productId || nextQty === 0) return;
-  const existing = db
-    .prepare("SELECT qty FROM eleman_stock WHERE eleman_id = ? AND product_id = ? AND unit = ?")
-    .get(elemanId, productId, nextUnit);
+  const existing = stockRow(db, elemanId, productId, nextUnit);
   if (existing) {
-    db.prepare("UPDATE eleman_stock SET qty = ? WHERE eleman_id = ? AND product_id = ? AND unit = ?").run(
-      roundQty(num(existing.qty) + nextQty),
+    const oldQty = roundQty(existing.qty);
+    const oldCost = roundMoney(existing.unitCost);
+    const afterQty = roundQty(oldQty + nextQty);
+    let nextCost = oldCost;
+    if (nextQty > 0) {
+      if (oldQty > 0 && afterQty > 0) {
+        nextCost = roundMoney((oldQty * oldCost + nextQty * roundMoney(unitCost)) / afterQty);
+      } else {
+        nextCost = roundMoney(unitCost);
+      }
+    }
+    db.prepare("UPDATE eleman_stock SET qty = ?, unit_cost = ? WHERE eleman_id = ? AND product_id = ? AND unit = ?").run(
+      afterQty,
+      nextCost,
       elemanId,
       productId,
       nextUnit
     );
-  } else {
+  } else if (nextQty > 0) {
     db.prepare(
-      "INSERT INTO eleman_stock (firm_id, eleman_id, product_id, unit, qty) VALUES (?, ?, ?, ?, ?)"
-    ).run(firmId, elemanId, productId, nextUnit, nextQty);
+      "INSERT INTO eleman_stock (firm_id, eleman_id, product_id, unit, qty, unit_cost) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run(firmId, elemanId, productId, nextUnit, nextQty, roundMoney(unitCost));
   }
 }
 
@@ -239,14 +258,20 @@ export function getElemanPerson(db, firmId, id) {
   const accepted = deliveries.filter((item) => item.status === "accepted");
   const stock = db
     .prepare(
-      `SELECT st.product_id AS productId, p.name, st.unit, st.qty
+      `SELECT st.product_id AS productId, p.name, st.unit, st.qty, st.unit_cost AS unitCost
        FROM eleman_stock st
        LEFT JOIN eleman_products p ON ${textEq(db, "p.id", "st.product_id")}
        WHERE st.eleman_id = ? AND st.qty > 0
        ORDER BY p.name`
     )
     .all(id)
-    .map((item) => ({ ...item, qty: num(item.qty), unit: unitLabel(item.unit), name: item.name || "Məhsul" }));
+    .map((item) => ({
+      ...item,
+      qty: num(item.qty),
+      unitCost: roundMoney(item.unitCost),
+      unit: unitLabel(item.unit),
+      name: item.name || "Məhsul",
+    }));
   return {
     ...mapPerson(row, {
       balance: elemanBalance(db, id),
@@ -344,6 +369,7 @@ export function elemanOverview(db, firmId, elemanId) {
   const withStock = products.map((product) => ({
     ...product,
     stock: stockQty(db, elemanId, product.id, product.unit),
+    unitCost: stockCost(db, elemanId, product.id, product.unit),
   }));
   const branches = db
     .prepare(
@@ -386,8 +412,16 @@ function parseLines(db, firmId, rawLines, options = {}) {
       if (!product || qty <= 0) return null;
       const unit = normalizeUnit(line.unit || product.unit);
       const entered = roundMoney(line.price);
-      const price = options.useEnteredPrice ? entered : roundMoney(product.price);
-      if (options.useEnteredPrice && price <= 0) return null;
+      let price = roundMoney(product.price);
+      if (options.useEnteredPrice) {
+        price = entered;
+        if (price <= 0) return null;
+      } else if (options.useStockCost) {
+        price = stockCost(db, options.elemanId, product.id, unit);
+        if (price <= 0) {
+          throw new Error(`${product.name} üçün alış qiyməti yoxdur. Əvvəl alış edin.`);
+        }
+      }
       return {
         productId: product.id,
         name: product.name,
@@ -423,7 +457,7 @@ export function createElemanPurchase(db, firmId, elemanId, body) {
     );
     for (const line of lines) {
       insertLine.run(uid("ell"), purchaseId, line.productId, line.name, line.qty, line.unit, line.price);
-      addStock(db, firmId, elemanId, line.productId, line.unit, line.qty);
+      addStock(db, firmId, elemanId, line.productId, line.unit, line.qty, line.price);
     }
     db.prepare(
       "INSERT INTO eleman_cash (id, firm_id, eleman_id, direction, amount, kind, ref_id, note) VALUES (?, ?, ?, 'out', ?, 'purchase', ?, ?)"
@@ -448,7 +482,7 @@ export function createElemanDelivery(db, firmId, elemanId, body) {
     .prepare("SELECT id, name, surname FROM staff WHERE id = ? AND branch_id = ? AND active = 1")
     .get(body.staffId, branch.id);
   if (!staff) throw new Error("Kassir seçin");
-  const lines = parseLines(db, firmId, body.lines);
+  const lines = parseLines(db, firmId, body.lines, { useStockCost: true, elemanId });
   if (!lines.length) throw new Error("Məhsul seçin");
   for (const line of lines) {
     const have = stockQty(db, elemanId, line.productId, line.unit);

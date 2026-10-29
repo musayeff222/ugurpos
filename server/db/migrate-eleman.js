@@ -1,3 +1,5 @@
+import { addColumnIfMissing } from "./columns.js";
+
 function tryExec(db, sql) {
   try {
     db.exec(sql);
@@ -79,9 +81,11 @@ export function migrateEleman(db) {
       product_id ${id} NOT NULL,
       unit ${text} NOT NULL,
       qty ${qty} NOT NULL DEFAULT 0,
+      unit_cost ${money} NOT NULL DEFAULT 0,
       PRIMARY KEY (eleman_id, product_id, unit)
     )${tableTail}`
   );
+  addColumnIfMissing(db, "eleman_stock", "unit_cost", `${money} NOT NULL DEFAULT 0`);
   tryExec(
     db,
     `CREATE TABLE IF NOT EXISTS eleman_purchases (
@@ -131,4 +135,27 @@ export function migrateEleman(db) {
       price ${money} NOT NULL DEFAULT 0
     )${tableTail}`
   );
+
+  try {
+    const rows = db
+      .prepare(
+        `SELECT p.eleman_id AS elemanId, l.product_id AS productId, l.unit AS unit,
+                SUM(l.qty * l.price) AS amount, SUM(l.qty) AS qty
+         FROM eleman_purchase_lines l
+         INNER JOIN eleman_purchases p ON p.id = l.purchase_id
+         GROUP BY p.eleman_id, l.product_id, l.unit`
+      )
+      .all();
+    const update = db.prepare(
+      "UPDATE eleman_stock SET unit_cost = ? WHERE eleman_id = ? AND product_id = ? AND unit = ? AND (unit_cost IS NULL OR unit_cost = 0)"
+    );
+    for (const row of rows) {
+      const qtySum = Number(row.qty);
+      if (!qtySum) continue;
+      const cost = Math.round((Number(row.amount) / qtySum) * 100) / 100;
+      update.run(cost, row.elemanId, row.productId, row.unit);
+    }
+  } catch {
+    /* no purchase history yet */
+  }
 }

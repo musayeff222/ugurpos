@@ -7,7 +7,7 @@ const MENU = [
   { to: "/eleman", label: "Ana səhifə", icon: "fa-house", end: true },
   { to: "/eleman/alis", label: "Alış", icon: "fa-cart-shopping" },
   { to: "/eleman/veris", label: "Veriş", icon: "fa-truck" },
-  { to: "/eleman/firancays", label: "Firancays", icon: "fa-store" },
+  { to: "/eleman/franchise", label: "Franchise", icon: "fa-store" },
   { to: "/eleman/emeliyyatlar", label: "Əməliyyatlar", icon: "fa-list" },
   { to: "/eleman/axtaris", label: "Axtarış", icon: "fa-magnifying-glass" },
   { to: "/eleman/ayarlar", label: "Ayarlar", icon: "fa-gear" },
