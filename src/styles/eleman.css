@@ -362,6 +362,32 @@ body.el-lock {
   font-size: 18px;
 }
 
+.el-ios__sheet p {
+  margin: 8px 0 0;
+  color: #57534e;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.el-ios__pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 2px solid #7a1f12;
+  border-radius: 14px;
+  background: #fff7f3;
+  color: #7a1f12;
+  font-weight: 800;
+}
+
+.el-ios__pick i {
+  width: 28px;
+  text-align: center;
+  font-size: 20px;
+}
+
 .el-ios__sheet ol {
   margin: 12px 0 8px;
   padding-left: 20px;

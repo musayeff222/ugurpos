@@ -76,9 +76,15 @@ export default function ElemanAnaEkran() {
           <button type="button" className="el-ios__dim" aria-label={t("menu.close")} onClick={() => setIosHelp(false)} />
           <div className="el-ios__sheet">
             <strong>{t("install.iosTitle")}</strong>
+            <p>{t("install.iosWhy")}</p>
+            <div className="el-ios__pick">
+              <i className="fa-solid fa-square-plus" />
+              <span>{t("install.iosAction")}</span>
+            </div>
             <ol>
               <li>{t("install.ios1")}</li>
               <li>{t("install.ios2")}</li>
+              <li>{t("install.ios3")}</li>
             </ol>
             <button type="button" className="el-install__btn" onClick={() => setIosHelp(false)}>
               {t("menu.close")}
