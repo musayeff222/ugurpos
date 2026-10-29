@@ -29,6 +29,7 @@ export default function ElemanFranchise() {
   const [branch, setBranch] = useState(null);
   const [lines, setLines] = useState([]);
   const [payType, setPayType] = useState("cash");
+  const [paidAmount, setPaidAmount] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -49,6 +50,7 @@ export default function ElemanFranchise() {
     setBranch(item);
     setLines([]);
     setPayType("cash");
+    setPaidAmount("");
   };
 
   const toggle = (product) => {
@@ -86,9 +88,11 @@ export default function ElemanFranchise() {
     }
     setSaving(true);
     try {
+      const cashNow = payType === "split" ? parseAmount(paidAmount || total / 2) : payType === "cash" ? total : 0;
       await api.createElemanDelivery({
         branchId: branch.id,
         payType,
+        paidAmount: cashNow,
         lines: lines.map((line) => ({
           productId: line.productId,
           unit: line.unit,
@@ -100,7 +104,9 @@ export default function ElemanFranchise() {
       setBranch(null);
       setLines([]);
       await load();
-      setMessage(payType === "debt" ? t("franchise.savedDebt") : t("franchise.savedCash"));
+      setMessage(
+        payType === "debt" ? t("franchise.savedDebt") : payType === "split" ? t("franchise.savedSplit") : t("franchise.savedCash")
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -223,7 +229,15 @@ export default function ElemanFranchise() {
           )}
 
           <div className="el-paybar">
-            <button type="button" className="el-login__submit" disabled={!ready} onClick={() => setConfirmOpen(true)}>
+            <button
+              type="button"
+              className="el-login__submit"
+              disabled={!ready}
+              onClick={() => {
+                if (payType === "split") setPaidAmount(String(Math.round((total / 2) * 100) / 100));
+                setConfirmOpen(true);
+              }}
+            >
               {t("veris.give")} · {formatMoney(total)}
             </button>
           </div>
@@ -250,7 +264,7 @@ export default function ElemanFranchise() {
                 </li>
               ))}
             </ul>
-            <div className="el-langs">
+            <div className="el-langs el-langs--3">
               <span>{t("alis.pay")}</span>
               <div>
                 <button type="button" className={payType === "cash" ? "is-on" : ""} onClick={() => setPayType("cash")}>
@@ -259,8 +273,35 @@ export default function ElemanFranchise() {
                 <button type="button" className={payType === "debt" ? "is-on" : ""} onClick={() => setPayType("debt")}>
                   {t("franchise.debt")}
                 </button>
+                <button
+                  type="button"
+                  className={payType === "split" ? "is-on" : ""}
+                  onClick={() => {
+                    setPayType("split");
+                    setPaidAmount(String(Math.round((total / 2) * 100) / 100));
+                  }}
+                >
+                  {t("franchise.split")}
+                </button>
               </div>
             </div>
+            {payType === "split" ? (
+              <label className="el-field">
+                <span>{t("franchise.cashNow")}</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  max={total}
+                  step="0.01"
+                  inputMode="decimal"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                />
+                <small>
+                  {t("franchise.restDebt")}: {formatMoney(Math.max(0, total - parseAmount(paidAmount || total / 2)))}
+                </small>
+              </label>
+            ) : null}
             <button type="submit" className="el-login__submit" disabled={saving}>
               {saving ? t("veris.sending") : t("veris.confirm")}
             </button>

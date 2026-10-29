@@ -174,7 +174,27 @@ function mapPurchase(db, row) {
   };
 }
 
+function franchisePaidAmount(row) {
+  const total = num(row.total);
+  const payType = String(row.payType || row.pay_type || "");
+  const stored = num(row.paidAmount ?? row.paid_amount);
+  if (payType === "split") {
+    if (stored > 0) return roundMoney(Math.min(total, stored));
+    return roundMoney(total / 2);
+  }
+  if (payType === "cash") return total;
+  if (payType === "debt") return 0;
+  return stored > 0 ? roundMoney(Math.min(total, stored)) : 0;
+}
+
+function franchiseDebtAmount(row) {
+  return roundMoney(Math.max(0, num(row.total) - franchisePaidAmount(row)));
+}
+
 function mapDelivery(db, row) {
+  const total = num(row.total);
+  const payType = String(row.pay_type || "");
+  const paidAmount = franchisePaidAmount({ ...row, total, payType });
   return {
     id: row.id,
     elemanId: row.eleman_id,
@@ -182,10 +202,12 @@ function mapDelivery(db, row) {
     branchName: row.branchName || row.branch_name || "",
     staffId: row.staff_id,
     staffName: `${row.staffName || row.staff_name || ""} ${row.staffSurname || row.staff_surname || ""}`.trim(),
-    total: num(row.total),
+    total,
     status: row.status,
     channel: String(row.channel || "branch") === "franchise" ? "franchise" : "branch",
-    payType: String(row.pay_type || ""),
+    payType,
+    paidAmount,
+    debtAmount: roundMoney(Math.max(0, total - paidAmount)),
     createdAt: row.created_at,
     acceptedAt: row.accepted_at || "",
     lines: deliveryLines(db, row.id),
@@ -575,12 +597,30 @@ export function createElemanDelivery(db, firmId, elemanId, body) {
     }
   }
   const total = roundMoney(lines.reduce((sum, line) => sum + line.qty * line.price, 0));
-  const payType = isFranchise && String(body.payType || "cash") === "debt" ? "debt" : isFranchise ? "cash" : "";
+  let payType = "";
+  let paidAmount = 0;
+  if (isFranchise) {
+    const rawType = String(body.payType || "cash");
+    if (rawType === "debt") {
+      payType = "debt";
+      paidAmount = 0;
+    } else if (rawType === "split") {
+      paidAmount = roundMoney(body.paidAmount ?? body.cashAmount ?? total / 2);
+      if (paidAmount < 0) paidAmount = 0;
+      if (paidAmount > total) paidAmount = total;
+      if (paidAmount <= 0) payType = "debt";
+      else if (paidAmount >= total) payType = "cash";
+      else payType = "split";
+    } else {
+      payType = "cash";
+      paidAmount = total;
+    }
+  }
   const deliveryId = uid("elver");
   const acceptedAt = isFranchise ? new Date().toISOString() : null;
   const write = db.transaction(() => {
     db.prepare(
-      "INSERT INTO eleman_deliveries (id, firm_id, eleman_id, branch_id, staff_id, total, status, channel, pay_type, accepted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO eleman_deliveries (id, firm_id, eleman_id, branch_id, staff_id, total, status, channel, pay_type, paid_amount, accepted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     ).run(
       deliveryId,
       firmId,
@@ -591,6 +631,7 @@ export function createElemanDelivery(db, firmId, elemanId, body) {
       isFranchise ? "accepted" : "pending",
       isFranchise ? "franchise" : "branch",
       payType,
+      paidAmount,
       acceptedAt
     );
     const insertLine = db.prepare(
@@ -600,15 +641,15 @@ export function createElemanDelivery(db, firmId, elemanId, body) {
       insertLine.run(uid("ell"), deliveryId, line.productId, line.name, line.qty, line.unit, line.price);
       addStock(db, firmId, elemanId, line.productId, line.unit, -line.qty);
     }
-    if (isFranchise && payType === "cash" && total > 0) {
+    if (isFranchise && paidAmount > 0) {
       insertElemanCash(db, {
         firmId,
         elemanId,
         direction: "in",
-        amount: total,
+        amount: paidAmount,
         kind: "franchise",
         refId: deliveryId,
-        note: `${branch.name} franchise`,
+        note: payType === "split" ? `${branch.name} franchise nəğd hissə` : `${branch.name} franchise`,
         wallet: "franchise",
       });
     }
@@ -654,8 +695,8 @@ export function listFranchiseDebts(db, firmId) {
         elemanName: personName(row),
       }));
     const received = roundMoney(sales.reduce((sum, row) => sum + num(row.total), 0));
-    const cashPaid = roundMoney(sales.filter((row) => row.payType === "cash").reduce((sum, row) => sum + num(row.total), 0));
-    const debtSales = roundMoney(sales.filter((row) => row.payType === "debt").reduce((sum, row) => sum + num(row.total), 0));
+    const cashPaid = roundMoney(sales.reduce((sum, row) => sum + franchisePaidAmount(row), 0));
+    const debtSales = roundMoney(sales.reduce((sum, row) => sum + franchiseDebtAmount(row), 0));
     const extraPaid = roundMoney(payments.reduce((sum, row) => sum + num(row.amount), 0));
     return {
       id: branch.id,
@@ -682,7 +723,7 @@ export function payFranchiseDebt(db, firmId, body) {
   if (!row || amount > row.debt + 0.001) throw new Error("Borc bu qədər deyil");
   let elemanId = String(body.elemanId || "");
   if (!elemanId) {
-    elemanId = row.sales.find((item) => item.payType === "debt")?.elemanId || "";
+    elemanId = row.sales.find((item) => franchiseDebtAmount(item) > 0)?.elemanId || "";
   }
   if (!elemanId) throw new Error("Əlman tapılmadı");
   const person = db.prepare("SELECT id FROM eleman_people WHERE id = ? AND firm_id = ?").get(elemanId, firmId);

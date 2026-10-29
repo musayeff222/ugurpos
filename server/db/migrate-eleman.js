@@ -90,6 +90,7 @@ export function migrateEleman(db) {
   addColumnIfMissing(db, "eleman_cash", "wallet", `${text} NOT NULL DEFAULT 'main'`);
   addColumnIfMissing(db, "eleman_deliveries", "channel", `${text} NOT NULL DEFAULT 'branch'`);
   addColumnIfMissing(db, "eleman_deliveries", "pay_type", `${text} NOT NULL DEFAULT ''`);
+  addColumnIfMissing(db, "eleman_deliveries", "paid_amount", `${money} NOT NULL DEFAULT 0`);
   tryExec(
     db,
     `CREATE TABLE IF NOT EXISTS eleman_franchise_payments (

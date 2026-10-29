@@ -1180,7 +1180,13 @@ export default function AdminMuhasib() {
                 <h4>{row.name}</h4>
                 {(row.sales || []).map((sale) => (
                   <p key={sale.id}>
-                    {formatDateTime(sale.createdAt)} · {sale.elemanName} · {sale.payType === "debt" ? "Borç" : "Nakit"} ·{" "}
+                    {formatDateTime(sale.createdAt)} · {sale.elemanName} ·{" "}
+                    {sale.payType === "debt"
+                      ? "Borç"
+                      : sale.payType === "split"
+                        ? `Yarı-yarı · ${formatMoney(sale.paidAmount || 0)} + ${formatMoney(sale.debtAmount || 0)}`
+                        : "Nakit"}{" "}
+                    ·{" "}
                     {(sale.lines || []).map((line) => `${line.qty} ${line.unit} ${line.name}`).join(", ")} ·{" "}
                     {formatMoney(sale.total)}
                   </p>

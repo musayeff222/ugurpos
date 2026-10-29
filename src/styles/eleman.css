@@ -252,6 +252,10 @@ body.el-lock {
   gap: 8px;
 }
 
+.el-langs--3 > div {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .el-langs button {
   min-height: 48px;
   border: 1px solid #e7e0d8;

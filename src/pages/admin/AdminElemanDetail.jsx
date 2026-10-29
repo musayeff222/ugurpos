@@ -110,7 +110,12 @@ export default function AdminElemanDetail() {
           .map((row) => (
             <button key={row.id} type="button" className="el-history" style={{ display: "block", marginBottom: 8 }} onClick={() => setDelivery(row)}>
               <span>
-                {row.branchName} · {row.payType === "debt" ? "Borç" : "Nakit"}
+                {row.branchName} ·{" "}
+                {row.payType === "debt"
+                  ? "Borç"
+                  : row.payType === "split"
+                    ? `Yarı-yarı · ${formatMoney(row.paidAmount || 0)} + ${formatMoney(row.debtAmount || 0)}`
+                    : "Nakit"}
               </span>
               <b> {formatMoney(row.total)}</b>
             </button>
@@ -149,7 +154,15 @@ export default function AdminElemanDetail() {
           <div>
             <p>
               {formatDateTime(delivery.createdAt)} · {formatMoney(delivery.total)}
-              {delivery.channel === "franchise" ? ` · ${delivery.payType === "debt" ? "Borç" : "Nakit"}` : ""}
+              {delivery.channel === "franchise"
+                ? ` · ${
+                    delivery.payType === "debt"
+                      ? "Borç"
+                      : delivery.payType === "split"
+                        ? `Yarı-yarı · ${formatMoney(delivery.paidAmount || 0)} + ${formatMoney(delivery.debtAmount || 0)}`
+                        : "Nakit"
+                  }`
+                : ""}
             </p>
             <ul>
               {(delivery.lines || []).map((line, index) => (

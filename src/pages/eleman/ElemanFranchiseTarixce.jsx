@@ -4,6 +4,14 @@ import { useLocale } from "../../context/LocaleContext";
 import { elT } from "../../i18n/eleman";
 import { formatDateTime, formatMoney } from "../../utils/format";
 
+function payLabel(row, t) {
+  if (row.payType === "debt") return t("franchise.debt");
+  if (row.payType === "split") {
+    return `${t("franchise.split")} · ${formatMoney(row.paidAmount || 0)} + ${formatMoney(row.debtAmount || 0)}`;
+  }
+  return t("franchise.cash");
+}
+
 export default function ElemanFranchiseTarixce() {
   const { lang } = useLocale();
   const t = (key) => elT(lang, key);
@@ -29,7 +37,7 @@ export default function ElemanFranchiseTarixce() {
         {rows.map((row) => (
           <button key={row.id} type="button" onClick={() => setDetail(row)}>
             <span>
-              {row.branchName} · {row.payType === "debt" ? t("franchise.debt") : t("franchise.cash")} ·{" "}
+              {row.branchName} · {payLabel(row, t)} ·{" "}
               {formatDateTime(row.createdAt, lang)}
             </span>
             <b>{formatMoney(row.total)}</b>
@@ -50,7 +58,7 @@ export default function ElemanFranchiseTarixce() {
               <p>
                 {formatDateTime(detail.createdAt, lang)} · {formatMoney(detail.total)}
               </p>
-              <p>{detail.payType === "debt" ? t("franchise.debt") : t("franchise.cash")}</p>
+              <p>{payLabel(detail, t)}</p>
               <ul>
                 {(detail.lines || []).map((line, index) => (
                   <li key={`${line.productId}-${index}`}>
