@@ -207,8 +207,33 @@ export const api = {
     request(`/admin/eleman/people/${id}/cash`, { method: "POST", body: JSON.stringify(payload) }),
   getElemanOverview: () => request("/eleman/overview"),
   getElemanCashiers: (branchId) => request(`/eleman/branches/${branchId}/cashiers`),
-  createElemanPurchase: (payload) =>
-    request("/eleman/purchases", { method: "POST", body: JSON.stringify(payload) }),
+  createElemanPurchase: async (payload, file) => {
+    if (!file) {
+      return request("/eleman/purchases", { method: "POST", body: JSON.stringify(payload) });
+    }
+    const form = new FormData();
+    form.append("image", file);
+    form.append("lines", JSON.stringify(payload.lines || []));
+    const headers = {};
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (isDesktopApp()) headers["X-Ugurpos-Desktop"] = "1";
+    let res;
+    try {
+      res = await fetch("/api/eleman/purchases", { method: "POST", headers, body: form });
+    } catch (cause) {
+      const err = new Error(cause?.message || "Şəbəkə yoxdur");
+      err.status = 0;
+      throw err;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || res.statusText || "Alış alınmadı");
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  },
   createElemanDelivery: (payload) =>
     request("/eleman/deliveries", { method: "POST", body: JSON.stringify(payload) }),
   getElemanPendingDeliveries: () => request("/eleman/deliveries/pending"),

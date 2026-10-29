@@ -30,6 +30,22 @@ function requireStaff(req, res, next) {
   next();
 }
 
+function invoiceUrlFromFile(req) {
+  return `/uploads/eleman-invoices/${encodeURIComponent(req.user.firmId)}/${encodeURIComponent(req.file.filename)}`;
+}
+
+function maybeInvoiceUpload(req, res, next) {
+  const type = String(req.headers["content-type"] || "");
+  if (!type.includes("multipart/form-data")) return next();
+  invoiceImageUpload.single("image")(req, res, (err) => {
+    if (!err) return next();
+    const tooBig = err.code === "LIMIT_FILE_SIZE";
+    return res.status(400).json({
+      error: tooBig ? "Şəkil çox böyükdür. Kameradan yenidən çəkin." : err.message || "Faktura yüklənmədi",
+    });
+  });
+}
+
 router.get("/overview", requireEleman, (req, res) => {
   try {
     res.json(elemanOverview(getDb(), req.user.firmId, req.user.elemanId));
@@ -46,20 +62,27 @@ router.get("/branches/:branchId/cashiers", requireEleman, (req, res) => {
   }
 });
 
-router.post("/invoice", requireEleman, invoiceImageUpload.single("image"), (req, res) => {
+router.post("/invoice", requireEleman, maybeInvoiceUpload, (req, res) => {
   try {
     if (!req.file?.filename) throw new Error("Faktura şəklini yükləyin");
-    res.json({
-      invoiceUrl: `/uploads/eleman-invoices/${encodeURIComponent(req.user.firmId)}/${encodeURIComponent(req.file.filename)}`,
-    });
+    res.json({ invoiceUrl: invoiceUrlFromFile(req) });
   } catch (err) {
     sendError(res, err);
   }
 });
 
-router.post("/purchases", requireEleman, (req, res) => {
+router.post("/purchases", requireEleman, maybeInvoiceUpload, (req, res) => {
   try {
-    res.status(201).json(createElemanPurchase(getDb(), req.user.firmId, req.user.elemanId, req.body || {}));
+    let lines = req.body?.lines;
+    if (typeof lines === "string") {
+      try {
+        lines = JSON.parse(lines);
+      } catch {
+        throw new Error("Məhsul siyahısı səhvdir");
+      }
+    }
+    const invoiceUrl = req.file?.filename ? invoiceUrlFromFile(req) : String(req.body?.invoiceUrl || "").trim();
+    res.status(201).json(createElemanPurchase(getDb(), req.user.firmId, req.user.elemanId, { lines, invoiceUrl }));
   } catch (err) {
     sendError(res, err);
   }

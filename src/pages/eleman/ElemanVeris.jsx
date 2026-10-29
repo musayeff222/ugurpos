@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
-import Modal from "../../components/ui/Modal";
+import { parseAmount } from "../../utils/compressImage";
 import { formatDateTime, formatMoney } from "../../utils/format";
 
 export default function ElemanVeris() {
@@ -21,6 +21,12 @@ export default function ElemanVeris() {
     load().catch((err) => setError(err.message));
   }, []);
 
+  const ready = lines.length > 0 && lines.every((line) => parseAmount(line.qty) > 0);
+  const total = useMemo(
+    () => lines.reduce((sum, line) => sum + parseAmount(line.qty) * Number(line.price || 0), 0),
+    [lines]
+  );
+
   const pickBranch = async (item) => {
     setError("");
     setBranch(item);
@@ -39,20 +45,38 @@ export default function ElemanVeris() {
       if (prev.some((line) => line.productId === product.id)) {
         return prev.filter((line) => line.productId !== product.id);
       }
-      return [...prev, { productId: product.id, name: product.name, unit: product.unit, qty: 1 }];
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          name: product.name,
+          unit: product.unit,
+          qty: 1,
+          price: product.price,
+          stock: product.stock || 0,
+        },
+      ];
     });
+  };
+
+  const patchLine = (productId, patch) => {
+    setLines((prev) => prev.map((line) => (line.productId === productId ? { ...line, ...patch } : line)));
   };
 
   const submit = async (event) => {
     event.preventDefault();
     setError("");
     setMessage("");
+    if (!ready) {
+      setError("Məhsulun sayını yazın.");
+      return;
+    }
     setSaving(true);
     try {
       await api.createElemanDelivery({
         branchId: branch.id,
         staffId,
-        lines,
+        lines: lines.map((line) => ({ ...line, qty: parseAmount(line.qty) })),
       });
       setConfirmOpen(false);
       setBranch(null);
@@ -68,8 +92,14 @@ export default function ElemanVeris() {
 
   return (
     <div className="el-page">
-      <h2>Veriş</h2>
-      {error && <div className="alert alert-danger">{error}</div>}
+      <div className="el-pagehead">
+        <div>
+          <h2>Veriş</h2>
+          <p>{branch ? `${branch.name} filialına məhsul verin.` : "Filial seçin, məhsulu verin."}</p>
+        </div>
+        <b>Kassa {formatMoney(data?.balance || 0)}</b>
+      </div>
+      {error && !confirmOpen && <div className="alert alert-danger">{error}</div>}
       {message && <div className="alert alert-info">{message}</div>}
 
       {!branch && (
@@ -78,6 +108,7 @@ export default function ElemanVeris() {
             <button key={item.id} type="button" className="el-tile" onClick={() => pickBranch(item)}>
               <span>Filial</span>
               <strong>{item.name}</strong>
+              <small>Kassirə təhvil</small>
             </button>
           ))}
           {!data?.branches?.length && <p>Filial yoxdur.</p>}
@@ -86,54 +117,70 @@ export default function ElemanVeris() {
 
       {branch && (
         <>
-          <p>
-            Filial: <strong>{branch.name}</strong>{" "}
-            <button type="button" className="btn btn-sm" onClick={() => setBranch(null)}>
-              Geri
-            </button>
-          </p>
           <div className="el-grid">
             {(data?.products || []).map((product) => {
               const picked = lines.find((line) => line.productId === product.id);
               return (
-                <article key={product.id} className={picked ? "el-tile is-on" : "el-tile"}>
-                  <button type="button" className="el-tile" style={{ boxShadow: "none", padding: 0, minHeight: 0 }} onClick={() => toggle(product)}>
-                    <span>Anbar {product.stock || 0}</span>
-                    <strong>{product.name}</strong>
-                  </button>
-                  {picked && (
-                    <div className="el-qty">
-                      <select
-                        value={picked.unit}
-                        onChange={(e) =>
-                          setLines((prev) =>
-                            prev.map((line) => (line.productId === product.id ? { ...line, unit: e.target.value } : line))
-                          )
-                        }
-                      >
-                        <option value="kq">kq</option>
-                        <option value="adet">ədəd</option>
-                      </select>
-                      <input
-                        type="number"
-                        min="0.001"
-                        step="0.001"
-                        value={picked.qty}
-                        onChange={(e) =>
-                          setLines((prev) =>
-                            prev.map((line) => (line.productId === product.id ? { ...line, qty: e.target.value } : line))
-                          )
-                        }
-                      />
-                    </div>
-                  )}
-                </article>
+                <button
+                  key={product.id}
+                  type="button"
+                  className={picked ? "el-tile is-on" : "el-tile"}
+                  onClick={() => toggle(product)}
+                >
+                  <span>{product.unit === "kq" ? "kq" : "ədəd"}</span>
+                  <strong>{product.name}</strong>
+                  <small>Anbar: {product.stock || 0}</small>
+                </button>
               );
             })}
           </div>
+
+          {lines.length > 0 && (
+            <div className="el-cart">
+              <h3>Səbət · {lines.length} məhsul</h3>
+              {lines.map((line) => (
+                <article key={line.productId} className="el-cart__line el-cart__line--veris">
+                  <div className="el-cart__name">
+                    <strong>{line.name}</strong>
+                    <small>Anbar {line.stock || 0}</small>
+                  </div>
+                  <label className="el-field">
+                    <span>Ölçü</span>
+                    <select value={line.unit} onChange={(e) => patchLine(line.productId, { unit: e.target.value })}>
+                      <option value="kq">kq</option>
+                      <option value="adet">ədəd</option>
+                    </select>
+                  </label>
+                  <label className="el-field">
+                    <span>Say</span>
+                    <input
+                      type="number"
+                      min="0.001"
+                      step="0.001"
+                      inputMode="decimal"
+                      value={line.qty}
+                      onChange={(e) => patchLine(line.productId, { qty: e.target.value })}
+                    />
+                  </label>
+                  <div className="el-cart__sum">
+                    <span>Cəm</span>
+                    <b>{formatMoney(parseAmount(line.qty) * Number(line.price || 0))}</b>
+                    <button type="button" className="btn btn-sm" onClick={() => toggle({ id: line.productId })}>
+                      Sil
+                    </button>
+                  </div>
+                </article>
+              ))}
+              <footer className="el-cart__total">
+                <span>Ümumi</span>
+                <strong>{formatMoney(total)}</strong>
+              </footer>
+            </div>
+          )}
+
           <div className="el-paybar">
-            <button type="button" className="btn btn-primary" disabled={!lines.length} onClick={() => setConfirmOpen(true)}>
-              Ver
+            <button type="button" className="el-login__submit" disabled={!ready} onClick={() => setConfirmOpen(true)}>
+              Ver · {formatMoney(total)}
             </button>
           </div>
         </>
@@ -149,50 +196,74 @@ export default function ElemanVeris() {
             <b>{formatMoney(row.total)}</b>
           </button>
         ))}
+        {!data?.deliveries?.length && <p>Veriş yoxdur.</p>}
       </section>
 
-      <Modal open={confirmOpen} title="Kassir seçin" onClose={() => setConfirmOpen(false)}>
-        <form onSubmit={submit}>
-          <p>Bu məhsulları təhvil verəcəyiniz kassiri seçin.</p>
-          <label className="el-field">
-            <span>Kassir</span>
-            <select value={staffId} onChange={(e) => setStaffId(e.target.value)} required>
-              {cashiers.map((person) => (
-                <option key={person.id} value={person.id}>
-                  {person.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          {!cashiers.length && <p>Bu filialda kassir yoxdur.</p>}
-          <div className="form-actions">
-            <button type="button" className="btn" onClick={() => setConfirmOpen(false)}>
-              Bağla
+      {confirmOpen ? (
+        <div className="el-full">
+          <header className="el-full__bar">
+            <button type="button" className="el-full__back" onClick={() => !saving && setConfirmOpen(false)}>
+              Geri
             </button>
-            <button type="submit" className="btn btn-primary" disabled={saving || !staffId}>
-              Təsdiqlə
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal open={Boolean(detail)} title={detail?.branchName || "Veriş"} onClose={() => setDetail(null)}>
-        {detail && (
-          <div>
+            <h2>Kassir seçin</h2>
+          </header>
+          <form className="el-full__body" onSubmit={submit}>
+            {error && <div className="alert alert-danger">{error}</div>}
             <p>
-              {formatDateTime(detail.createdAt)} · {formatMoney(detail.total)} ·{" "}
-              {detail.status === "accepted" ? "Qəbul edilib" : "Gözləyir"}
+              {branch?.name} · {lines.length} məhsul
             </p>
-            <ul>
-              {(detail.lines || []).map((line, index) => (
-                <li key={`${line.productId}-${index}`}>
-                  {line.qty} {line.unit} {line.name}
+            <ul className="el-full__lines">
+              {lines.map((line) => (
+                <li key={line.productId}>
+                  {line.qty} {line.unit === "kq" ? "kq" : "ədəd"} {line.name}
                 </li>
               ))}
             </ul>
+            <label className="el-field">
+              <span>Kassir</span>
+              <select value={staffId} onChange={(e) => setStaffId(e.target.value)} required>
+                {cashiers.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {!cashiers.length && <p>Bu filialda kassir yoxdur.</p>}
+            <button type="submit" className="el-login__submit" disabled={saving || !staffId}>
+              {saving ? "Göndərilir..." : "Təsdiqlə"}
+            </button>
+          </form>
+        </div>
+      ) : null}
+
+      {detail ? (
+        <div className="el-full">
+          <header className="el-full__bar">
+            <button type="button" className="el-full__back" onClick={() => setDetail(null)}>
+              Geri
+            </button>
+            <h2>{detail.branchName || "Veriş"}</h2>
+          </header>
+          <div className="el-full__body">
+            <article className="el-invoice">
+              <p>
+                {formatDateTime(detail.createdAt, "az")} · {formatMoney(detail.total)}
+              </p>
+              <p>{detail.status === "accepted" ? "Qəbul edilib" : "Gözləyir"}</p>
+              <ul>
+                {(detail.lines || []).map((line, index) => (
+                  <li key={`${line.productId}-${index}`}>
+                    <span>
+                      {line.qty} {line.unit} {line.name}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </article>
           </div>
-        )}
-      </Modal>
+        </div>
+      ) : null}
     </div>
   );
 }

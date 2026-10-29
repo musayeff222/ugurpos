@@ -3,6 +3,9 @@ import { uid } from "../db/index.js";
 import { ELEMAN_CATALOG } from "../db/migrate-eleman.js";
 
 function num(value) {
+  if (typeof value === "string") {
+    value = value.replace(/\s/g, "").replace(",", ".");
+  }
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
 }

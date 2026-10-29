@@ -1,17 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api/client";
-import Modal from "../../components/ui/Modal";
+import { useAuth } from "../../context/AuthContext";
+import { compressInvoiceImage, parseAmount } from "../../utils/compressImage";
 import { formatDateTime, formatMoney } from "../../utils/format";
+import ElemanInvoiceScreen from "./ElemanInvoiceScreen";
 
 export default function ElemanAlis() {
+  const { user } = useAuth();
+  const cameraRef = useRef(null);
+  const galleryRef = useRef(null);
   const [data, setData] = useState(null);
   const [cart, setCart] = useState([]);
   const [payOpen, setPayOpen] = useState(false);
   const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState("");
   const [invoice, setInvoice] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const personName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.staffName || "";
 
   const load = () => api.getElemanOverview().then(setData);
 
@@ -19,12 +27,18 @@ export default function ElemanAlis() {
     load().catch((err) => setError(err.message));
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
   const products = data?.products || [];
   const total = useMemo(
-    () => cart.reduce((sum, line) => sum + Number(line.qty || 0) * Number(line.price || 0), 0),
+    () => cart.reduce((sum, line) => sum + parseAmount(line.qty) * parseAmount(line.price), 0),
     [cart]
   );
-  const ready = cart.length > 0 && cart.every((line) => Number(line.qty) > 0 && Number(line.price) > 0);
+  const ready = cart.length > 0 && cart.every((line) => parseAmount(line.qty) > 0 && parseAmount(line.price) > 0);
 
   const toggle = (product) => {
     setCart((prev) => {
@@ -48,6 +62,25 @@ export default function ElemanAlis() {
     setCart((prev) => prev.map((line) => (line.productId === productId ? { ...line, ...patch } : line)));
   };
 
+  const pickFile = async (next) => {
+    setError("");
+    if (!next) {
+      setFile(null);
+      setPreview("");
+      return;
+    }
+    try {
+      const prepared = await compressInvoiceImage(next);
+      if (preview) URL.revokeObjectURL(preview);
+      setFile(prepared);
+      setPreview(URL.createObjectURL(prepared));
+    } catch (err) {
+      setFile(null);
+      setPreview("");
+      setError(err.message || "Şəkil oxunmadı.");
+    }
+  };
+
   const pay = async (event) => {
     event.preventDefault();
     setError("");
@@ -62,18 +95,26 @@ export default function ElemanAlis() {
     }
     setSaving(true);
     try {
-      const uploaded = await api.uploadElemanInvoice(file);
-      await api.createElemanPurchase({
-        lines: cart.map((line) => ({ ...line, qty: Number(line.qty), price: Number(line.price) })),
-        invoiceUrl: uploaded.invoiceUrl,
-      });
+      const created = await api.createElemanPurchase(
+        {
+          lines: cart.map((line) => ({
+            ...line,
+            qty: parseAmount(line.qty),
+            price: parseAmount(line.price),
+          })),
+        },
+        file
+      );
       setCart([]);
       setFile(null);
+      if (preview) URL.revokeObjectURL(preview);
+      setPreview("");
       setPayOpen(false);
       await load();
       setMessage("Alış qeydə alındı. Məbləğ kassadan çıxıldı.");
+      setInvoice(created);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Alış alınmadı. Şəkli yenidən seçib ödəyin.");
     } finally {
       setSaving(false);
     }
@@ -88,7 +129,7 @@ export default function ElemanAlis() {
         </div>
         <b>Kassa {formatMoney(data?.balance || 0)}</b>
       </div>
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && !payOpen && <div className="alert alert-danger">{error}</div>}
       {message && <div className="alert alert-info">{message}</div>}
       <div className="el-grid">
         {products.map((product) => {
@@ -142,7 +183,7 @@ export default function ElemanAlis() {
               </label>
               <div className="el-cart__sum">
                 <span>Cəm</span>
-                <b>{formatMoney(Number(line.qty || 0) * Number(line.price || 0))}</b>
+                <b>{formatMoney(parseAmount(line.qty) * parseAmount(line.price))}</b>
                 <button type="button" className="btn btn-sm" onClick={() => toggle({ id: line.productId })}>
                   Sil
                 </button>
@@ -166,64 +207,75 @@ export default function ElemanAlis() {
         <h3>Alış tarixçəsi</h3>
         {(data?.purchases || []).map((row) => (
           <button key={row.id} type="button" onClick={() => setInvoice(row)}>
-            <span>{formatDateTime(row.createdAt)}</span>
+            <span>{formatDateTime(row.createdAt, "az")}</span>
             <b>{formatMoney(row.total)}</b>
           </button>
         ))}
         {!data?.purchases?.length && <p>Alış yoxdur.</p>}
       </section>
 
-      <Modal open={payOpen} title="Ödəniş" onClose={() => setPayOpen(false)}>
-        <form onSubmit={pay}>
-          <p>
-            Ümumi <strong>{formatMoney(total)}</strong> kassadan çıxılacaq.
-          </p>
-          <ul>
-            {cart.map((line) => (
-              <li key={line.productId}>
-                {line.qty} {line.unit === "kq" ? "kq" : "ədəd"} {line.name} · {formatMoney(line.price)}
-              </li>
-            ))}
-          </ul>
-          <label className="el-field">
-            <span>Faktura şəkli</span>
-            <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
-          </label>
-          <div className="form-actions">
-            <button type="button" className="btn" onClick={() => setPayOpen(false)}>
-              Bağla
+      {payOpen ? (
+        <div className="el-full">
+          <header className="el-full__bar">
+            <button type="button" className="el-full__back" onClick={() => !saving && setPayOpen(false)}>
+              Geri
             </button>
-            <button type="submit" className="el-login__submit" disabled={saving}>
-              {saving ? "Ödənilir..." : "Ödə"}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal open={Boolean(invoice)} title="Alış fakturası" onClose={() => setInvoice(null)} size="lg">
-        {invoice && (
-          <div>
+            <h2>Ödəniş</h2>
+          </header>
+          <form className="el-full__body" onSubmit={pay}>
+            {error && <div className="alert alert-danger">{error}</div>}
             <p>
-              {formatDateTime(invoice.createdAt)} · {formatMoney(invoice.total)}
+              Ümumi <strong>{formatMoney(total)}</strong> kassadan çıxılacaq.
             </p>
-            <ul>
-              {(invoice.lines || []).map((line, index) => (
-                <li key={`${line.productId}-${index}`}>
-                  {line.qty} {line.unit} {line.name} · {formatMoney(line.price)} ={" "}
-                  {formatMoney(Number(line.qty || 0) * Number(line.price || 0))}
+            <ul className="el-full__lines">
+              {cart.map((line) => (
+                <li key={line.productId}>
+                  {line.qty} {line.unit === "kq" ? "kq" : "ədəd"} {line.name} · {formatMoney(parseAmount(line.price))}
                 </li>
               ))}
             </ul>
-            {invoice.invoiceUrl ? (
-              <p>
-                <a href={invoice.invoiceUrl} target="_blank" rel="noreferrer">
-                  Faktura şəkli
-                </a>
-              </p>
-            ) : null}
-          </div>
-        )}
-      </Modal>
+            <div className="el-upload">
+              <span>Faktura şəkli</span>
+              {preview ? <img src={preview} alt="Faktura" /> : <div className="el-upload__empty">Şəkil seçilməyib</div>}
+              <div className="el-upload__btns">
+                <button type="button" className="el-login__submit" onClick={() => cameraRef.current?.click()}>
+                  Kameradan çək
+                </button>
+                <button type="button" className="el-login__submit el-login__submit--ghost" onClick={() => galleryRef.current?.click()}>
+                  Qalereyadan seç
+                </button>
+              </div>
+              <input
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                hidden
+                onChange={(e) => pickFile(e.target.files?.[0] || null)}
+              />
+              <input
+                ref={galleryRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => pickFile(e.target.files?.[0] || null)}
+              />
+            </div>
+            <button type="submit" className="el-login__submit" disabled={saving || !file}>
+              {saving ? "Ödənilir..." : `Ödə · ${formatMoney(total)}`}
+            </button>
+          </form>
+        </div>
+      ) : null}
+
+      {invoice ? (
+        <ElemanInvoiceScreen
+          purchase={invoice}
+          personName={personName}
+          storeName={user?.firmName}
+          onClose={() => setInvoice(null)}
+        />
+      ) : null}
     </div>
   );
 }

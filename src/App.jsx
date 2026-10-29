@@ -60,6 +60,13 @@ import ElemanLogin from "./pages/eleman/ElemanLogin";
 import ElemanHome from "./pages/eleman/ElemanHome";
 import ElemanAlis from "./pages/eleman/ElemanAlis";
 import ElemanVeris from "./pages/eleman/ElemanVeris";
+import {
+  ElemanAyarlar,
+  ElemanAxtaris,
+  ElemanEmeliyyatlar,
+  ElemanFirancays,
+  ElemanLogolar,
+} from "./pages/eleman/ElemanMenuPages";
 import ProductionLayout from "./layouts/ProductionLayout";
 import ProductionRawMaterials from "./pages/production/ProductionRawMaterials";
 import ProductionWarehouse from "./pages/production/ProductionWarehouse";
@@ -103,6 +110,11 @@ export default function App() {
         <Route index element={<ElemanHome />} />
         <Route path="alis" element={<ElemanAlis />} />
         <Route path="veris" element={<ElemanVeris />} />
+        <Route path="firancays" element={<ElemanFirancays />} />
+        <Route path="emeliyyatlar" element={<ElemanEmeliyyatlar />} />
+        <Route path="axtaris" element={<ElemanAxtaris />} />
+        <Route path="ayarlar" element={<ElemanAyarlar />} />
+        <Route path="logolar" element={<ElemanLogolar />} />
       </Route>
       <Route path="/m/order/:orderId" element={<PublicOrderStatus />} />
       <Route path="/m/orders" element={<Navigate to="/m" replace />} />

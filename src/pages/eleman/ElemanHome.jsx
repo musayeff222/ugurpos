@@ -30,6 +30,11 @@ export default function ElemanHome() {
           <strong>{data?.deliveries?.length || 0}</strong>
           <small>Filiala ver</small>
         </Link>
+        <Link to="/eleman/firancays" className="el-card">
+          <span>Firancays</span>
+          <strong>→</strong>
+          <small>Tezliklə</small>
+        </Link>
       </div>
     </div>
   );
