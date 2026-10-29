@@ -44,6 +44,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBranches from "./pages/admin/AdminBranches";
 import AdminBranchCreate from "./pages/admin/AdminBranchCreate";
 import AdminBranchDetail from "./pages/admin/AdminBranchDetail";
+import AdminFranchisePick from "./pages/admin/AdminFranchisePick";
 import AdminQrMenu from "./pages/admin/AdminQrMenu";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminActivity from "./pages/admin/AdminActivity";
@@ -137,6 +138,9 @@ export default function App() {
         <Route path="istehsalat" element={<AdminBranches kind="production" />} />
         <Route path="istehsalat/new" element={<AdminBranchCreate />} />
         <Route path="istehsalat/:id" element={<AdminBranchDetail />} />
+        <Route path="franchise" element={<AdminBranches kind="franchise" />} />
+        <Route path="franchise/ekle" element={<AdminFranchisePick />} />
+        <Route path="franchise/:id" element={<AdminBranchDetail />} />
         <Route path="qr-menu" element={<AdminQrMenu mode="orders" />} />
         <Route path="web" element={<AdminQrMenu mode="web" />} />
         <Route path="activity" element={<AdminActivity />} />

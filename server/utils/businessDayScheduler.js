@@ -1,4 +1,5 @@
 import { getDb } from "../db/index.js";
+import { isFranchiseBranch } from "./branchKind.js";
 import { getBranchBusinessHours, getBusinessWindowForDate } from "./businessHours.js";
 import { closeBusinessDayForBranch } from "./businessDayClose.js";
 
@@ -24,6 +25,7 @@ export function runBusinessDaySchedulerTick() {
 
   const branches = db.prepare("SELECT * FROM branches WHERE active = 1").all();
   branches.forEach((branch) => {
+    if (isFranchiseBranch(branch)) return;
     const { openTime, closeTime } = getBranchBusinessHours(branch);
     const closeMin = toMinutes(closeTime);
     if (nowMin < closeMin) return;

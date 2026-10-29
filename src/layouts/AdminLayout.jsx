@@ -14,6 +14,7 @@ const adminNav = [
     items: [
       { to: "/admin", label: "Ana sayfa", icon: "fa-home", end: true },
       { to: "/admin/branches", label: "Şubeler", icon: "fa-building" },
+      { to: "/admin/franchise", label: "Franchise", icon: "fa-handshake-o" },
       { to: "/admin/istehsalat", label: "İstehsalat", icon: "fa-industry" },
       { to: "/admin/products", label: "Ürünler", icon: "fa-cube" },
       { to: "/admin/staff", label: "Çalışanlar", icon: "fa-users" },
@@ -75,6 +76,9 @@ function getBreadcrumb(pathname, pageTitle) {
   if (pathname.startsWith("/admin/branches/new")) return ["UgurPOS", "Şubeler", "Yeni kayıt"];
   if (pathname.startsWith("/admin/branches/")) return ["UgurPOS", "Şubeler", "Kayıt"];
   if (pathname.startsWith("/admin/branches")) return ["UgurPOS", "Şubeler"];
+  if (pathname.startsWith("/admin/franchise/ekle")) return ["UgurPOS", "Franchise", "Şube ekle"];
+  if (pathname.startsWith("/admin/franchise/")) return ["UgurPOS", "Franchise", "Kayıt"];
+  if (pathname.startsWith("/admin/franchise")) return ["UgurPOS", "Franchise"];
   if (pathname.startsWith("/admin/eleman/list")) return ["UgurPOS", "Əlman", "Əlmanlar"];
   if (pathname.startsWith("/admin/eleman/anbar") || pathname === "/admin/eleman") return ["UgurPOS", "Əlman", "Anbar"];
   if (pathname.startsWith("/admin/eleman/")) return ["UgurPOS", "Əlman", "Əməliyyatlar"];
@@ -133,6 +137,7 @@ export default function AdminLayout() {
         muhasibSection(location.pathname, location.search)) ||
     (!item.to.startsWith("/admin/muhasib") && location.pathname === item.to) ||
     (item.to === "/admin/branches" && location.pathname.startsWith("/admin/branches")) ||
+    (item.to === "/admin/franchise" && location.pathname.startsWith("/admin/franchise")) ||
     (item.to === "/admin/istehsalat" && location.pathname.startsWith("/admin/istehsalat")) ||
     (item.to === "/admin/products" && location.pathname.startsWith("/admin/products")) ||
     (item.to === "/admin/staff" && location.pathname.startsWith("/admin/staff")) ||
@@ -202,9 +207,11 @@ export default function AdminLayout() {
     activeItem?.label ||
     (location.pathname.includes("/istehsalat/new")
       ? "Yeni istehsalat"
-      : location.pathname.includes("/branches/new")
-        ? "Yeni şube"
-        : "Konsol");
+      : location.pathname.includes("/franchise/ekle")
+        ? "Şube ekle"
+        : location.pathname.includes("/branches/new")
+          ? "Yeni şube"
+          : "Konsol");
 
   const breadcrumb = getBreadcrumb(location.pathname, pageTitle);
 
@@ -217,10 +224,14 @@ export default function AdminLayout() {
 
   const searchTarget = location.pathname.startsWith("/admin/istehsalat")
     ? "/admin/istehsalat"
-    : "/admin/branches";
+    : location.pathname.startsWith("/admin/franchise")
+      ? "/admin/franchise"
+      : "/admin/branches";
   const createHref = location.pathname.startsWith("/admin/istehsalat")
     ? "/admin/istehsalat/new"
-    : "/admin/branches/new";
+    : location.pathname.startsWith("/admin/franchise")
+      ? "/admin/franchise/ekle"
+      : "/admin/branches/new";
 
   const submitSearch = (e) => {
     e.preventDefault();

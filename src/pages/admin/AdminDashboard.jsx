@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import { formatMoney } from "../../utils/format";
 import { getBranchLabel } from "../../utils/branchDisplay";
-import { adminRecordPath, isProductionKind } from "../../utils/adminPaths";
+import { adminRecordPath, isFranchiseKind, isProductionKind } from "../../utils/adminPaths";
 
 const TYPE_LABELS = {
   branch_login: "Giriş",
@@ -33,7 +33,7 @@ export default function AdminDashboard() {
       ]
     : [];
 
-  const salesBranches = (summary?.branches || []).filter((b) => !isProductionKind(b));
+  const salesBranches = (summary?.branches || []).filter((b) => !isProductionKind(b) && !isFranchiseKind(b));
 
   return (
     <div className="admin-page erp-page">

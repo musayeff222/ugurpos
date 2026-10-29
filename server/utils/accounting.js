@@ -159,7 +159,7 @@ function salesBranches(db, firmId) {
   return db
     .prepare("SELECT id, name, kind FROM branches WHERE firm_id = ? AND active = 1 ORDER BY name")
     .all(firmId)
-    .filter((branch) => branch.kind !== "production");
+    .filter((branch) => branch.kind !== "production" && branch.kind !== "franchise");
 }
 
 function ensureFirmDay(db, firmId) {
@@ -275,7 +275,11 @@ export function closeBranchDay(db, firmId, branchId) {
   ensureAccountKassas(db, firmId);
   const day = ensureFirmDay(db, firmId);
   const branch = salesBranches(db, firmId).find((row) => row.id === branchId);
-  if (!branch) throw new Error("Satış şubesi bulunamadı");
+  if (!branch) {
+    const row = db.prepare("SELECT kind FROM branches WHERE id = ? AND firm_id = ?").get(branchId, firmId);
+    if (String(row?.kind || "") === "franchise") throw new Error("Franchise şubenin günü kapatılmaz");
+    throw new Error("Satış şubesi bulunamadı");
+  }
   const available = branchAvailable(db, branch.id);
   const cardAvailable = branchCardAvailable(db, branch.id);
   const existing = branchCloseRow(db, branch.id, day.businessDate);

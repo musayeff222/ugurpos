@@ -3,10 +3,11 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { formatMoney } from "../../utils/format";
 import { getBranchLabel } from "../../utils/branchDisplay";
-import { adminCreatePath, adminRecordPath, isProductionKind } from "../../utils/adminPaths";
+import { adminCreatePath, adminRecordPath, isFranchiseKind, isProductionKind } from "../../utils/adminPaths";
 
 export default function AdminBranches({ kind = "sales" }) {
   const isProduction = kind === "production";
+  const isFranchise = kind === "franchise";
   const [branches, setBranches] = useState([]);
   const [error, setError] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -25,8 +26,13 @@ export default function AdminBranches({ kind = "sales" }) {
   }, []);
 
   const scoped = useMemo(
-    () => branches.filter((b) => (isProduction ? isProductionKind(b) : !isProductionKind(b))),
-    [branches, isProduction]
+    () =>
+      branches.filter((b) => {
+        if (isProduction) return isProductionKind(b);
+        if (isFranchise) return isFranchiseKind(b);
+        return !isProductionKind(b) && !isFranchiseKind(b);
+      }),
+    [branches, isProduction, isFranchise]
   );
 
   const rows = useMemo(() => {
@@ -50,7 +56,10 @@ export default function AdminBranches({ kind = "sales" }) {
   };
 
   const createTo = adminCreatePath(kind);
-  const listLabel = isProduction ? "İstehsalat" : "Şubeler";
+  const listLabel = isProduction ? "İstehsalat" : isFranchise ? "Franchise" : "Şubeler";
+  const createLabel = isProduction ? "Yeni istehsalat" : isFranchise ? "Şube ekle" : "Yeni şube";
+  const emptyCreateLabel = isProduction ? "İlk istehsalatı oluştur" : isFranchise ? "Şube ekle" : "İlk şubeyi oluştur";
+  const showSalesCols = !isProduction;
 
   return (
     <div className="admin-page erp-page">
@@ -71,7 +80,7 @@ export default function AdminBranches({ kind = "sales" }) {
             />
           </form>
           <Link to={createTo} className="btn btn-primary btn-sm">
-            {isProduction ? "Yeni istehsalat" : "Yeni şube"}
+            {createLabel}
           </Link>
         </div>
       </div>
@@ -84,9 +93,9 @@ export default function AdminBranches({ kind = "sales" }) {
               <tr>
                 <th>{isProduction ? "İstehsalat adı" : "Şube adı"}</th>
                 <th>Durum</th>
-                {!isProduction && <th>Bugünkü ciro</th>}
-                {!isProduction && <th>Ürün</th>}
-                {!isProduction && <th>Müşteri</th>}
+                {showSalesCols && <th>Bugünkü ciro</th>}
+                {showSalesCols && <th>Ürün</th>}
+                {showSalesCols && <th>Müşteri</th>}
                 {isProduction && <th>Login</th>}
                 <th></th>
               </tr>
@@ -106,9 +115,9 @@ export default function AdminBranches({ kind = "sales" }) {
                   <td>
                     <span className={`admin-badge ${b.active ? "ok" : "off"}`}>{b.active ? "Aktif" : "Pasif"}</span>
                   </td>
-                  {!isProduction && <td>{formatMoney(b.stats?.todayTotal || 0)}</td>}
-                  {!isProduction && <td>{b.stats?.productCount || 0}</td>}
-                  {!isProduction && <td>{b.stats?.customerCount || 0}</td>}
+                  {showSalesCols && <td>{formatMoney(b.stats?.todayTotal || 0)}</td>}
+                  {showSalesCols && <td>{b.stats?.productCount || 0}</td>}
+                  {showSalesCols && <td>{b.stats?.customerCount || 0}</td>}
                   {isProduction && <td>{b.email || "—"}</td>}
                   <td>
                     <Link to={adminRecordPath(b)}>Aç</Link>
@@ -120,7 +129,7 @@ export default function AdminBranches({ kind = "sales" }) {
                   <td colSpan={isProduction ? 4 : 6} className="erp-table__empty">
                     {scoped.length === 0 ? (
                       <>
-                        Kayıt yok. <Link to={createTo}>{isProduction ? "İlk istehsalatı oluştur" : "İlk şubeyi oluştur"}</Link>
+                        Kayıt yok. <Link to={createTo}>{emptyCreateLabel}</Link>
                       </>
                     ) : (
                       "Bu aramada sonuç yok."
@@ -146,7 +155,7 @@ export default function AdminBranches({ kind = "sales" }) {
                 </div>
                 <span className={`admin-badge ${b.active ? "ok" : "off"}`}>{b.active ? "Aktif" : "Pasif"}</span>
               </div>
-              {!isProduction && (
+              {showSalesCols && (
                 <div className="admin-branch-card__stats admin-branch-card__stats--2">
                   <div>
                     <span>Bugün</span>

@@ -860,7 +860,7 @@ router.patch("/branches/:id", (req, res) => {
   const existing = getBranchOr404(db, req.params.id, req.user.firmId);
   if (!existing) return res.status(404).json({ error: "Şube bulunamadı" });
 
-  const { name, email, address, active, password, branchNo, menuLat, menuLng, lat, lng, businessOpenTime, businessCloseTime } = req.body;
+  const { name, email, address, active, password, branchNo, menuLat, menuLng, lat, lng, businessOpenTime, businessCloseTime, kind } = req.body;
   const nextEmail = email?.trim() ? normalizeBranchEmail(email) : existing.email;
   if (email?.trim() && !isValidBranchEmail(nextEmail)) {
     return res.status(400).json({ error: "Geçerli bir e-posta girin" });
@@ -905,8 +905,16 @@ router.patch("/branches/:id", (req, res) => {
   if (businessOpenTime !== undefined) nextBusinessOpen = normalizeTime(businessOpenTime, nextBusinessOpen);
   if (businessCloseTime !== undefined) nextBusinessClose = normalizeTime(businessCloseTime, nextBusinessClose);
 
+  let nextKind = normalizeBranchKind(existing.kind);
+  if (kind !== undefined) {
+    nextKind = normalizeBranchKind(kind);
+    if (normalizeBranchKind(existing.kind) === "production" && nextKind !== "production") {
+      return res.status(400).json({ error: "İstehsalat franchise'a taşınamaz" });
+    }
+  }
+
   db.prepare(
-    "UPDATE branches SET name=?, code=?, email=?, password_hash=?, address=?, menu_lat=?, menu_lng=?, business_open_time=?, business_close_time=?, active=? WHERE id=?"
+    "UPDATE branches SET name=?, code=?, email=?, password_hash=?, address=?, menu_lat=?, menu_lng=?, business_open_time=?, business_close_time=?, active=?, kind=? WHERE id=?"
   ).run(
     name ?? existing.name,
     nextCode,
@@ -918,6 +926,7 @@ router.patch("/branches/:id", (req, res) => {
     nextBusinessOpen,
     nextBusinessClose,
     active === false ? 0 : active === true ? 1 : existing.active,
+    nextKind,
     req.params.id
   );
 

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import { getBranchLabel } from "../../utils/branchDisplay";
 import { formatDateTime, formatMoney } from "../../utils/format";
 import { formatStockLabel, isGramUnit, formatGrams } from "../../utils/grams";
-import { adminListPath, isProductionKind } from "../../utils/adminPaths";
+import { adminListPath, adminRecordPath, branchListKind, isFranchiseKind, isProductionKind } from "../../utils/adminPaths";
 import Modal from "../../components/ui/Modal";
 
 const PAYMENT_LABELS = {
@@ -218,8 +218,8 @@ export default function AdminBranchDetail() {
     setError("");
     try {
       await api.deleteBranch(id);
-      navigate(adminListPath(isProductionKind(branch) ? "production" : "sales"), {
-        state: { message: isProductionKind(branch) ? "İstehsalat silindi." : "Şube silindi." },
+      navigate(adminListPath(branchListKind(branch)), {
+        state: { message: isFranchiseKind(branch) ? "Franchise silindi." : isProductionKind(branch) ? "İstehsalat silindi." : "Şube silindi." },
       });
     } catch (err) {
       setError(err.message);
@@ -310,6 +310,13 @@ export default function AdminBranchDetail() {
 
   if (!branch && !error) return <div className="erp-panel">Yükleniyor...</div>;
 
+  if (branch) {
+    const expected = adminRecordPath(branch);
+    if (location.pathname !== expected) {
+      return <Navigate to={expected} replace />;
+    }
+  }
+
   const label = branch ? getBranchLabel(branch) : "Hesap";
   const report = workspace?.report;
   const soldProducts = workspace?.soldProducts || [];
@@ -320,6 +327,7 @@ export default function AdminBranchDetail() {
     .filter((row) => !isGramUnit(row.unit))
     .reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
   const isProduction = branch?.kind === "production";
+  const isFranchise = branch?.kind === "franchise";
   const visibleTabs = isProduction ? [{ id: "settings", label: "Ayarlar" }] : TABS;
   const currentTab = isProduction ? "settings" : tab;
   const showDateFilter = ["sold", "cash", "expenses", "reports"].includes(currentTab);
@@ -355,7 +363,7 @@ export default function AdminBranchDetail() {
               <div className="crm-record__id">
                 <span className="crm-avatar crm-avatar--lg">{String(label).slice(0, 2).toUpperCase()}</span>
                 <div>
-                  <p className="crm-object">{isProduction ? "Hesap · İstehsalat" : "Hesap · Şube"}</p>
+                  <p className="crm-object">{isProduction ? "Hesap · İstehsalat" : isFranchise ? "Hesap · Franchise" : "Hesap · Şube"}</p>
                   <h2>{label}</h2>
                   <p className="crm-record__meta">
                     {branch.email || "—"}
@@ -368,7 +376,7 @@ export default function AdminBranchDetail() {
                 </span>
               </div>
               <div className="crm-record__actions">
-                <Link to={adminListPath(isProduction ? "production" : "sales")} className="btn btn-default btn-sm">
+                <Link to={adminListPath(branchListKind(branch))} className="btn btn-default btn-sm">
                   Liste
                 </Link>
                 {branch.active && (
