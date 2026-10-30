@@ -1716,14 +1716,15 @@
 .erp-brand__mark {
   width: 32px;
   height: 32px;
-  border-radius: 4px;
-  background: #0176d3;
+  border-radius: 6px;
+  background: #fff;
   display: grid;
   place-items: center;
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 0.2px;
   color: #fff;
+  object-fit: cover;
 }
 
 .erp-brand strong {

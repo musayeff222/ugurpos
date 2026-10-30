@@ -7,8 +7,7 @@ export default function OsesSingleProduct({ product, imageSrc, priceLabel, canOr
   const [added, setAdded] = useState(false);
   const src = imageSrc || seedImageForProduct(product);
 
-  const handleAdd = (e) => {
-    e.preventDefault();
+  const handleAdd = () => {
     if (!canOrder) return;
     onAdd?.();
     setAdded(true);
@@ -16,22 +15,20 @@ export default function OsesSingleProduct({ product, imageSrc, priceLabel, canOr
   };
 
   return (
-    <div className="single-product">
-      {src ? <img src={src} className="img-fluid" alt={product.name} /> : null}
-      <h2 className="title18 mt-2 mb-0">{product.name}</h2>
-      {product.unit && <p>{product.unit}</p>}
-      <form className="mt-3" onSubmit={handleAdd}>
-        <div className="row align-items-center">
-          <p className="price col-5 col-md-4">{priceLabel}</p>
-          <div className="col-7 col-md-8">
-            {canOrder && (
-              <button type="submit" className="btn-add">
-                {added ? t("qr.addedToCart") : t("qr.addToCart")}
-              </button>
-            )}
-          </div>
+    <article className="ps-product">
+      <div className="ps-product__media">{src ? <img src={src} alt={product.name} /> : null}</div>
+      <div className="ps-product__body">
+        <h3>{product.name}</h3>
+        {product.unit ? <p className="ps-product__unit">{product.unit}</p> : null}
+        <div className="ps-product__row">
+          <span className="ps-price">{priceLabel}</span>
+          {canOrder ? (
+            <button type="button" className="ps-btn" onClick={handleAdd}>
+              {added ? t("qr.addedToCart") : t("qr.addToCart")}
+            </button>
+          ) : null}
         </div>
-      </form>
-    </div>
+      </div>
+    </article>
   );
 }

@@ -51,9 +51,7 @@ export default function PublicBranchMenu() {
     setCart((prev) => {
       const existing = prev.find((line) => line.productId === product.id);
       if (existing) {
-        return prev.map((line) =>
-          line.productId === product.id ? { ...line, qty: line.qty + 1 } : line
-        );
+        return prev.map((line) => (line.productId === product.id ? { ...line, qty: line.qty + 1 } : line));
       }
       return [...prev, { productId: product.id, name: product.name, price: product.price1, qty: 1, imageUrl }];
     });
@@ -62,7 +60,7 @@ export default function PublicBranchMenu() {
   if (loading) {
     return (
       <PublicQrShell firm={menu?.firm}>
-        <div className="container py-5 text-center">{t("qr.loadingMenu")}</div>
+        <div className="ps-loading">{t("qr.loadingMenu")}</div>
       </PublicQrShell>
     );
   }
@@ -70,7 +68,7 @@ export default function PublicBranchMenu() {
   if (!menu?.branch) {
     return (
       <PublicQrShell firm={menu?.firm}>
-        <div className="container py-5 text-center text-danger">{error || t("qr.menuNotFound")}</div>
+        <div className="ps-empty">{error || t("qr.menuNotFound")}</div>
       </PublicQrShell>
     );
   }
@@ -81,78 +79,61 @@ export default function PublicBranchMenu() {
 
   return (
     <PublicQrShell firm={menu.firm}>
-      <div className="container productList">
-        <div className="row">
-          <div className="col-12 d-flex justify-content-between align-items-center flex-wrap my-3">
-            <button type="button" className="btn_box_line" onClick={() => navigate("/m")}>
-              ← {t("qr.nav.home")}
-            </button>
-            <p className="mb-0">
-              <strong>{getBranchLabel(branch)}</strong>
-            </p>
-            <Link to={`/m/branch/${branchId}/cart`} className="btn_box_green btn_box">
-              {t("qr.myCart")} ({cartCount}) · {money(cartTotal)}
-            </Link>
-          </div>
+      <div className="ps-wrap">
+        <div className="ps-menu-top">
+          <button type="button" className="ps-btn-ghost" onClick={() => navigate("/m")}>
+            ← {t("qr.nav.home")}
+          </button>
+          <strong>{getBranchLabel(branch)}</strong>
+          <Link to={`/m/branch/${branchId}/cart`} className="ps-btn">
+            {t("qr.myCart")} ({cartCount}) · {money(cartTotal)}
+          </Link>
         </div>
 
         {!canOrder && (
-          <div className="alert alert-warning">{branch.isOpen === false ? t("qr.closedNotice") : t("qr.viewOnlyNotice")}</div>
+          <div className="ps-alert">{branch.isOpen === false ? t("qr.closedNotice") : t("qr.viewOnlyNotice")}</div>
         )}
 
-        <div className="row">
-          <div className="col-12">
-            <h2 className="title32 txt_green my-4">{t("qr.nav.products")}</h2>
-            <input
-              className="form-control mb-3"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("qr.searchProduct")}
-            />
-          </div>
-        </div>
+        <h2>{t("qr.nav.products")}</h2>
+        <input
+          className="ps-search"
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("qr.searchProduct")}
+        />
 
         {groups.length > 0 && (
-          <nav className="d-none d-sm-block">
-            <div className="nav nav-tabs nav-justified mb-3">
+          <nav className="ps-tabs">
+            <button type="button" className={activeGroup === "all" ? "is-active" : ""} onClick={() => setActiveGroup("all")}>
+              {t("common.all")}
+            </button>
+            {groups.map((group) => (
               <button
+                key={group.id}
                 type="button"
-                className={`nav-item nav-link${activeGroup === "all" ? " active" : ""}`}
-                onClick={() => setActiveGroup("all")}
+                className={activeGroup === group.id ? "is-active" : ""}
+                onClick={() => setActiveGroup(group.id)}
               >
-                {t("common.all")}
+                {group.name}
               </button>
-              {groups.map((group) => (
-                <button
-                  key={group.id}
-                  type="button"
-                  className={`nav-item nav-link${activeGroup === group.id ? " active" : ""}`}
-                  onClick={() => setActiveGroup(group.id)}
-                >
-                  {group.name}
-                </button>
-              ))}
-            </div>
+            ))}
           </nav>
         )}
 
-        <div className="row">
+        <div className="ps-products" style={{ paddingBottom: 48 }}>
           {products.map((product) => (
-            <div key={product.id} className="col-12 col-lg-3 col-md-4 col-sm-6 my-4">
-              <OsesSingleProduct
-                product={product}
-                imageSrc={getPublicProductImageSrc(branchId, product)}
-                priceLabel={money(product.price1)}
-                canOrder={canOrder}
-                onAdd={() => addToCart(product)}
-              />
-            </div>
+            <OsesSingleProduct
+              key={product.id}
+              product={product}
+              imageSrc={getPublicProductImageSrc(branchId, product)}
+              priceLabel={money(product.price1)}
+              canOrder={canOrder}
+              onAdd={() => addToCart(product)}
+            />
           ))}
-          {products.length === 0 && (
-            <div className="col-12 text-center py-5">{t("qr.noProducts")}</div>
-          )}
         </div>
+        {products.length === 0 && <div className="ps-empty">{t("qr.noProducts")}</div>}
       </div>
     </PublicQrShell>
   );

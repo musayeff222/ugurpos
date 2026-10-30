@@ -285,7 +285,7 @@ export default function AdminLayout() {
     <div className={`admin-shell erp-shell ${menuOpen ? "erp-shell--menu" : ""} ${sidebarOpen ? "" : "erp-shell--collapsed"}`}>
       <aside className="admin-sidebar admin-sidebar--desktop erp-sidebar">
         <div className="erp-brand">
-          <div className="erp-brand__mark">UP</div>
+          <img className="erp-brand__mark" src="/icons/cigkofte-192.png" alt="İstanbul Çiğköfte" />
           <div>
             <strong>UgurPOS</strong>
             <span>Console</span>
@@ -319,7 +319,7 @@ export default function AdminLayout() {
       )}
       <aside className={`admin-drawer ${menuOpen ? "is-open" : ""}`} aria-hidden={!menuOpen}>
         <div className="erp-brand">
-          <div className="erp-brand__mark">UP</div>
+          <img className="erp-brand__mark" src="/icons/cigkofte-192.png" alt="İstanbul Çiğköfte" />
           <div>
             <strong>UgurPOS</strong>
             <span>Console</span>

@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const apiTarget = process.env.UGURPOS_API_PROXY || "http://localhost:3001";
 
 export default defineConfig({
   plugins: [react()],
@@ -17,8 +18,14 @@ export default defineConfig({
     open: true,
     proxy: {
       "/api": {
-        target: "http://localhost:3001",
+        target: apiTarget,
         changeOrigin: true,
+        secure: true,
+      },
+      "/uploads": {
+        target: apiTarget,
+        changeOrigin: true,
+        secure: true,
       },
     },
   },

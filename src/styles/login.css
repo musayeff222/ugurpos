@@ -47,7 +47,9 @@
 }
 
 .login-logo img {
-  max-height: 48px;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
 }
 
 .login-card h4 {

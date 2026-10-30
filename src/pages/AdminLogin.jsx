@@ -49,7 +49,7 @@ export default function AdminLogin() {
     <div className="crm-login">
       <form onSubmit={handleSubmit}>
         <div className="erp-brand crm-login__brand">
-          <div className="erp-brand__mark">UP</div>
+          <img className="erp-brand__mark" src="/icons/cigkofte-192.png" alt="İstanbul Çiğköfte" />
           <div>
             <strong>UgurPOS</strong>
             <span>Console</span>

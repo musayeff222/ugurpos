@@ -80,40 +80,33 @@ export default function PublicBranchCart() {
 
   return (
     <PublicQrShell firm={menu?.firm}>
-      <div className="container my-5">
-        <div className="row mb-4">
-          <div className="col-12">
-            <Link to={`/m/branch/${branchId}`} className="btn_box_line">
-              ← {t("qr.nav.menu")}
-            </Link>
-            <h2 className="title32 txt_green mt-4">{t("qr.completeOrder")}</h2>
-            <p>{t("qr.payOnDelivery")}</p>
-          </div>
-        </div>
+      <div className="ps-wrap" style={{ paddingTop: 28 }}>
+        <Link to={`/m/branch/${branchId}`} className="ps-btn-ghost">
+          ← {t("qr.nav.menu")}
+        </Link>
+        <h2 style={{ margin: "20px 0 6px" }}>{t("qr.completeOrder")}</h2>
+        <p className="ps-section__lead">{t("qr.payOnDelivery")}</p>
 
-        <div className="row">
-          <div className="col-12 col-lg-6 mb-4">
-            <h3 className="title18 txt_green">{t("qr.myCart")}</h3>
+        <div className="ps-cart-layout">
+          <div>
+            <h3>{t("qr.myCart")}</h3>
             {cart.length === 0 ? (
               <p>
-                {t("qr.cartEmpty")}{" "}
-                <Link to={`/m/branch/${branchId}`}>{t("qr.nav.menu")}</Link>
+                {t("qr.cartEmpty")} <Link to={`/m/branch/${branchId}`}>{t("qr.nav.menu")}</Link>
               </p>
             ) : (
               cart.map((line) => (
-                <div key={line.productId} className="d-flex align-items-center mb-3 p-3" style={{ background: "#f8f8f8", borderRadius: 8 }}>
-                  {line.imageUrl && (
-                    <img src={line.imageUrl} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, marginRight: 12 }} />
-                  )}
-                  <div className="flex-grow-1">
+                <div key={line.productId} className="ps-cart-line">
+                  {line.imageUrl ? <img src={line.imageUrl} alt="" /> : null}
+                  <div>
                     <strong>{line.name}</strong>
-                    <div className="price">{money(line.price * line.qty)}</div>
-                    <div className="d-flex align-items-center mt-2">
-                      <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => updateQty(line.productId, line.qty - 1)}>
+                    <div className="ps-price">{money(line.price * line.qty)}</div>
+                    <div className="ps-qty">
+                      <button type="button" onClick={() => updateQty(line.productId, line.qty - 1)}>
                         −
                       </button>
-                      <span className="mx-2">{line.qty}</span>
-                      <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => updateQty(line.productId, line.qty + 1)}>
+                      <span>{line.qty}</span>
+                      <button type="button" onClick={() => updateQty(line.productId, line.qty + 1)}>
                         +
                       </button>
                     </div>
@@ -124,37 +117,27 @@ export default function PublicBranchCart() {
           </div>
 
           {cart.length > 0 && canOrder && (
-            <div className="col-12 col-lg-6">
-              <form onSubmit={handleSubmit}>
-                {error && <div className="alert alert-danger">{error}</div>}
-                <div className="form-group">
-                  <label>{t("qr.fullName")} *</label>
-                  <input className="form-control" required value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>{t("qr.phone")} *</label>
-                  <input className="form-control" required value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>{t("qr.deliveryAddress")} *</label>
-                  <textarea className="form-control" rows={3} required value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-                </div>
-                <button type="button" className="btn_box_line mb-3" onClick={useMyLocation} disabled={locating}>
-                  {locating ? t("qr.locating") : t("qr.useMyDeliveryLocation")}
-                </button>
-                <div className="form-group">
-                  <label>{t("qr.orderNote")}</label>
-                  <textarea className="form-control" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-                </div>
-                <div className="d-flex justify-content-between mb-3">
-                  <span>{t("common.total")}</span>
-                  <strong className="price">{money(cartTotal)}</strong>
-                </div>
-                <button type="submit" className="btn_box_green btn_box width-100" disabled={submitting}>
-                  {submitting ? t("qr.sending") : t("qr.sendOrder", { total: money(cartTotal) })}
-                </button>
-              </form>
-            </div>
+            <form className="ps-form" onSubmit={handleSubmit}>
+              {error ? <div className="ps-alert">{error}</div> : null}
+              <label>{t("qr.fullName")} *</label>
+              <input required value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} />
+              <label>{t("qr.phone")} *</label>
+              <input required value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} />
+              <label>{t("qr.deliveryAddress")} *</label>
+              <textarea rows={3} required value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              <button type="button" className="ps-btn-ghost" onClick={useMyLocation} disabled={locating}>
+                {locating ? t("qr.locating") : t("qr.useMyDeliveryLocation")}
+              </button>
+              <label>{t("qr.orderNote")}</label>
+              <textarea rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+              <div className="ps-total">
+                <span>{t("common.total")}</span>
+                <strong>{money(cartTotal)}</strong>
+              </div>
+              <button type="submit" className="ps-btn" disabled={submitting}>
+                {submitting ? t("qr.sending") : t("qr.sendOrder", { total: money(cartTotal) })}
+              </button>
+            </form>
           )}
         </div>
       </div>

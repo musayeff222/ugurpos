@@ -16,54 +16,25 @@ import { getWebConfig, isWebItemEnabled } from "../../utils/menuWebConfig";
 
 const LANG_KEY = "ugurpos_lang";
 const AUTO_RADIUS_KM = 80;
-const ORDER_STRIP_DELIVERY_COUNT = 2;
-const ORDER_STRIP_BUTTON_COUNT = 3;
 
-function runOrderStripAction(action, goOrder) {
-  if (action === "branches") {
-    document.getElementById("subeler")?.scrollIntoView({ behavior: "smooth" });
-    return;
-  }
-  if (action === "campaigns") {
-    document.getElementById("kampanyalar")?.scrollIntoView({ behavior: "smooth" });
-    return;
-  }
-  goOrder();
-}
-
-function OrderStripImage({ item, goOrder }) {
-  if (!item?.imageUrl) return null;
-  const content = (
-    <img
-      src={item.imageUrl}
-      className="order-strip__img"
-      alt={item.alt || ""}
-      width={570}
-      height={250}
-      loading="lazy"
-    />
-  );
-  if (item.action === "branches") {
+function BannerLink({ item, goOrder, children }) {
+  if (item?.action === "branches") {
     return (
-      <a href="#subeler" className="order-strip__link">
-        {content}
+      <a href="#subeler" className="ps-banner">
+        {children}
       </a>
     );
   }
-  if (item.action === "campaigns") {
+  if (item?.action === "campaigns") {
     return (
-      <a href="#kampanyalar" className="order-strip__link">
-        {content}
+      <a href="#kampanyalar" className="ps-banner">
+        {children}
       </a>
     );
   }
   return (
-    <button
-      type="button"
-      className="order-strip__link order-strip__link--btn"
-      onClick={() => runOrderStripAction(item.action, goOrder)}
-    >
-      {content}
+    <button type="button" onClick={() => goOrder()}>
+      {children}
     </button>
   );
 }
@@ -75,7 +46,6 @@ export default function PublicMenuLanding() {
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [locating, setLocating] = useState(false);
   const [nearest, setNearest] = useState(null);
   const [search, setSearch] = useState("");
   const geoAttemptRef = useRef(false);
@@ -102,24 +72,17 @@ export default function PublicMenuLanding() {
     if (!data?.branches?.length || geoAttemptRef.current) return;
     geoAttemptRef.current = true;
     let cancelled = false;
-    setLocating(true);
     requestUserLocation()
       .then(({ lat, lng }) => {
         if (cancelled) return;
         const match = findNearestBranch(data.branches, lat, lng);
-        if (match && match.distanceKm <= AUTO_RADIUS_KM) {
-          setNearest(match);
-          navigate(`/m/branch/${match.branch.id}`, { replace: true });
-        } else if (match) setNearest(match);
+        if (match && match.distanceKm <= AUTO_RADIUS_KM) setNearest(match);
       })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLocating(false);
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [data, navigate]);
+  }, [data]);
 
   const filteredBranches = useMemo(() => {
     if (!data?.branches) return [];
@@ -140,13 +103,6 @@ export default function PublicMenuLanding() {
     () => (web.orderStrip || []).filter((item) => item.imageUrl && isWebItemEnabled(item)),
     [web.orderStrip]
   );
-  const orderStripDelivery = orderStripItems.slice(0, ORDER_STRIP_DELIVERY_COUNT);
-  const orderStripButtons = orderStripItems.slice(
-    ORDER_STRIP_DELIVERY_COUNT,
-    ORDER_STRIP_DELIVERY_COUNT + ORDER_STRIP_BUTTON_COUNT
-  );
-  const showOrderStripFill =
-    web.showOrderStripFillImage !== false && !!web.orderStripFillImageUrl;
   const previewBranchId = preview?.branch?.id;
   const money = (v) => formatPublicMoney(v);
 
@@ -156,13 +112,12 @@ export default function PublicMenuLanding() {
     if (b) goBranch(b.id);
     else document.getElementById("subeler")?.scrollIntoView({ behavior: "smooth" });
   };
+  const goBranches = () => document.getElementById("subeler")?.scrollIntoView({ behavior: "smooth" });
 
   if (loading) {
     return (
       <PublicQrShell firm={firm}>
-        <div className="container py-5 text-center" style={{ minHeight: "100vh" }}>
-          {t("qr.loadingMenu")}
-        </div>
+        <div className="ps-loading">{t("qr.loadingMenu")}</div>
       </PublicQrShell>
     );
   }
@@ -170,7 +125,7 @@ export default function PublicMenuLanding() {
   if (error || !data) {
     return (
       <PublicQrShell firm={firm}>
-        <div className="container py-5 text-center text-danger">{error || t("qr.menuNotFound")}</div>
+        <div className="ps-empty">{error || t("qr.menuNotFound")}</div>
       </PublicQrShell>
     );
   }
@@ -178,190 +133,152 @@ export default function PublicMenuLanding() {
   return (
     <PublicQrShell firm={firm}>
       {web.showPromoSlider !== false && (
-        <OsesPromoSlider slides={web.promoSlides} onSlideClick={goOrder} />
+        <OsesPromoSlider slides={web.promoSlides} onOrder={goOrder} onBranches={goBranches} />
+      )}
+
+      {nearest?.branch && (
+        <div className="ps-nearest">
+          <p>
+            {t("qr.nearestBranch", {
+              name: getBranchLabel(nearest.branch),
+              km: Number(nearest.distanceKm).toFixed(1),
+            })}
+          </p>
+          <button type="button" className="ps-btn" onClick={() => goBranch(nearest.branch.id)}>
+            {t("qr.goToBranch")}
+          </button>
+        </div>
       )}
 
       {web.showOrderStrip && orderStripItems.length > 0 && (
-        <div className="container order-strip">
-          {orderStripDelivery.length > 0 && (
-            <div className="row order-strip__row order-strip__row--delivery">
-              {orderStripDelivery.map((item, i) => (
-                <div key={item.id || `strip-delivery-${i}`} className="col-12 col-md-6">
-                  <OrderStripImage item={item} goOrder={goOrder} />
-                </div>
+        <section className="ps-section">
+          <div className="ps-wrap">
+            <div className={`ps-banners${orderStripItems.length >= 3 ? " ps-banners--3" : ""}`}>
+              {orderStripItems.slice(0, 3).map((item, i) => (
+                <BannerLink key={item.id || `strip-${i}`} item={item} goOrder={goOrder}>
+                  <img src={item.imageUrl} alt={item.alt || ""} />
+                </BannerLink>
               ))}
-            </div>
-          )}
-          {orderStripButtons.length > 0 && (
-            <div className="row order-strip__row order-strip__row--buttons">
-              {orderStripButtons.map((item, i) => (
-                <div key={item.id || `strip-btn-${i}`} className="col-12 col-md-4">
-                  <OrderStripImage item={item} goOrder={goOrder} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {showOrderStripFill && (
-        <div className="container order-strip order-strip--fill">
-          <div className="row">
-            <div className="col-12">
-              <OrderStripImage
-                item={{
-                  imageUrl: web.orderStripFillImageUrl,
-                  alt: web.orderStripFillImageAlt || "",
-                  action: web.orderStripFillAction || "order",
-                }}
-                goOrder={goOrder}
-              />
             </div>
           </div>
-        </div>
+        </section>
       )}
 
       {web.showCampaigns !== false &&
         web.campaignBanners.some((banner) => banner.imageUrl && isWebItemEnabled(banner)) && (
-        <div className="container campaign-strip" id="kampanyalar">
-          <div className="row order-strip__row order-strip__row--campaigns">
-            {web.campaignBanners.map((banner, i) =>
-              banner.imageUrl && isWebItemEnabled(banner) ? (
-                <div key={banner.id || `${banner.imageUrl}-${i}`} className="col-12 col-md-6">
-                  <button type="button" className="order-strip__link order-strip__link--btn" onClick={goOrder}>
-                    <img src={banner.imageUrl} className="order-strip__img" alt={banner.alt || ""} loading="lazy" />
-                  </button>
-                </div>
-              ) : null
-            )}
-          </div>
-        </div>
-      )}
-
-      {web.showFranchise && (
-        <div
-          className="franchiseFwrd my-5"
-          id="franchise"
-          style={
-            web.franchiseBackgroundUrl
-              ? { backgroundImage: `url(${web.franchiseBackgroundUrl})` }
-              : undefined
-          }
-        >
-          <div className="container">
-            <div className="row">
-              <div className="col-12 col-sm-10 offset-sm-1">
-                <div
-                  className="box"
-                  style={
-                    web.franchiseIconUrl
-                      ? {
-                          backgroundImage: `url(${web.franchiseIconUrl})`,
-                          backgroundRepeat: "no-repeat",
-                          backgroundPosition: "90% center",
-                          backgroundSize: "20%",
-                        }
-                      : undefined
-                  }
-                >
-                  <h2 className="title32 txt_green">
-                    {web.franchiseTitle1}
-                    <br />
-                    {web.franchiseTitle2}
-                  </h2>
-                  <h3 className="title24 txt_white">{web.franchiseSubtitle}</h3>
-                  <p className="txt_white">{welcome}</p>
-                  <button type="button" className="btn_box_green btn_box" onClick={goOrder}>
-                    {t("qr.osesOrderNow")} <i className="fas fa-check" />
-                  </button>
-                </div>
+          <section className="ps-section" id="kampanyalar">
+            <div className="ps-wrap">
+              <h2>{t("qr.nav.campaigns")}</h2>
+              <p className="ps-section__lead">{t("qr.heroHint")}</p>
+              <div className="ps-banners">
+                {web.campaignBanners.map((banner, i) =>
+                  banner.imageUrl && isWebItemEnabled(banner) ? (
+                    <button type="button" key={banner.id || `${banner.imageUrl}-${i}`} onClick={goOrder}>
+                      <img src={banner.imageUrl} alt={banner.alt || ""} />
+                    </button>
+                  ) : null
+                )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {web.showFeatures !== false && web.features.some(isWebItemEnabled) && (
-        <div className="container">
-          <div className="card-deck">
-            {web.features.filter(isWebItemEnabled).map((card) => (
-              <div className="card" key={card.title}>
-                <img className="card-img-top" src={card.iconUrl} alt="" />
-                <div className="card-body">
-                  <h5 className="card-title title18 txt_green">{card.title}</h5>
-                  <p className="card-text">{card.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+          </section>
+        )}
 
       {preview?.products?.length > 0 && previewBranchId && (
-        <div className="container productList mt-5">
-          <div className="row">
-            <div className="col-12">
-              <h2 className="title32 txt_green my-5">{t("qr.nav.products")}</h2>
-            </div>
-          </div>
-          <div className="row">
-            {preview.products.map((product) => (
-              <div key={product.id} className="col-12 col-lg-3 col-md-4 col-sm-6 my-4">
+        <section className="ps-section" id="mehsullar">
+          <div className="ps-wrap">
+            <h2>{t("qr.nav.products")}</h2>
+            <p className="ps-section__lead">{t("qr.osesSlide1Sub")}</p>
+            <div className="ps-products">
+              {preview.products.map((product) => (
                 <OsesSingleProduct
+                  key={product.id}
                   product={product}
                   imageSrc={getPublicProductImageSrc(previewBranchId, product)}
                   priceLabel={money(product.price1)}
                   canOrder={preview.branch?.menuAcceptOrders && preview.branch?.isOpen !== false}
                   onAdd={() => goBranch(previewBranchId)}
                 />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
+      )}
+
+      {web.showFeatures !== false && web.features.some(isWebItemEnabled) && (
+        <section className="ps-section">
+          <div className="ps-wrap">
+            <div className="ps-features">
+              {web.features.filter(isWebItemEnabled).map((card) => (
+                <article className="ps-feature" key={card.title}>
+                  {card.iconUrl ? <img src={card.iconUrl} alt="" /> : null}
+                  <h3>{card.title}</h3>
+                  <p>{card.desc}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {web.showFranchise && (
+        <section className="ps-section" id="franchise">
+          <div className="ps-wrap">
+            <div
+              className="ps-franchise"
+              style={web.franchiseBackgroundUrl ? { backgroundImage: `url(${web.franchiseBackgroundUrl})` } : undefined}
+            >
+              <h2>
+                {web.franchiseTitle1}
+                <br />
+                {web.franchiseTitle2}
+              </h2>
+              <h3>{web.franchiseSubtitle}</h3>
+              <p>{welcome}</p>
+              <button type="button" className="ps-btn" onClick={goOrder}>
+                {t("qr.osesOrderNow")}
+              </button>
+            </div>
+          </div>
+        </section>
       )}
 
       {web.showLezzetlerBanner && web.lezzetlerImageUrl && (
-        <div className="container mt-5">
-          <div className="row">
-            <div className="col-12">
-              <a href="#subeler">
-                <img src={web.lezzetlerImageUrl} className="img-fluid" alt={t("qr.osesLezzetleri")} />
-              </a>
-            </div>
+        <section className="ps-section">
+          <div className="ps-wrap">
+            <a href="#subeler" className="ps-banner-wide">
+              <img src={web.lezzetlerImageUrl} alt={t("qr.osesLezzetleri")} />
+            </a>
           </div>
-        </div>
+        </section>
       )}
 
-      <div className="container my-5" id="subeler">
-        <div className="row">
-          <div className="col-12">
-            <h2 className="title32 txt_green my-4">{t("qr.nav.branches")}</h2>
-            {locating && <p className="text-center">{t("qr.locating")}</p>}
-            <input
-              className="form-control mb-4"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("qr.searchBranch")}
-            />
-          </div>
-        </div>
-        <div id="satisnoktalari">
-          <div className="row">
+      <section className="ps-section" id="subeler">
+        <div className="ps-wrap">
+          <h2>{t("qr.nav.branches")}</h2>
+          <p className="ps-section__lead">{t("qr.selectBranch")}</p>
+          <input
+            className="ps-search"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("qr.searchBranch")}
+          />
+          <div className="ps-branches">
             {filteredBranches.map((branch) => (
-              <div key={branch.id} className="col-12 mb-3">
-                <div className="wrapper" role="button" tabIndex={0} onClick={() => goBranch(branch.id)} onKeyDown={(e) => e.key === "Enter" && goBranch(branch.id)}>
-                  <h2>{getBranchLabel(branch)}</h2>
-                  {branch.address && <h3>{branch.address}</h3>}
-                  <p>
-                    {branch.openTime} – {branch.closeTime} · {branch.isOpen ? t("qr.openNow") : t("qr.closedNow")}
-                  </p>
-                </div>
-              </div>
+              <button type="button" className="ps-branch" key={branch.id} onClick={() => goBranch(branch.id)}>
+                <h3>{getBranchLabel(branch)}</h3>
+                {branch.address ? <p>{branch.address}</p> : null}
+                <p>
+                  {branch.openTime} – {branch.closeTime}
+                </p>
+                <span className={`ps-pill${branch.isOpen ? "" : " is-closed"}`}>
+                  {branch.isOpen ? t("qr.openNow") : t("qr.closedNow")}
+                </span>
+              </button>
             ))}
           </div>
         </div>
-      </div>
+      </section>
     </PublicQrShell>
   );
 }

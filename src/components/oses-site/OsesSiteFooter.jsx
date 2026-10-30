@@ -13,61 +13,41 @@ export default function OsesSiteFooter({ firm }) {
   const copyright = web.copyrightSuffix?.trim() || t("qr.osesCopyright");
 
   const links = [
-    { label: t("qr.nav.home"), href: "/m", route: true },
-    { label: t("qr.osesNavCorporate"), href: "/m", route: true },
-    { label: t("qr.nav.products"), href: "/m", route: true },
+    { label: t("qr.nav.home"), href: "/m" },
+    { label: t("qr.nav.products"), href: "/m#mehsullar" },
     { label: t("qr.nav.campaigns"), href: "/m#kampanyalar" },
     { label: t("qr.nav.branches"), href: "/m#subeler" },
-    { label: t("qr.osesNavMedia"), href: "/m#iletisim" },
     { label: t("qr.osesNavFranchise"), href: "/m#franchise" },
     { label: t("qr.nav.contact"), href: "/m#iletisim" },
   ];
 
   return (
-    <footer id="iletisim">
-      <div className="container">
-        <div className="row">
-          <div className="col-12 col-sm-3">
-            {web.footerBadgeUrl ? (
-              <img src={web.footerBadgeUrl} className="img-fluid" alt="" />
-            ) : null}
-            <p className="phone">{phone || "—"}</p>
-            <p className="mail">
-              {email ? (
-                <a href={`mailto:${email}`}>{email}</a>
-              ) : (
-                <span>—</span>
-              )}
-            </p>
-          </div>
-          <div className="col-12 col-sm-9">
-            <ul>
-              {links.map((item) => (
-                <li key={item.label}>
-                  {item.route ? (
-                    <Link to={item.href}>{item.label}</Link>
-                  ) : (
-                    <a href={item.href}>{item.label}</a>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <div className="social">
-              <p>
-                <span>{t("qr.osesSocialTitle")}</span>
-                <br />
-                <QrSocialLinks social={social} variant="fab" className="oses-footer__social" />
-              </p>
-            </div>
-          </div>
-          <div className="col-12">
-            <hr />
-            <p className="text-center mb-0">
-              © {new Date().getFullYear()} {firm?.menuTitle || BRAND_NAME} | {copyright}
+    <footer className="ps-footer" id="iletisim">
+      <div className="ps-wrap ps-footer__grid">
+        <div>
+          <p className="phone">{phone || "—"}</p>
+          <p className="mail">
+            {email ? <a href={`mailto:${email}`}>{email}</a> : <span>—</span>}
+          </p>
+          <div className="social">
+            <p>
+              {t("qr.osesSocialTitle")}
+              <br />
+              <QrSocialLinks social={social} variant="fab" className="oses-footer__social" />
             </p>
           </div>
         </div>
+        <ul>
+          {links.map((item) => (
+            <li key={item.label}>
+              {item.href.includes("#") ? <a href={item.href}>{item.label}</a> : <Link to={item.href}>{item.label}</Link>}
+            </li>
+          ))}
+        </ul>
       </div>
+      <p className="ps-wrap ps-footer__copy">
+        © {new Date().getFullYear()} {firm?.menuTitle || BRAND_NAME} | {copyright}
+      </p>
     </footer>
   );
 }

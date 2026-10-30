@@ -104,6 +104,9 @@ export default function Login({ mode = "sube" }) {
       <div className="login-container">
         <div className="login-grid">
           <div className="login-card">
+            <div className="login-logo">
+              <img src="/icons/cigkofte-192.png" alt="İstanbul Çiğköfte" />
+            </div>
             <h4>{t(copy.title)}</h4>
             <p className="login-hint">{t(copy.hint)}</p>
 

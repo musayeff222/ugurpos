@@ -16,7 +16,9 @@ export default function PublicOrderStatus() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchPublicFirmMenu().then((data) => setFirm(data.firm)).catch(() => {});
+    fetchPublicFirmMenu()
+      .then((data) => setFirm(data.firm))
+      .catch(() => {});
   }, []);
 
   const load = () => {
@@ -40,9 +42,11 @@ export default function PublicOrderStatus() {
   if (error && !order) {
     return (
       <PublicQrShell firm={firm}>
-        <div className="container py-5 text-center">
-          <p className="text-danger">{error}</p>
-          <Link to="/m" className="btn_box_green btn_box">{t("qr.nav.home")}</Link>
+        <div className="ps-empty">
+          <p>{error}</p>
+          <Link to="/m" className="ps-btn">
+            {t("qr.nav.home")}
+          </Link>
         </div>
       </PublicQrShell>
     );
@@ -51,53 +55,48 @@ export default function PublicOrderStatus() {
   if (!order) {
     return (
       <PublicQrShell firm={firm}>
-        <div className="container py-5 text-center">{t("qr.loadingOrder")}</div>
+        <div className="ps-loading">{t("qr.loadingOrder")}</div>
       </PublicQrShell>
     );
   }
 
   return (
     <PublicQrShell firm={firm || { menuTitle: order.firmName }}>
-      <div className="container my-5">
-        <div className="row justify-content-center">
-          <div className="col-12 col-md-8">
-            <div className="p-4" style={{ background: "#f8f8f8", borderRadius: 12 }}>
-              <p className="txt_green title18">{statusText}</p>
-              <h2 className="title32 txt_green">{t("qr.orderReceived")}</h2>
-              <p className="price">
-                <b>{order.code}</b>
-              </p>
-              <p>{t("qr.orderReceivedHint")}</p>
-              <hr />
-              <p>
-                {t("qr.branch")}: <strong>{getBranchLabel({ name: order.branchName })}</strong>
-              </p>
-              {order.deliveryAddress && (
-                <p>
-                  {t("qr.orderDeliveryAddress")}: <strong>{order.deliveryAddress}</strong>
-                </p>
-              )}
-              <ul>
-                {order.items.map((item) => (
-                  <li key={item.id}>
-                    {item.qty}x {item.name} — {money(item.qty * item.price)}
-                  </li>
-                ))}
-              </ul>
-              <div className="d-flex justify-content-between">
-                <span>{t("common.total")}</span>
-                <strong className="price">{money(order.total)}</strong>
-              </div>
-              <div className="mt-4">
-                <button type="button" className="btn_box_green btn_box mr-2" onClick={() => navigate(`/m/branch/${order.branchId}`)}>
-                  {t("qr.nav.menu")}
-                </button>
-                <Link to="/m" className="btn_box_line">
-                  {t("qr.nav.home")}
-                </Link>
-              </div>
-            </div>
-          </div>
+      <div className="ps-panel">
+        <p className="ps-kicker" style={{ color: "#c9a227" }}>
+          {statusText}
+        </p>
+        <h2>{t("qr.orderReceived")}</h2>
+        <p className="ps-price">
+          <b>{order.code}</b>
+        </p>
+        <p>{t("qr.orderReceivedHint")}</p>
+        <p>
+          {t("qr.branch")}: <strong>{getBranchLabel({ name: order.branchName })}</strong>
+        </p>
+        {order.deliveryAddress ? (
+          <p>
+            {t("qr.orderDeliveryAddress")}: <strong>{order.deliveryAddress}</strong>
+          </p>
+        ) : null}
+        <ul>
+          {order.items.map((item) => (
+            <li key={item.id}>
+              {item.qty}x {item.name} — {money(item.qty * item.price)}
+            </li>
+          ))}
+        </ul>
+        <div className="ps-total">
+          <span>{t("common.total")}</span>
+          <strong>{money(order.total)}</strong>
+        </div>
+        <div className="ps-hero__actions" style={{ marginTop: 20 }}>
+          <button type="button" className="ps-btn" onClick={() => navigate(`/m/branch/${order.branchId}`)}>
+            {t("qr.nav.menu")}
+          </button>
+          <Link to="/m" className="ps-btn-ghost">
+            {t("qr.nav.home")}
+          </Link>
         </div>
       </div>
     </PublicQrShell>
