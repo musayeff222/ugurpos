@@ -4,7 +4,7 @@ import { getDb } from "../db/index.js";
 import { rowToBranch } from "../db/migrate-branches.js";
 import { signAdminToken, signBranchToken, signElemanToken, signStaffToken, authMiddleware } from "../middleware/auth.js";
 import { getBranchesForFirm } from "../middleware/branch.js";
-import { verifyBranchPassword, normalizeBranchEmail } from "../utils/branchAuth.js";
+import { verifyBranchPassword, findActiveBranchByLogin } from "../utils/branchAuth.js";
 import { logActivity } from "../utils/activityLog.js";
 import { openStaffShift } from "../utils/staffShifts.js";
 import { getFirmCurrency } from "../utils/qrMenu.js";
@@ -113,9 +113,7 @@ router.post("/branch-login", (req, res) => {
   }
 
   const db = getDb();
-  const branch = db
-    .prepare("SELECT * FROM branches WHERE email = ? AND active = 1")
-    .get(normalizeBranchEmail(email));
+  const branch = findActiveBranchByLogin(db, email);
 
   if (!branch || !verifyBranchPassword(password, branch.password_hash)) {
     return res.status(401).json({ error: "Invalid credentials" });
@@ -161,9 +159,7 @@ router.get("/staff-for-login", (req, res) => {
   }
 
   const db = getDb();
-  const branch = db
-    .prepare("SELECT id, name FROM branches WHERE email = ? AND active = 1")
-    .get(normalizeBranchEmail(branchEmail));
+  const branch = findActiveBranchByLogin(db, branchEmail);
   if (!branch) {
     return res.status(404).json({ error: "Filial tapılmadı" });
   }

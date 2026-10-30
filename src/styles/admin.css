@@ -2758,6 +2758,10 @@
   font-weight: 600;
 }
 
+.crm-login .btn-login-quit {
+  margin-top: 12px;
+}
+
 .crm-listbar {
   display: flex;
   justify-content: space-between;

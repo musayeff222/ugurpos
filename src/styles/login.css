@@ -283,6 +283,25 @@
   background: #14b85d;
 }
 
+.btn-login-quit {
+  width: 100%;
+  margin-top: 12px;
+  border: 1px solid #d0d7e4;
+  background: #fff;
+  color: #3d4a63;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-login-quit:hover {
+  background: #f8eaea;
+  color: #b42318;
+  border-color: #e8b4b0;
+}
+
 .login-links {
   text-align: right;
   margin-top: 16px;

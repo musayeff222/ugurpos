@@ -9,12 +9,35 @@ export function verifyBranchPassword(password, hash) {
   return bcrypt.compareSync(String(password), hash);
 }
 
+export const DEFAULT_BRANCH_EMAIL_DOMAIN = "ugurpos.az";
+
 export function normalizeBranchEmail(email) {
   return String(email).trim().toLowerCase();
 }
 
 export function isValidBranchEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeBranchEmail(email));
+}
+
+export function findActiveBranchByLogin(db, login) {
+  const normalized = normalizeBranchEmail(login);
+  if (!normalized) return null;
+
+  if (normalized.includes("@")) {
+    return db.prepare("SELECT * FROM branches WHERE email = ? AND active = 1").get(normalized) || null;
+  }
+
+  const defaultEmail = `${normalized}@${DEFAULT_BRANCH_EMAIL_DOMAIN}`;
+  const byDefaultDomain = db
+    .prepare("SELECT * FROM branches WHERE email = ? AND active = 1")
+    .get(defaultEmail);
+  if (byDefaultDomain) return byDefaultDomain;
+
+  const rows = db
+    .prepare("SELECT * FROM branches WHERE active = 1 AND (email = ? OR email LIKE ?)")
+    .all(normalized, `${normalized}@%`);
+  const matches = rows.filter((row) => String(row.email || "").split("@")[0] === normalized);
+  return matches.length === 1 ? matches[0] : null;
 }
 
 export function getNextBranchNumber(db, firmId) {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import DesktopQuitButton from "../components/DesktopQuitButton";
 import { useAuth } from "../context/AuthContext";
 import { getPostLoginPath, isElemanAccount } from "../utils/authRedirect";
 import "../styles/login.css";
@@ -82,6 +83,7 @@ export default function AdminLogin() {
         <Link className="crm-login__pos" to="/login/sube">
           POS / şube girişi
         </Link>
+        <DesktopQuitButton />
       </form>
     </div>
   );

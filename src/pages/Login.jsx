@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import DesktopQuitButton from "../components/DesktopQuitButton";
 import LanguageSwitcher from "../components/public/LanguageSwitcher";
 import StaffLoginForm from "../components/StaffLoginForm";
 import { useAuth } from "../context/AuthContext";
@@ -121,11 +122,15 @@ export default function Login({ mode = "sube" }) {
               <form onSubmit={handleBranchSubmit}>
                 <div className="form-group">
                   <input
-                    type="email"
+                    type="text"
                     placeholder={t("login.email")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="username"
+                    inputMode="text"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                   />
                 </div>
                 <div className="form-group">
@@ -143,6 +148,7 @@ export default function Login({ mode = "sube" }) {
                 </button>
               </form>
             )}
+            <DesktopQuitButton />
           </div>
         </div>
       </div>
