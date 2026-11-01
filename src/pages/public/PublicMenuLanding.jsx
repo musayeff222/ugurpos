@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import PublicQrShell from "../../components/public/PublicQrShell";
 import OsesPromoSlider from "../../components/oses-site/OsesPromoSlider";
 import OsesSingleProduct from "../../components/oses-site/OsesSingleProduct";
@@ -98,7 +98,6 @@ export default function PublicMenuLanding() {
 
   const firm = data?.firm;
   const web = getWebConfig(firm);
-  const welcome = web.franchiseText?.trim() || firm?.menuWelcome || t("qr.osesFranchiseText");
   const orderStripItems = useMemo(
     () => (web.orderStrip || []).filter((item) => item.imageUrl && isWebItemEnabled(item)),
     [web.orderStrip]
@@ -220,27 +219,23 @@ export default function PublicMenuLanding() {
         </section>
       )}
 
-      {web.showFranchise && (
-        <section className="ps-section" id="franchise">
-          <div className="ps-wrap">
-            <div
-              className="ps-franchise"
-              style={web.franchiseBackgroundUrl ? { backgroundImage: `url(${web.franchiseBackgroundUrl})` } : undefined}
-            >
-              <h2>
-                {web.franchiseTitle1}
-                <br />
-                {web.franchiseTitle2}
-              </h2>
-              <h3>{web.franchiseSubtitle}</h3>
-              <p>{welcome}</p>
-              <button type="button" className="ps-btn" onClick={goOrder}>
-                {t("qr.osesOrderNow")}
-              </button>
-            </div>
+      <section className="ps-section" id="franchise">
+        <div className="ps-wrap">
+          <div
+            className="ps-franchise"
+            style={{
+              backgroundImage: `url(${web.franchiseBackgroundUrl || "/images/franchise/kiosk.jpg"})`,
+            }}
+          >
+            <h2>{t("franchise.title")}</h2>
+            <h3>{t("franchise.chips")}</h3>
+            <p>{t("franchise.lead")}</p>
+            <Link className="ps-btn" to="/m/franchise">
+              {t("franchise.cta")}
+            </Link>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {web.showLezzetlerBanner && web.lezzetlerImageUrl && (
         <section className="ps-section">

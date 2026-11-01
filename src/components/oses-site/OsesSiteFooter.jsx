@@ -17,7 +17,7 @@ export default function OsesSiteFooter({ firm }) {
     { label: t("qr.nav.products"), href: "/m#mehsullar" },
     { label: t("qr.nav.campaigns"), href: "/m#kampanyalar" },
     { label: t("qr.nav.branches"), href: "/m#subeler" },
-    { label: t("qr.osesNavFranchise"), href: "/m#franchise" },
+    { label: t("qr.osesNavFranchise"), href: "/m/franchise" },
     { label: t("qr.nav.contact"), href: "/m#iletisim" },
   ];
 

@@ -44,6 +44,17 @@ export async function fetchPublicOrder(orderId) {
   return data;
 }
 
+export async function submitFranchiseApply(payload) {
+  const res = await fetch("/api/public/franchise-apply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Müraciət göndərilmədi");
+  return data;
+}
+
 export async function fetchMyPublicOrders() {
   const deviceId = getOrCreateDeviceId();
   if (!deviceId) return [];

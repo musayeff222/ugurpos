@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import DesktopWindowClose from "./components/DesktopWindowClose";
 import MainLayout from "./layouts/MainLayout";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
@@ -80,6 +81,7 @@ import ProductionProducts from "./pages/production/ProductionProducts";
 import ProductionReady from "./pages/production/ProductionReady";
 import ProductionBranches from "./pages/production/ProductionBranches";
 import PublicMenuLanding from "./pages/public/PublicMenuLanding";
+import PublicFranchise from "./pages/public/PublicFranchise";
 import PublicBranchMenu from "./pages/public/PublicBranchMenu";
 import PublicBranchCart from "./pages/public/PublicBranchCart";
 import PublicOrderStatus from "./pages/public/PublicOrderStatus";
@@ -102,6 +104,7 @@ function HomeRedirect() {
 export default function App() {
   return (
     <>
+    <DesktopWindowClose />
     <TawkChat />
     <Routes>
       <Route path="/login" element={<Navigate to="/m" replace />} />
@@ -130,6 +133,7 @@ export default function App() {
       <Route path="/m/orders" element={<Navigate to="/m" replace />} />
       <Route path="/m/branch/:branchId/cart" element={<PublicBranchCart />} />
       <Route path="/m/branch/:branchId" element={<PublicBranchMenu />} />
+      <Route path="/m/franchise" element={<PublicFranchise />} />
       <Route path="/m" element={<PublicMenuLanding />} />
       <Route path="/m/:slug/:branchId" element={<LegacyBranchRedirect />} />
       <Route path="/m/:slug" element={<LegacyMenuRedirect />} />

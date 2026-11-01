@@ -22,6 +22,7 @@ import {
 import { isMenuOpen, resolveMenuHours } from "../utils/menuHours.js";
 import { buildDeliveryOrderNote } from "../utils/orderAddress.js";
 import { logActivity } from "../utils/activityLog.js";
+import { notifyTelegram } from "../utils/telegram.js";
 import { sql as SQL } from "../db/dialect.js";
 
 const router = Router();
@@ -308,6 +309,54 @@ router.get("/orders/:orderId", (req, res) => {
   const order = loadQrOrder(db, req.params.orderId);
   if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
   res.json(order);
+});
+
+router.post("/franchise-apply", (req, res) => {
+  const name = String(req.body?.name || "").trim();
+  const phone = String(req.body?.phone || "").trim();
+  const city = String(req.body?.city || "").trim();
+  const budget = String(req.body?.budget || "").trim();
+  const experience = String(req.body?.experience || "").trim() === "yes" ? "yes" : "no";
+  const note = String(req.body?.note || "").trim();
+
+  if (!name || !phone || !city) {
+    return res.status(400).json({ error: "Ad, telefon və şəhər lazımdır" });
+  }
+
+  const db = getDb();
+  bootstrapFirmSettings(db);
+  const firmRow = getDefaultFirmSettings(db);
+  const firmId = firmRow?.firm_id || "firm";
+  const id = uid("fr");
+  const createdAt = new Date().toISOString();
+
+  db.prepare(
+    `INSERT INTO franchise_applications (id, firm_id, name, phone, city, budget, experience, note, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, firmId, name, phone, city, budget || "40-60", experience, note || null, createdAt);
+
+  logActivity(db, {
+    firmId,
+    type: "franchise_apply",
+    title: `${name} franchise müraciəti`,
+    detail: `${phone} · ${city} · ${budget || "40-60"}`,
+    refId: id,
+  });
+  notifyTelegram(
+    [
+      "FRANCHISE MURACIET",
+      `Ad: ${name}`,
+      `Telefon: ${phone}`,
+      `Seher: ${city}`,
+      budget && `Budce: ${budget}`,
+      `Tecrube: ${experience === "yes" ? "Beli" : "Xeyr"}`,
+      note && `Qeyd: ${note}`,
+    ]
+      .filter(Boolean)
+      .join("\n")
+  );
+
+  res.json({ ok: true, id });
 });
 
 router.get("/my-orders", (req, res) => {

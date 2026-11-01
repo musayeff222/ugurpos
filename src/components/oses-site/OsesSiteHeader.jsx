@@ -20,7 +20,7 @@ export default function OsesSiteHeader({ firm }) {
     { label: t("qr.nav.products"), to: menuPath },
     { label: t("qr.nav.campaigns"), to: "/m#kampanyalar" },
     { label: t("qr.nav.branches"), to: "/m#subeler" },
-    { label: t("qr.osesNavFranchise"), to: "/m#franchise" },
+    { label: t("qr.osesNavFranchise"), to: "/m/franchise" },
     { label: t("qr.nav.contact"), to: "/m#iletisim" },
   ];
 
@@ -28,6 +28,7 @@ export default function OsesSiteHeader({ firm }) {
     if (to.startsWith("/m/branch") && location.pathname.startsWith("/m/branch") && !location.pathname.includes("/cart")) {
       return true;
     }
+    if (to === "/m/franchise") return location.pathname === "/m/franchise";
     return false;
   };
 

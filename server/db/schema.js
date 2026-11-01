@@ -6,6 +6,7 @@ import { migrateOfflineSync } from "./migrate-offline-sync.js";
 import { migrateFirmCatalog } from "./migrate-firm-catalog.js";
 import { migrateAccounting } from "./migrate-accounting.js";
 import { migrateEleman } from "./migrate-eleman.js";
+import { migrateFranchiseLeads } from "./migrate-franchise-leads.js";
 import { importExistingBranchProducts } from "../utils/firmCatalog.js";
 import { initMysqlSchema } from "./schema-mysql.js";
 import { hasColumn, addColumnIfMissing } from "./columns.js";
@@ -21,6 +22,7 @@ export function initSchema(db) {
     migrateFirmCatalog(db);
     migrateAccounting(db);
     migrateEleman(db);
+    migrateFranchiseLeads(db);
     importExistingBranchProducts(db);
     return;
   }
@@ -257,5 +259,6 @@ function initSqliteSchema(db) {
   migrateFirmCatalog(db);
   migrateAccounting(db);
   migrateEleman(db);
+  migrateFranchiseLeads(db);
   importExistingBranchProducts(db);
 }
