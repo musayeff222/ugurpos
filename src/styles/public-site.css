@@ -489,17 +489,20 @@ body.ps-site {
 .ps-franchise {
   border-radius: 28px;
   overflow: hidden;
-  background: #14110d center/cover no-repeat;
+  background: #14110d center 42%/cover no-repeat;
   color: #fff;
   padding: 48px 40px;
   position: relative;
+  min-height: 360px;
 }
 
 .ps-franchise::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(12, 10, 8, 0.88), rgba(12, 10, 8, 0.42));
+  background:
+    linear-gradient(90deg, rgba(12, 10, 8, 0.7) 0%, rgba(12, 10, 8, 0.22) 70%),
+    linear-gradient(180deg, transparent 30%, rgba(12, 10, 8, 0.55) 100%);
 }
 
 .ps-franchise > * {
@@ -818,10 +821,11 @@ body.ps-site {
 }
 
 .ps-fr-hero {
-  min-height: 72vh;
+  min-height: 78vh;
   display: grid;
   align-items: end;
   background: #14110d center/cover no-repeat;
+  background-position: center 42%;
   position: relative;
   color: #fff;
 }
@@ -830,7 +834,9 @@ body.ps-site {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(12, 10, 8, 0.88) 8%, rgba(12, 10, 8, 0.35) 70%);
+  background:
+    linear-gradient(90deg, rgba(12, 10, 8, 0.62) 0%, rgba(12, 10, 8, 0.18) 52%, rgba(12, 10, 8, 0.08) 100%),
+    linear-gradient(180deg, rgba(12, 10, 8, 0.12) 0%, rgba(12, 10, 8, 0.22) 48%, rgba(12, 10, 8, 0.78) 100%);
 }
 
 .ps-fr-hero__copy {

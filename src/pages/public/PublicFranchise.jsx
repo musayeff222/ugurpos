@@ -87,7 +87,7 @@ export default function PublicFranchise() {
     <PublicQrShell firm={firm}>
       <section
         className="ps-fr-hero"
-        style={{ backgroundImage: "url(/images/franchise/kiosk.jpg)" }}
+        style={{ backgroundImage: "url(/images/franchise/banner.jpg)" }}
       >
         <div className="ps-wrap ps-fr-hero__copy">
           <p className="ps-fr-kicker">{t("franchise.kicker")}</p>

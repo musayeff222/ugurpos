@@ -224,7 +224,7 @@ export default function PublicMenuLanding() {
           <div
             className="ps-franchise"
             style={{
-              backgroundImage: `url(${web.franchiseBackgroundUrl || "/images/franchise/kiosk.jpg"})`,
+              backgroundImage: "url(/images/franchise/banner.jpg)",
             }}
           >
             <h2>{t("franchise.title")}</h2>
